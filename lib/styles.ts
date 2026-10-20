@@ -232,3 +232,24 @@ export function formatDateTime(dateStr: string) {
 
 
 // END DEPARTMENT-TICKETS
+
+// START SHARED UI (buttons / inputs)
+// Class-string constants for the shared look. Compose with template strings,
+// e.g. `${btnPrimary} ${btnSm}`. See docs/DESIGN.md.
+
+const btnBase =
+  'inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed'
+
+export const btnPrimary = `${btnBase} bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500`
+export const btnSecondary = `${btnBase} border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus-visible:ring-gray-400`
+export const btnDanger = `${btnBase} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`
+export const btnSuccess = `${btnBase} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`
+/** Size modifier for table-row / inline actions; append after a btn* constant. */
+export const btnSm = 'px-3 py-1.5 text-xs'
+
+export const input =
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-gray-50 disabled:text-gray-500'
+/** Append to `input` when the field has a validation error. */
+export const inputError = 'border-red-400 focus:border-red-500 focus:ring-red-500/30'
+
+// END SHARED UI
