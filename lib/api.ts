@@ -125,7 +125,8 @@ async function request<T>(
 
 export interface BlobResult {
   blob: Blob
-  filename: string
+  /** null when the server (or a proxy) did not expose Content-Disposition. */
+  filename: string | null
 }
 
 // "attachment; filename*=UTF-8''My%20Report.docx" or `filename="My Report.docx"`
@@ -156,9 +157,6 @@ async function requestBlob(
   if (!res.ok) throw toApiError(res, await readBody(res))
 
   const filename = parseContentDisposition(res.headers.get('Content-Disposition'))
-  if (!filename) {
-    throw new ApiError(res.status, 'Server did not provide a filename for the download.')
-  }
   return { blob: await res.blob(), filename }
 }
 

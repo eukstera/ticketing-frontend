@@ -7,6 +7,7 @@ import Navbar from '@/components/NavBar'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { createTicket, CreateTicketDevice } from '@/lib/tickets'
+import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import { getEmployees, Employee } from '@/lib/employees'
 import { getPriorities, getConcernTypes, Priority, LookupItem } from '@/lib/lookups'
 import { getErrorMessage, isAbortError, isApiError, FieldErrors } from '@/lib/api'
@@ -15,10 +16,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
 import { PRIORITY_STYLES, PRIORITY_FALLBACK, input, inputError, btnPrimary, btnSecondary } from '@/lib/styles'
 
-// service_department is fixed to IT (1) for now - Engineering (2) isn't
-// selectable from this form yet. Surface it here so it's easy to find if
-// that changes.
-const SERVICE_DEPARTMENT_IT = 1
+// service_department is fixed to IT for now - Engineering isn't selectable from
+// this form yet.
+const SERVICE_DEPARTMENT_IT = IT_DEPARTMENT_ID
 
 // Icon/description per known concern label; unknown labels from the BE fall back to Tag.
 const CONCERN_META: Record<string, { icon: typeof Monitor; description: string }> = {

@@ -1,5 +1,5 @@
 // lib/tickets.ts
-import { api, BlobResult } from './api'
+import { api } from './api'
 import { DepartmentTicketsResponse } from '@/types'
 
 export interface TicketComment {
@@ -98,13 +98,16 @@ export function createTicket(payload: CreateTicketPayload) {
   return api.post<{ message: string }>('/saveRequestTicketIT', payload)
 }
 
-export type AccomplishmentReportResult = BlobResult
+export interface AccomplishmentReportResult {
+  blob: Blob
+  filename: string
+}
 
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 // userId is admin-only on the BE (a non-admin passing another id gets 403).
-export function downloadAccomplishmentReport(
+export async function downloadAccomplishmentReport(
   dateFrom: string,
   dateTo: string,
   signal?: AbortSignal,
@@ -112,7 +115,16 @@ export function downloadAccomplishmentReport(
 ): Promise<AccomplishmentReportResult> {
   const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo })
   if (userId) query.set('user_id', String(userId))
-  return api.getBlob(`/reports/accomplishment?${query.toString()}`, DOCX_MIME, { signal })
+  const { blob, filename } = await api.getBlob(
+    `/reports/accomplishment?${query.toString()}`,
+    DOCX_MIME,
+    { signal }
+  )
+  if (!filename) {
+    // A proxy can strip Content-Disposition; the file itself is still good.
+    console.warn('Content-Disposition missing from the report response; using a generic filename.')
+  }
+  return { blob, filename: filename ?? `accomplishment-report_${dateFrom}_${dateTo}.docx` }
 }
 
 export interface Designation {
