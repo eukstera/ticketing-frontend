@@ -85,6 +85,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [assignOpen, setAssignOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [completeError, setCompleteError] = useState('')
+  const [taking, setTaking] = useState(false)
 
   const validId = Number.isInteger(ticketId) && ticketId > 0
   const loading = validId && state?.id !== ticketId
@@ -113,7 +115,8 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   }
 
   async function handleTake() {
-    if (!user) return
+    if (!user || taking) return
+    setTaking(true)
     try {
       await takeTicket(ticketId, user.id)
       toast('Ticket assigned to you')
@@ -121,6 +124,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       console.error(err)
       toast(getErrorMessage(err, 'Failed to take ticket'), 'error')
     } finally {
+      setTaking(false)
       refresh()
     }
   }
@@ -132,16 +136,17 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
   async function handleConfirmComplete() {
     setCompleting(true)
+    setCompleteError('')
     try {
       await markTicketComplete(ticketId)
+      setCompleteOpen(false)
       toast('Ticket marked as complete')
+      refresh()
     } catch (err) {
       console.error(err)
-      toast(getErrorMessage(err, 'Failed to mark ticket as complete'), 'error')
+      setCompleteError(getErrorMessage(err, 'Failed to mark ticket as complete'))
     } finally {
       setCompleting(false)
-      setCompleteOpen(false)
-      refresh()
     }
   }
 
@@ -187,9 +192,13 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             ticket={ticket}
             refreshError={failed ? state.error : ''}
             onRetry={refresh}
+            taking={taking}
             onTake={handleTake}
             onAssign={() => setAssignOpen(true)}
-            onComplete={() => setCompleteOpen(true)}
+            onComplete={() => {
+              setCompleteError('')
+              setCompleteOpen(true)
+            }}
           />
         )}
       </div>
@@ -208,6 +217,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         confirmLabel="Mark as Complete"
         variant="success"
         loading={completing}
+        error={completeError}
         onConfirm={handleConfirmComplete}
         onCancel={() => setCompleteOpen(false)}
       />
@@ -218,6 +228,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 function TicketBody({
   ticket,
   refreshError,
+  taking,
   onRetry,
   onTake,
   onAssign,
@@ -225,6 +236,7 @@ function TicketBody({
 }: {
   ticket: TicketDetail
   refreshError: string
+  taking: boolean
   onRetry: () => void
   onTake: () => void
   onAssign: () => void
@@ -251,6 +263,8 @@ function TicketBody({
           </div>
           <ActionCell
             ticket={toActionTicket(ticket)}
+            ticketNumber={ticket.ticket_number}
+            taking={taking}
             onTake={onTake}
             onAssign={onAssign}
             onMarkComplete={onComplete}

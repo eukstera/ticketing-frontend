@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Search } from 'lucide-react'
 import {
   PER_PAGE_OPTIONS,
@@ -9,7 +9,7 @@ import {
   SortKey,
   TicketListParams,
 } from '@/lib/ticketList'
-import { input } from '@/lib/styles'
+import { btnSecondary, btnSm, input } from '@/lib/styles'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -22,16 +22,27 @@ export default function TicketToolbar({
   params,
   update,
   dateRangeInvalid,
+  filtersActive,
+  onClear,
 }: {
   params: TicketListParams
   update: Update
   dateRangeInvalid: boolean
+  filtersActive: boolean
+  onClear: () => void
 }) {
   // The draft only wins while the URL still holds the value it was typed over;
   // once the URL moves (debounce landed, or back/forward) the URL takes over.
   const [draft, setDraft] = useState<{ base: string; value: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchValue = draft && draft.base === params.search ? draft.value : params.search
+
+  useEffect(() => {
+    const pending = timer
+    return () => {
+      if (pending.current) clearTimeout(pending.current)
+    }
+  }, [])
 
   function handleSearch(value: string) {
     setDraft({ base: params.search, value })
@@ -69,6 +80,7 @@ export default function TicketToolbar({
             onChange={e => update({ date_from: e.target.value || null })}
             className={`${input} w-auto`}
             aria-invalid={dateRangeInvalid}
+            aria-describedby={dateRangeInvalid ? 'date-range-error' : undefined}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
@@ -80,6 +92,7 @@ export default function TicketToolbar({
             onChange={e => update({ date_to: e.target.value || null })}
             className={`${input} w-auto`}
             aria-invalid={dateRangeInvalid}
+            aria-describedby={dateRangeInvalid ? 'date-range-error' : undefined}
           />
         </label>
 
@@ -100,7 +113,7 @@ export default function TicketToolbar({
               onClick={() => update({ dir: params.dir === 'asc' ? 'desc' : 'asc' })}
               aria-label={params.dir === 'asc' ? 'Ascending, switch to descending' : 'Descending, switch to ascending'}
               title={params.dir === 'asc' ? 'Ascending' : 'Descending'}
-              className="flex w-9 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+              className="flex w-9 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               {params.dir === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
             </button>
@@ -119,10 +132,16 @@ export default function TicketToolbar({
             ))}
           </select>
         </label>
+
+        {filtersActive && (
+          <button type="button" onClick={onClear} className={`${btnSecondary} ${btnSm} h-[38px]`}>
+            Clear
+          </button>
+        )}
       </div>
 
       {dateRangeInvalid && (
-        <p role="alert" className="text-xs text-red-600">
+        <p id="date-range-error" role="alert" className="text-xs text-red-600">
           &ldquo;To&rdquo; must be on or after &ldquo;From&rdquo;.
         </p>
       )}

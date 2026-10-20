@@ -2,22 +2,29 @@
 
 import { DepartmentTicket } from '@/types'
 import { useUser } from '@/hooks/useUser'
+import { btnPrimary, btnSm, btnSuccess } from '@/lib/styles'
 
-const primaryBtn =
-  'px-3 py-1.5 text-white rounded text-xs font-medium transition whitespace-nowrap shrink-0'
+const nowrap = 'whitespace-nowrap shrink-0'
 
 export default function ActionCell({
   ticket,
+  ticketNumber,
+  taking = false,
   onAssign,
   onTake,
   onMarkComplete,
 }: {
   ticket: Pick<DepartmentTicket, 'id' | 'status' | 'department_id' | 'assigned_activity'>
+  /** Used in the buttons' accessible names ("Take ticket 10-001-2026"). */
+  ticketNumber?: string
+  /** A take request for this ticket is in flight; blocks double submits. */
+  taking?: boolean
   onAssign?: (id: number) => void
   onTake?: (id: number) => void
   onMarkComplete?: (id: number) => void
 }) {
   const user = useUser()
+  const suffix = ticketNumber ? ` ${ticketNumber}` : ''
 
   // The API only lets members of the ticket's handling department assign it
   // (403 otherwise), so everyone else gets no button.
@@ -30,15 +37,21 @@ export default function ActionCell({
       <div className="flex items-center gap-2">
         {onTake && (
           <button
+            type="button"
             onClick={() => onTake(ticket.id)}
-            className={`${primaryBtn} bg-green-600 hover:bg-green-700`}
+            disabled={taking}
+            aria-label={`Take ticket${suffix}`}
+            className={`${btnSuccess} ${btnSm} ${nowrap}`}
           >
-            Take ticket
+            {taking ? 'Taking…' : 'Take ticket'}
           </button>
         )}
         <button
+          type="button"
           onClick={() => onAssign?.(ticket.id)}
-          className={`${primaryBtn} bg-blue-600 hover:bg-blue-700`}
+          disabled={taking}
+          aria-label={`Assign ticket${suffix}`}
+          className={`${btnPrimary} ${btnSm} ${nowrap}`}
         >
           Assign
         </button>
@@ -50,8 +63,10 @@ export default function ActionCell({
     if (!isMember && !isAssignee) return null
     return (
       <button
+        type="button"
         onClick={() => onMarkComplete?.(ticket.id)}
-        className={`${primaryBtn} bg-green-600 hover:bg-green-700`}
+        aria-label={`Complete ticket${suffix}`}
+        className={`${btnSuccess} ${btnSm} ${nowrap}`}
       >
         Complete
       </button>

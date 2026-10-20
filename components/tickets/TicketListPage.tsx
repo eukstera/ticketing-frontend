@@ -69,6 +69,8 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const [commentsTicketId, setCommentsTicketId] = useState<number | null>(null)
   const [completeTicketId, setCompleteTicketId] = useState<number | null>(null)
   const [completing, setCompleting] = useState(false)
+  const [completeError, setCompleteError] = useState('')
+  const [takingId, setTakingId] = useState<number | null>(null)
   const [reportModalOpen, setReportModalOpen] = useState(false)
 
   const copy = COPY[mode]
@@ -129,17 +131,17 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   async function handleConfirmComplete() {
     if (completeTicketId === null) return
     setCompleting(true)
+    setCompleteError('')
     try {
       await markTicketComplete(completeTicketId)
       setCompleteTicketId(null)
       toast('Ticket marked as complete')
+      refresh()
     } catch (err) {
       console.error(err)
-      toast(getErrorMessage(err, 'Failed to mark ticket as complete'), 'error')
-      setCompleteTicketId(null)
+      setCompleteError(getErrorMessage(err, 'Failed to mark ticket as complete'))
     } finally {
       setCompleting(false)
-      refresh()
     }
   }
 
@@ -148,8 +150,14 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     refresh()
   }
 
+  function openComplete(ticketId: number) {
+    setCompleteError('')
+    setCompleteTicketId(ticketId)
+  }
+
   async function handleTake(ticketId: number) {
-    if (!user) return
+    if (!user || takingId !== null) return
+    setTakingId(ticketId)
     try {
       await takeTicket(ticketId, user.id)
       toast('Ticket assigned to you')
@@ -157,6 +165,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
       console.error(err)
       toast(getErrorMessage(err, 'Failed to take ticket'), 'error')
     } finally {
+      setTakingId(null)
       refresh()
     }
   }
@@ -203,11 +212,17 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
           )}
         </div>
 
-        <TicketToolbar params={params} update={update} dateRangeInvalid={dateRangeInvalid} />
+        <TicketToolbar
+          params={params}
+          update={update}
+          dateRangeInvalid={dateRangeInvalid}
+          filtersActive={filtered}
+          onClear={clearFilters}
+        />
 
         {error && <ErrorState message={error} onRetry={retry} className="mb-4" />}
 
-        {loading ? (
+        {loading && !data ? (
           <TableSkeleton rows={Math.min(params.per_page, 10)} columns={10} />
         ) : data && !error && !dateRangeInvalid ? (
           data.tickets.data.length === 0 ? (
@@ -224,14 +239,20 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
               )}
             </div>
           ) : (
-            <>
+            // Stays mounted while a refetch is in flight so focus and scroll
+            // aren't lost; only dimmed and made inert to clicks.
+            <div
+              aria-busy={loading}
+              className={loading ? 'pointer-events-none opacity-60 transition-opacity' : 'transition-opacity'}
+            >
               <TicketsTable
                 tickets={data.tickets.data}
                 expanded={expanded}
+                takingId={takingId}
                 onToggleExpand={toggleExpand}
                 onAssign={setAssignTicketId}
                 onTake={handleTake}
-                onMarkComplete={setCompleteTicketId}
+                onMarkComplete={openComplete}
                 onOpenComments={setCommentsTicketId}
               />
               <Pagination
@@ -240,7 +261,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
                 total={data.tickets.total}
                 onPageChange={page => update({ page })}
               />
-            </>
+            </div>
           )
         ) : null}
       </div>
@@ -266,6 +287,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
         confirmLabel="Mark as Complete"
         variant="success"
         loading={completing}
+        error={completeError}
         onConfirm={handleConfirmComplete}
         onCancel={() => setCompleteTicketId(null)}
       />
