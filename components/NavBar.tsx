@@ -3,9 +3,9 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
-import { removeToken, getUser } from '@/lib/auth'
-import { User } from '@/types'
+import { logout, isAdmin } from '@/lib/auth'
+import { useUser } from '@/hooks/useUser'
+import Avatar from '@/components/ui/Avatar'
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -13,21 +13,19 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const [user, setUser] = useState<User | null>(null)
-
-  useEffect(() => {
-    setUser(getUser())
-  }, [])
+  const user = useUser()
 
   const links = [
     { href: '/dashboard', label: 'Home' },
     { href: '/tickets', label: 'Department Tickets' },
     { href: '/tickets/create', label: 'Create Ticket' },
     { href: '/my-tickets', label: 'My Tickets' },
-  ].filter(l => l.label !== 'Create Ticket' || user?.id === 1)
+    // Admin pages are built in Phase 2; role comes from /me (Department Head).
+    ...(isAdmin(user) ? [{ href: '/admin', label: 'Admin' }] : []),
+  ]
 
-  const handleLogout = () => {
-    removeToken()
+  const handleLogout = async () => {
+    await logout()
     router.push('/')
   }
 
@@ -40,10 +38,6 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  const initials = user
-    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
-    : 'U'
 
   return (
     <nav className="bg-white border-b border-gray-200">
@@ -91,10 +85,12 @@ export default function Navbar() {
             <div className="relative hidden md:block" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(o => !o)}
-                className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold flex items-center justify-center hover:bg-blue-200 transition"
+                className="rounded-full hover:opacity-80 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 title="Account"
+                aria-label="Account menu"
+                aria-expanded={userMenuOpen}
               >
-                {initials}
+                <Avatar firstName={user?.first_name} lastName={user?.last_name} />
               </button>
 
               {userMenuOpen && (

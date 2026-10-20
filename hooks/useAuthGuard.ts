@@ -2,7 +2,11 @@
 
 import { useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
-import { getToken, subscribeAuth } from '@/lib/auth'
+import { fetchMe, getToken, subscribeAuth } from '@/lib/auth'
+
+// Refresh role/department from GET /me once per page load, not on every
+// navigation (the guard mounts on every protected page).
+let refreshedThisLoad = false
 
 // Client-side route guard. Returns true once a token is present; pages should
 // render nothing while it is false. Redirects to '/' (the login page) when
@@ -13,7 +17,14 @@ export function useAuthGuard(): boolean {
   const authed = !!token
 
   useEffect(() => {
-    if (!authed) router.replace('/')
+    if (!authed) {
+      router.replace('/')
+      return
+    }
+    if (!refreshedThisLoad) {
+      refreshedThisLoad = true
+      fetchMe()
+    }
   }, [authed, router])
 
   return authed
