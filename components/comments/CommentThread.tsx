@@ -188,12 +188,13 @@ export default function CommentThread({
                     <p className="text-xs text-gray-500">{formatDateTime(c.created_at)}</p>
                     {isEdited && !isEditing && <p className="text-xs italic text-gray-500">(edited)</p>}
                     {!isEditing && (isOwn || canDelete) && (
-                      <span className="ml-auto flex gap-3 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                      <span className="ml-auto flex gap-3 transition sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover:opacity-100">
                         {isOwn && (
                           <button
                             type="button"
                             onClick={() => startEdit(c)}
-                            className="text-xs text-gray-500 hover:text-blue-600"
+                            aria-label={`Edit comment by ${c.user.first_name}`}
+                            className="rounded text-xs text-gray-500 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                           >
                             Edit
                           </button>
@@ -202,7 +203,8 @@ export default function CommentThread({
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(c)}
-                            className="text-xs text-gray-500 hover:text-red-600"
+                            aria-label={`Delete comment by ${c.user.first_name}`}
+                            className="rounded text-xs text-gray-500 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                           >
                             Delete
                           </button>
@@ -219,6 +221,7 @@ export default function CommentThread({
                         rows={2}
                         maxLength={2000}
                         autoFocus
+                        aria-label="Edit comment"
                         className={`${input} resize-none`}
                       />
                       <div className="mt-1.5 flex justify-end gap-2">

@@ -34,7 +34,7 @@ import {
   serializeListParams,
 } from '@/lib/ticketList'
 import { buildPriorityPills, buildStatusPills } from '@/components/tickets/pills'
-import { btnSecondary } from '@/lib/styles'
+import { btnTint } from '@/lib/styles'
 
 type Mode = 'department' | 'mine'
 
@@ -204,7 +204,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
             <button
               type="button"
               onClick={() => setReportModalOpen(true)}
-              className={`${btnSecondary} border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100`}
+              className={btnTint}
             >
               <Download size={14} aria-hidden="true" />
               Accomplishment report

@@ -9,7 +9,7 @@ import {
   SortKey,
   TicketListParams,
 } from '@/lib/ticketList'
-import { btnSecondary, btnSm, input } from '@/lib/styles'
+import { btnSecondary, btnSm, input, inputAuto } from '@/lib/styles'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -78,7 +78,7 @@ export default function TicketToolbar({
             value={params.date_from ?? ''}
             max={params.date_to ?? undefined}
             onChange={e => update({ date_from: e.target.value || null })}
-            className={`${input} w-auto`}
+            className={inputAuto}
             aria-invalid={dateRangeInvalid}
             aria-describedby={dateRangeInvalid ? 'date-range-error' : undefined}
           />
@@ -90,7 +90,7 @@ export default function TicketToolbar({
             value={params.date_to ?? ''}
             min={params.date_from ?? undefined}
             onChange={e => update({ date_to: e.target.value || null })}
-            className={`${input} w-auto`}
+            className={inputAuto}
             aria-invalid={dateRangeInvalid}
             aria-describedby={dateRangeInvalid ? 'date-range-error' : undefined}
           />
@@ -102,7 +102,7 @@ export default function TicketToolbar({
             <select
               value={params.sort}
               onChange={e => update({ sort: e.target.value as SortKey })}
-              className={`${input} w-auto`}
+              className={inputAuto}
             >
               {SORT_KEYS.map(key => (
                 <option key={key} value={key}>{SORT_LABELS[key]}</option>
@@ -125,7 +125,7 @@ export default function TicketToolbar({
           <select
             value={params.per_page}
             onChange={e => update({ per_page: Number(e.target.value) })}
-            className={`${input} w-auto`}
+            className={inputAuto}
           >
             {PER_PAGE_OPTIONS.map(n => (
               <option key={n} value={n}>{n}</option>
