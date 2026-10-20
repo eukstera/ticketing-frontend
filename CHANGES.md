@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-10-21 — Security fix: credentials in the URL on LAN login
+
+**Symptom.** Logging in from `http://192.168.117.86:3000` reloaded the page as `/?email=…&password=…`, so the credentials ended up in the address bar and browser history, and the user was not logged in.
+
+**Cause (confirmed).** Next 16 dev blocks cross-origin requests to its dev resources unless the origin is listed in `allowedDevOrigins`. The dev log showed `Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "192.168.117.86"`. Only the ngrok host was allowed, so the client JS never hydrated, and the login `<form>` (no `method`, so it defaulted to GET) submitted natively.
+
+**Fix:**
+- **`10268bf`:** every password form never submits natively with credentials in the URL. This covers LoginForm, AdminFormModal (user create/edit) and the profile name and password forms:
+  - each `<form>` uses `method="post"` and keeps `preventDefault`;
+  - the submit button stays disabled until hydrated (`hooks/useHydrated.ts`, built on `useSyncExternalStore`);
+  - the login and profile inputs have no `name` attributes, and `autoComplete` is kept.
+- **`f5619c2`:**
+  - `allowedDevOrigins` is now env-driven through `NEXT_DEV_ALLOWED_ORIGINS` (comma-separated), merged with the ngrok host.
+  - The dev API fallback is now `http://localhost:8000/api`, with a one-time console warning when `NEXT_PUBLIC_API_URL` is unset. Production still fails loudly.
+  - Added `.env.local.example`. `.env.local` stays git-ignored.
+- **`da9481e`:** README sections "LAN / dev setup" and "Tests".
+- **`f31abf4`:** Vitest regression tests: `lib/api.test.ts` (9 tests) and `components/auth/LoginForm.test.tsx` (3 tests). They assert that the pre-hydration HTML has `method="post"`, a disabled submit and no credential `name`s, and that `isApiError` exists at runtime.
+
+**Status at `f31abf4`** (checked in a clean worktree): tsc 0, lint 0, `npm test` 12/12 passing.
+
+**LAN dev setup:**
+1. Copy `.env.local.example` to `.env.local` and set:
+   ```
+   NEXT_PUBLIC_API_URL=http://192.168.117.86:8000/api
+   NEXT_DEV_ALLOWED_ORIGINS=192.168.117.86
+   ```
+2. Start the API with `php artisan serve --host=0.0.0.0 --port=8000`, and allow TCP 8000 in Windows Firewall.
+3. Restart `npm run dev`.
+
+Do not use the Laragon host `TicketingSystem-API.gbtrghsc.dev`. It serves a different, older copy of the API.
+
 ## 2026-10-20 — Phase 1 (stabilize)
 
 Built to the backend Phase 1 contract (`../TicketingSystem-API/CHANGES.md`, BE commit 3ad3391). Work by fe-coder1 (auth, lint, modals), fe-coder2 (API layer, types, pages) and fe-designer (shared UI, a11y).
