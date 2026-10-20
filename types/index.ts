@@ -94,3 +94,63 @@ export interface RegisterForm {
   role_id: number
 }
 
+
+// GET /tickets/{ticket} (Phase 2 contract)
+export interface PersonRef {
+  id: number
+  first_name: string
+  last_name: string
+}
+
+export interface TicketDetailDevice {
+  name: string
+  qty: number
+}
+
+// IT and Engineering tickets share one envelope; fields that belong to the
+// other department are simply absent.
+export interface TicketDetails {
+  name_of_area?: string | null
+  area_supervisor?: string | null
+  // IT
+  type_of_concern?: string | null
+  type_of_tech_support?: string | null
+  remarks?: string | null
+  devices?: TicketDetailDevice[]
+  // Engineering
+  nature_of_work?: string | null
+  other_nature_of_work?: string | null
+  scope_of_work?: string | null
+}
+
+export interface TicketDetailComment {
+  id: number
+  comment: string
+  user: PersonRef
+  created_at: string
+  updated_at: string
+}
+
+export interface TicketDetail {
+  id: number
+  ticket_number: string
+  department: { id: number; name: string }
+  status: { id: number; label: string }
+  priority: { id: number; level: string; sla_days: number }
+  type: 'IT' | 'Engineering'
+  details: TicketDetails
+  /** Requestor-portal tickets only carry a name. */
+  requester: PersonRef | { name: string }
+  assignee: PersonRef | null
+  is_overdue: boolean
+  due_at: string | null
+  timeline: {
+    id: number
+    category: 'Requested Date' | 'Assigned Date' | 'Completed Date'
+    user: string | null
+    created_at: string
+  }[]
+  comments: TicketDetailComment[]
+  created_at: string
+  updated_at: string
+}

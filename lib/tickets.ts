@@ -1,5 +1,6 @@
 // lib/tickets.ts
 import { api } from './api'
+import type { TicketDetail } from '@/types'
 import {
   buildListQuery,
   normalizeListResponse,
@@ -72,8 +73,8 @@ export function takeTicket(ticketId: number, userId: number) {
   return assignTicket(ticketId, userId)
 }
 
-export function getTicketComments(ticketId: number) {
-  return api.get<{ result: { comments: TicketComment[] } }>(`/tickets/${ticketId}/comments`)
+export function getTicketComments(ticketId: number, signal?: AbortSignal) {
+  return api.get<{ result: { comments: TicketComment[] } }>(`/tickets/${ticketId}/comments`, { signal })
 }
 
 export function addTicketComment(ticketId: number, comment: string) {
@@ -87,6 +88,16 @@ export function updateTicketComment(ticketId: number, commentId: number, comment
     `/tickets/comments/${commentId}`,
     { comment }
   )
+}
+
+// TODO(BE-phase2): GET /tickets/{ticket} is specified but not live yet.
+export function getTicket(ticketId: number, signal?: AbortSignal) {
+  return api.get<{ result: { ticket: TicketDetail } }>(`/tickets/${ticketId}`, { signal })
+}
+
+// Author or admin only (403 otherwise). TODO(BE-phase2): endpoint not live yet.
+export function deleteTicketComment(commentId: number) {
+  return api.delete<{ result: Record<string, never> }>(`/tickets/comments/${commentId}`)
 }
 
 export function createTicket(payload: CreateTicketPayload) {

@@ -12,7 +12,7 @@ export default function ActionCell({
   onTake,
   onMarkComplete,
 }: {
-  ticket: DepartmentTicket
+  ticket: Pick<DepartmentTicket, 'id' | 'status' | 'department_id' | 'assigned_activity'>
   onAssign?: (id: number) => void
   onTake?: (id: number) => void
   onMarkComplete?: (id: number) => void
