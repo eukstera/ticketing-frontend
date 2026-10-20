@@ -1,0 +1,91 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { api } from '@/lib/api'
+import { login } from '@/lib/auth'
+import { AuthResponse } from '@/types'
+import AuthField from './AuthField'
+
+export default function LoginForm({ onSwitchToRegister }: { onSwitchToRegister?: () => void }) {
+  const router = useRouter()
+  const [form, setForm] = useState({ email: '', password: '' })
+  const [errors, setErrors] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setErrors({})
+    try {
+      const res = await login(form)
+      if (res.success) {
+        router.push('/dashboard')
+      }else{
+        const e = res as 
+        { 
+          message?: string
+          errors?: Record<string, string[]> 
+        }
+        setError(e.message || 'Login failed')
+        if (e.errors) setErrors(e.errors)
+      }
+    } catch (err: unknown) {
+      setError('Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <h2 className="font-serif text-[25px] font-medium text-[#0F2B32] mb-1.5">Welcome back</h2>
+      <p className="text-[13.5px] text-[#7C8B87] leading-relaxed mb-7">
+        Log in with your staff credentials to view and manage your department&apos;s tickets.
+      </p>
+
+      {error && (
+        <div className="bg-[#FAECE7] border border-[#F0997B] text-[#993C1D] rounded-lg px-4 py-3 mb-4 text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <AuthField
+          label="Email"
+          type="email"
+          value={form.email}
+          onChange={v => setForm({ ...form, email: v })}
+          error={errors.email?.[0]}
+        />
+        <AuthField
+          label="Password"
+          type="password"
+          value={form.password}
+          onChange={v => setForm({ ...form, password: v })}
+          error={errors.password?.[0]}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full mt-1 bg-[#0F2B32] hover:bg-[#123B3E] text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {loading ? 'Logging in…' : 'Log in'}
+          {!loading && <span aria-hidden="true">→</span>}
+        </button>
+      </form>
+
+      {onSwitchToRegister && (
+        <p className="text-center text-xs text-[#7C8B87] mt-6">
+          Don&apos;t have an account?{' '}
+          <button onClick={onSwitchToRegister} className="text-[#D9522E] font-semibold hover:underline">
+            Register here
+          </button>
+        </p>
+      )}
+    </>
+  )
+}
