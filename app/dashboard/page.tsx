@@ -27,12 +27,11 @@ interface StatsResult {
 
 export default function HomePage() {
   const authed = useAuthGuard()
-  const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
   const [month, setMonth] = useState(currentMonth)
   const [reloadToken, setReloadToken] = useState(0)
   const [result, setResult] = useState<StatsResult | null>(null)
 
-  const requestKey = `${priorityFilter ?? ''}|${month}|${reloadToken}`
+  const requestKey = `${month}|${reloadToken}`
   const loading = result?.key !== requestKey
   const stats = result?.stats ?? null
   const error = loading ? '' : result?.error ?? ''
@@ -40,7 +39,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!authed) return
     const controller = new AbortController()
-    getDashboardStats({ priority: priorityFilter, date: month, signal: controller.signal })
+    getDashboardStats({ date: month, signal: controller.signal })
       .then(res => setResult({ key: requestKey, stats: res.result, error: '' }))
       .catch(err => {
         if (isAbortError(err)) return
@@ -48,7 +47,7 @@ export default function HomePage() {
         setResult({ key: requestKey, stats: null, error: getErrorMessage(err, 'Failed to load dashboard') })
       })
     return () => controller.abort()
-  }, [authed, priorityFilter, month, requestKey])
+  }, [authed, month, requestKey])
 
   if (!authed) return null
 
@@ -57,8 +56,6 @@ export default function HomePage() {
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
         <DashboardFilters
-          priorityFilter={priorityFilter}
-          onPriorityChange={setPriorityFilter}
           month={month}
           onMonthChange={setMonth}
           stats={stats?.priority_stats ?? []}
@@ -75,10 +72,10 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
-              <StatCard value={stats.overview.open} label="Open" color="blue" status="Open" />
-              <StatCard value={stats.overview.in_progress} label="In-progress" color="amber" status="In-progress" />
-              <StatCard value={stats.overview.completed} label="Completed" color="green" status="Completed" />
-              <StatCard value={stats.overview.overdue} label="Overdue" color="red" status="Overdue" />
+              <StatCard value={stats.overview.open} label="Open" status="Open" />
+              <StatCard value={stats.overview.in_progress} label="In-progress" status="In-progress" />
+              <StatCard value={stats.overview.completed} label="Completed" status="Completed" />
+              <StatCard value={stats.overview.overdue} label="Overdue" status="Overdue" />
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">

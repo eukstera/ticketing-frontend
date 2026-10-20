@@ -18,8 +18,7 @@ export default function StatCard({
   return (
     <button
       onClick={() => {
-        sessionStorage.setItem('ticketStatusFilter', JSON.stringify({type: 'status', level: status}))
-        router.push('/tickets')
+        router.push(`/tickets?status=${encodeURIComponent(status)}`)
       }}
       className={`block text-left w-full rounded-xl border px-4 py-4 transition sm:px-6 sm:py-5 ${STAT_CARD_THEME[status]}`}
     >

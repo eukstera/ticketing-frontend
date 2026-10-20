@@ -1,0 +1,278 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { Download, SearchX, Inbox } from 'lucide-react'
+import Navbar from '@/components/NavBar'
+import AssignModal from '@/components/AssignModal'
+import CommentsModal from '@/components/CommentsModal'
+import ConfirmModal from '@/components/ConfirmModal'
+import AccomplishmentModal from '@/components/AccomplishmentModal'
+import FilterPills from '@/components/department-tickets/FilterPills'
+import TicketsTable from '@/components/department-tickets/TicketsTable'
+import Pagination from '@/components/department-tickets/Pagination'
+import TicketToolbar from '@/components/tickets/TicketToolbar'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { toast } from '@/components/Toast'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useUser } from '@/hooks/useUser'
+import { useTicketListParams } from '@/hooks/useTicketListParams'
+import { getErrorMessage, isAbortError } from '@/lib/api'
+import { IT_DEPARTMENT_ID } from '@/lib/constants'
+import {
+  getDepartmentTickets,
+  getMyTickets,
+  markTicketComplete,
+  assignTicket,
+  takeTicket,
+} from '@/lib/tickets'
+import {
+  TicketListResult,
+  hasActiveFilters,
+  resolveLegacyFilters,
+  serializeListParams,
+} from '@/lib/ticketList'
+import { buildPriorityPills, buildStatusPills } from '@/components/tickets/pills'
+import { btnSecondary } from '@/lib/styles'
+
+type Mode = 'department' | 'mine'
+
+const COPY: Record<Mode, { title: string; subtitle: string; empty: string }> = {
+  department: {
+    title: 'Department Tickets',
+    subtitle: 'Tickets assigned to your department',
+    empty: 'No tickets have been created for your department yet.',
+  },
+  mine: {
+    title: 'My Tickets',
+    subtitle: 'Tickets you requested or are assigned to',
+    empty: "You don't have any tickets yet.",
+  },
+}
+
+interface FetchState {
+  key: string
+  data: TicketListResult | null
+  error: string
+}
+
+export default function TicketListPage({ mode }: { mode: Mode }) {
+  const authed = useAuthGuard()
+  const user = useUser()
+  const { params, update, clearFilters, replaceParams } = useTicketListParams()
+
+  const [fetchState, setFetchState] = useState<FetchState | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [expanded, setExpanded] = useState<number[]>([])
+  const [assignTicketId, setAssignTicketId] = useState<number | null>(null)
+  const [commentsTicketId, setCommentsTicketId] = useState<number | null>(null)
+  const [completeTicketId, setCompleteTicketId] = useState<number | null>(null)
+  const [completing, setCompleting] = useState(false)
+  const [reportModalOpen, setReportModalOpen] = useState(false)
+
+  const copy = COPY[mode]
+  const dateRangeInvalid = !!(params.date_from && params.date_to && params.date_to < params.date_from)
+  const requestKey = serializeListParams(params)
+  const loading = !dateRangeInvalid && fetchState?.key !== requestKey
+  const data = fetchState?.data ?? null
+  const error = loading ? '' : fetchState?.error ?? ''
+  // Counts of the last good response, kept across refetches so the pills don't blink.
+  const counts = useMemo(
+    () => (data ? { statusCounts: data.statusCounts, priorityCounts: data.priorityCounts } : undefined),
+    [data]
+  )
+
+  useEffect(() => {
+    if (!authed || dateRangeInvalid) return
+    const controller = new AbortController()
+    const fetcher = mode === 'mine' ? getMyTickets : getDepartmentTickets
+
+    fetcher(params, counts, controller.signal)
+      .then(result => setFetchState({ key: requestKey, data: result, error: '' }))
+      .catch(err => {
+        if (isAbortError(err)) return
+        console.error(err)
+        setFetchState(prev => ({
+          key: requestKey,
+          data: prev?.data ?? null,
+          error: getErrorMessage(err, 'Failed to load tickets'),
+        }))
+      })
+    return () => controller.abort()
+    // `params` is fully described by requestKey; `counts` only matters for the
+    // legacy label mapping and must not retrigger a fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed, mode, requestKey, reloadToken, dateRangeInvalid])
+
+  // A dashboard deep-link arrives as a label (?status=Open). Swap it for the
+  // id once the counts that carry the id->label mapping are in.
+  useEffect(() => {
+    if (!counts || (!params.status && !params.priority)) return
+    const resolved = resolveLegacyFilters(params, counts)
+    if (resolved) replaceParams(resolved)
+  }, [counts, params, replaceParams])
+
+  function refresh() {
+    setReloadToken(t => t + 1)
+  }
+
+  function retry() {
+    setFetchState(null)
+    refresh()
+  }
+
+  function toggleExpand(id: number) {
+    setExpanded(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]))
+  }
+
+  async function handleConfirmComplete() {
+    if (completeTicketId === null) return
+    setCompleting(true)
+    try {
+      await markTicketComplete(completeTicketId)
+      setCompleteTicketId(null)
+      toast('Ticket marked as complete')
+    } catch (err) {
+      console.error(err)
+      toast(getErrorMessage(err, 'Failed to mark ticket as complete'), 'error')
+      setCompleteTicketId(null)
+    } finally {
+      setCompleting(false)
+      refresh()
+    }
+  }
+
+  async function handleAssignSubmit(ticketId: number, userId: number) {
+    await assignTicket(ticketId, userId)
+    refresh()
+  }
+
+  async function handleTake(ticketId: number) {
+    if (!user) return
+    try {
+      await takeTicket(ticketId, user.id)
+      toast('Ticket assigned to you')
+    } catch (err) {
+      console.error(err)
+      toast(getErrorMessage(err, 'Failed to take ticket'), 'error')
+    } finally {
+      refresh()
+    }
+  }
+
+  if (!authed) return null
+
+  const filtered = hasActiveFilters(params)
+  const showReport = mode === 'mine' && user?.department_id === IT_DEPARTMENT_ID
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="mx-auto max-w-7xl px-6 py-6">
+        <FilterPills
+          statusPills={buildStatusPills(data?.statusCounts ?? [])}
+          priorityPills={buildPriorityPills(data?.priorityCounts ?? [])}
+          statusFilter={params.status_id === null ? null : String(params.status_id)}
+          priorityFilter={params.priority_id === null ? null : String(params.priority_id)}
+          onStatusChange={value =>
+            update({ status_id: value === null ? null : Number(value), status: null })
+          }
+          onPriorityChange={value =>
+            update({ priority_id: value === null ? null : Number(value), priority: null })
+          }
+        />
+
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-800">{copy.title}</h1>
+            <p className="text-sm text-gray-500">
+              {copy.subtitle}
+              {data ? ` (${data.tickets.total} total)` : ''}
+            </p>
+          </div>
+          {showReport && (
+            <button
+              type="button"
+              onClick={() => setReportModalOpen(true)}
+              className={`${btnSecondary} border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100`}
+            >
+              <Download size={14} aria-hidden="true" />
+              Accomplishment report
+            </button>
+          )}
+        </div>
+
+        <TicketToolbar params={params} update={update} dateRangeInvalid={dateRangeInvalid} />
+
+        {error && <ErrorState message={error} onRetry={retry} className="mb-4" />}
+
+        {loading ? (
+          <TableSkeleton rows={Math.min(params.per_page, 10)} columns={10} />
+        ) : data && !error && !dateRangeInvalid ? (
+          data.tickets.data.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white">
+              {filtered ? (
+                <EmptyState
+                  icon={SearchX}
+                  title="No tickets match your filters"
+                  description="Try a different search or widen the filters."
+                  action={{ label: 'Clear filters', onClick: clearFilters }}
+                />
+              ) : (
+                <EmptyState icon={Inbox} title="No tickets" description={copy.empty} />
+              )}
+            </div>
+          ) : (
+            <>
+              <TicketsTable
+                tickets={data.tickets.data}
+                expanded={expanded}
+                onToggleExpand={toggleExpand}
+                onAssign={setAssignTicketId}
+                onTake={handleTake}
+                onMarkComplete={setCompleteTicketId}
+                onOpenComments={setCommentsTicketId}
+              />
+              <Pagination
+                currentPage={data.tickets.current_page}
+                lastPage={data.tickets.last_page}
+                total={data.tickets.total}
+                onPageChange={page => update({ page })}
+              />
+            </>
+          )
+        ) : null}
+      </div>
+
+      <AssignModal
+        isOpen={assignTicketId !== null}
+        ticketId={assignTicketId}
+        onClose={() => setAssignTicketId(null)}
+        onAssign={handleAssignSubmit}
+      />
+
+      <CommentsModal
+        isOpen={commentsTicketId !== null}
+        ticketId={commentsTicketId}
+        onClose={() => setCommentsTicketId(null)}
+        onCommentAdded={refresh}
+      />
+
+      <ConfirmModal
+        isOpen={completeTicketId !== null}
+        title="Mark ticket as complete?"
+        message="This will mark the ticket as complete."
+        confirmLabel="Mark as Complete"
+        variant="success"
+        loading={completing}
+        onConfirm={handleConfirmComplete}
+        onCancel={() => setCompleteTicketId(null)}
+      />
+
+      {showReport && (
+        <AccomplishmentModal isOpen={reportModalOpen} onClose={() => setReportModalOpen(false)} />
+      )}
+    </div>
+  )
+}

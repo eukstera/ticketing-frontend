@@ -45,6 +45,8 @@ export interface DepartmentTicket {
   priority: string
   department: string
   department_id: number
+  status_id?: number // Phase 2 BE
+  priority_id?: number // Phase 2 BE
   date_activities: DateActivity[]
   requested_activity: ActivityInfo | null
   assigned_activity: ActivityInfo | null
@@ -67,16 +69,6 @@ export interface PaginatedResponse<T> {
   last_page: number
   total: number
   per_page: number
-}
-
-export interface DepartmentTicketsResponse {
-  message: string
-  result: {
-    ticket: PaginatedResponse<DepartmentTicket>
-    status_counts: Record<string, number>
-    priority_counts: Record<string, number>
-    priority_sla: Record<string, number>
-  }
 }
 
 export interface Device {

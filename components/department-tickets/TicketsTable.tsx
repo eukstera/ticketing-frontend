@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { DepartmentTicket } from '@/types'
 import { priorityStyles } from '@/lib/styles'
 import StatusCell from './StatusCell'
@@ -108,11 +109,13 @@ function TicketRow({
         >
           {isExpanded ? '▼' : '›'}
         </td>
-        <td
-          onClick={() => onToggleExpand(ticket.id)}
-          className="px-4 py-3 font-medium text-gray-700 cursor-pointer"
-        >
-          {ticket.ticket_number}
+        <td className="px-4 py-3 font-medium text-gray-700">
+          <Link
+            href={`/tickets/${ticket.id}`}
+            className="text-blue-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+          >
+            {ticket.ticket_number}
+          </Link>
         </td>
         <td className="px-4 py-3 text-gray-600">
             {user?.department_id == 1 ? ticket.type_of_concern : ticket.nature_of_work}

@@ -24,8 +24,7 @@ export default function DashboardFilters({
             <button
               key={pill.priority_id}
               onClick={() => {
-                sessionStorage.setItem('ticketStatusFilter', JSON.stringify({type: 'priority', level: pill.level}))
-                router.push('/tickets')
+                router.push(`/tickets?priority=${encodeURIComponent(pill.level)}`)
               }}
               className="whitespace-nowrap rounded-full border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:border-gray-400"
             >

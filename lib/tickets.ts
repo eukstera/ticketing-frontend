@@ -1,6 +1,12 @@
 // lib/tickets.ts
 import { api } from './api'
-import { DepartmentTicketsResponse } from '@/types'
+import {
+  buildListQuery,
+  normalizeListResponse,
+  RawTicketListResponse,
+  TicketListParams,
+  TicketListResult,
+} from './ticketList'
 
 export interface TicketComment {
   id: number
@@ -27,40 +33,29 @@ export interface CreateTicketPayload {
   requestor: string
 }
 
-export interface TicketListFilters {
-  status?: string | null
-  priority?: string | null
-  search?: string
-  date_from?: string | null
-  date_to?: string | null
-  per_page?: number
-  sort?: string | null
-  dir?: 'asc' | 'desc' | null
-}
+type ListCounts = Pick<TicketListResult, 'statusCounts' | 'priorityCounts'>
 
-function fetchTicketList(
+async function fetchTicketList(
   endpoint: '/getDepartmentTickets' | '/getMyTickets',
-  page: number,
-  filters?: TicketListFilters,
+  params: TicketListParams,
+  counts?: ListCounts,
   signal?: AbortSignal
-) {
-  const query = new URLSearchParams({ page: String(page) })
-  if (filters) {
-    for (const [key, value] of Object.entries(filters)) {
-      if (value !== null && value !== undefined && value !== '') {
-        query.set(key, String(value))
-      }
-    }
-  }
-  return api.get<DepartmentTicketsResponse>(`${endpoint}?${query.toString()}`, { signal })
+): Promise<TicketListResult> {
+  const res = await api.get<RawTicketListResponse>(
+    `${endpoint}?${buildListQuery(params, counts).toString()}`,
+    { signal }
+  )
+  return normalizeListResponse(res)
 }
 
-export function getDepartmentTickets(page = 1, filters?: TicketListFilters, signal?: AbortSignal) {
-  return fetchTicketList('/getDepartmentTickets', page, filters, signal)
+// `counts` is the previous result's counts; it only matters while the BE still
+// uses label filters (see buildListQuery).
+export function getDepartmentTickets(params: TicketListParams, counts?: ListCounts, signal?: AbortSignal) {
+  return fetchTicketList('/getDepartmentTickets', params, counts, signal)
 }
 
-export function getMyTickets(page = 1, filters?: TicketListFilters, signal?: AbortSignal) {
-  return fetchTicketList('/getMyTickets', page, filters, signal)
+export function getMyTickets(params: TicketListParams, counts?: ListCounts, signal?: AbortSignal) {
+  return fetchTicketList('/getMyTickets', params, counts, signal)
 }
 
 export function markTicketComplete(ticketId: number) {
