@@ -1,5 +1,64 @@
 # Changelog
 
+## 2026-10-20 — Phase 1 (stabilize)
+
+Built to the backend Phase 1 contract (`../TicketingSystem-API/CHANGES.md`, BE commit 3ad3391). Work by fe-coder1 (auth, lint, modals), fe-coder2 (API layer, types, pages) and fe-designer (shared UI, a11y).
+
+**Status at `78bbeb0`** (checked in a clean worktree):
+- `npx tsc --noEmit` passes.
+- `npm run lint` reports 0 problems, down from 37.
+- `next build` was not run, per the deploy rule.
+- Nothing has been run against the live backend yet, because the backend Phase 1 work is still being deployed.
+
+### Auth & routing
+- **Login redirects:** the broken `/auth/login` redirects are gone. Protected pages now use `useAuthGuard()`, built on `useSyncExternalStore`, with `useUser()` for a hydration-safe user read. Logged-out users go to `/` (`93d0ce7`, `aeb2829`, `b027b24`).
+- **`lib/auth.ts`:** one `getToken`, a `getUser` that survives corrupt data, `fetchMe()` (`GET /me` refreshes the stored user and role once per page load), `logout()` (`POST /logout`, then clears storage), and `isAdmin` (role name "Department Head"). `register()` was removed (`0cc1d57`, `d99aa75`).
+- **Login page:** `/` is login only; public sign-up is gone. LoginForm shows friendly messages for 429 (throttled) and 403 (deactivated account).
+- **`user.id===1` checks removed:**
+  - The NavBar shows an "Admin" link to Department Heads only.
+  - "Create Ticket" is visible to all logged-in users.
+  - "Take ticket", Assign and Complete are gated on the ticket's handling department (`606be06`).
+
+### API layer
+- **`lib/api.ts` (`28aae33`, `78bbeb0`):**
+  - A typed `ApiError {status, message, errors?}`, thrown on non-2xx responses and on `{success:false}`.
+  - Non-JSON bodies are read safely.
+  - A 401 clears the token and redirects to `/`.
+  - Every request accepts an AbortSignal.
+  - Production fails loudly when `NEXT_PUBLIC_API_URL` is missing, and the ngrok header is sent in dev only.
+  - The report filename comes from `Content-Disposition`, with a generic fallback.
+  - `getErrorMessage` gives friendly text for 403, 409 and 429.
+- **Types aligned with the backend:** `designation_id` is a number, `status` fields are booleans, activity `user` is `string|null`, and rows carry `department_id`. The legacy Ticket types were removed.
+- **One shared list fetcher** now serves both department tickets and my tickets. `takeTicket()` assigns the ticket to the current user through `POST /tickets/{id}/assign`.
+- **Lookups from the API:** `lib/lookups.ts` (`/priority`, `/lookups/concern-types`, `/lookups/nature-of-work`) and `getEmployees(departmentId)`. The hard-coded priority and SLA values are gone from the create page.
+
+### Pages
+- **Dashboard:** `CardSkeleton` while loading, an `ErrorState` with Retry instead of fake zeros, an abort guard, and a default month in local time.
+- **Tickets and My Tickets:**
+  - An abort and race guard on the debounced search.
+  - `ErrorState` with Retry, and server error messages in toasts.
+  - The My Tickets heading is fixed.
+- **Create ticket (`299b9fe`):**
+  - Priorities, employees and concern types are loaded from the API.
+  - 422 errors appear next to each field (`aria-invalid`).
+  - The false "created" toast is gone.
+  - Lookups show skeletons while loading and a Retry on failure.
+
+### Shared UI & a11y
+- **`components/ui` (`5425364`):**
+  - `Modal`: dialog role, focus trap and restore, Escape, scroll lock, and a bottom sheet on mobile.
+  - `Skeleton`, `TableSkeleton` and `CardSkeleton`.
+  - `EmptyState`, `ErrorState` and `Avatar`.
+  - Button and input class constants in `lib/styles.ts`.
+- **Modals on the shared shell:** Comments, Assign, Accomplishment and Confirm now use `Modal` (`125a101`, `c1aca12`). A 403 on comment edit shows a clear message.
+- **Toast (`f60861a`):** an aria-live region, a dismiss button, pause on hover, a responsive width, and lucide icons.
+- **TimelineStepper (`8932d9f`):** the invalid `w-25` is fixed, steps stack on mobile, and contrast is improved.
+- **`docs/DESIGN.md`:** design tokens, patterns and page specs (`312f08b`), plus the Phase 3 polish list (`3f67e2f`).
+
+### Open items carried into Phase 2
+- The "Take ticket" UI is built, but the pages don't pass `onTake` to the table yet. fe-coder2 is wiring it in the shared list.
+- The `/admin` link returns 404 until the Phase 2 admin pages land.
+
 ## 2026-10-20 — Baseline health scan
 
 Read-only audit; no code changed. Audited by fe-coder1 (lint/hooks/auth), fe-coder2 (API layer and backend contract) and fe-designer (design/a11y/UX), compiled by fe-orchestrator.
