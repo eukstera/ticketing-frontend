@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Monitor, HardDrive, Wifi, User, MapPin, MessageSquare, UserCheck, Clock, Ticket, Tag } from 'lucide-react'
+import { Monitor, HardDrive, Wifi, User, MapPin, MessageSquare, UserCheck, Clock, Ticket, Tag, X, Circle, CircleDot } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
@@ -49,15 +49,17 @@ const HOSPITAL_AREAS = [
 
 function FieldLabel({
   icon: Icon,
+  htmlFor,
   children,
 }: {
   icon: typeof Monitor
+  htmlFor: string
   children: React.ReactNode
 }) {
   return (
-    <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
-      <Icon size={14} className="text-gray-400" />
-      {children} <span className="text-red-500">*</span>
+    <label htmlFor={htmlFor} className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
+      <Icon size={14} className="text-gray-400" aria-hidden="true" />
+      {children} <span className="text-red-500" aria-hidden="true">*</span>
     </label>
   )
 }
@@ -65,7 +67,7 @@ function FieldLabel({
 function FieldError({ id, messages }: { id: string; messages?: string[] }) {
   if (!messages?.length) return null
   return (
-    <p id={id} className="mt-1 text-xs text-red-600">
+    <p id={id} role="alert" className="mt-1 text-xs text-red-600">
       {messages[0]}
     </p>
   )
@@ -74,8 +76,8 @@ function FieldError({ id, messages }: { id: string; messages?: string[] }) {
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-gray-400">{label}</span>
-      <span className={value ? 'text-gray-700 font-medium' : 'text-gray-300'}>{value || '—'}</span>
+      <span className="text-gray-500">{label}</span>
+      <span className={value ? 'text-gray-700 font-medium' : 'text-gray-500'}>{value || '—'}</span>
     </div>
   )
 }
@@ -165,9 +167,45 @@ export default function CreateTicketPage() {
 
   if (!authed) return null
 
+  // Mirrors the BE's required rules so empty fields are flagged next to the
+  // field (and focused) instead of the submit button silently doing nothing.
+  function validate(): { errors: FieldErrors; firstId: string | null } {
+    const errors: FieldErrors = {}
+    const order: [string, string][] = []
+    const need = (name: string, elementId: string, message: string) => {
+      errors[name] = [message]
+      order.push([name, elementId])
+    }
+
+    if (!typeOfConcern) need('type_of_concern', 'f-type_of_concern', 'Select a type of concern.')
+    if (typeOfConcern === HARDWARE_CONCERN && !devices.some(d => d.type.trim())) {
+      need('devices', 'f-devices.0.type', 'Add at least one device.')
+    }
+    if (!areaConcerned) need('name_of_area', 'f-name_of_area', 'Select the area concerned.')
+    if (!areaSupervisor.trim()) need('area_supervisor', 'f-area_supervisor', 'Enter the area supervisor.')
+    if (!remarks.trim()) need('remarks', 'f-remarks', 'Describe the issue.')
+    if (!assignedUser) need('assigned_user', 'f-assigned_user', 'Select the personnel to assign.')
+    if (!priority) need('priority', 'f-priority', 'Select a priority.')
+
+    return { errors, firstId: order[0]?.[1] ?? null }
+  }
+
+  function focusField(elementId: string) {
+    const el = document.getElementById(elementId)
+    if (!el) return
+    const target = el.matches('input, select, textarea, button') ? el : el.querySelector<HTMLElement>('button, input')
+    target?.focus()
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!typeOfConcern || !priority || !areaSupervisor.trim() || !areaConcerned || !assignedUser) return
+
+    const { errors, firstId } = validate()
+    if (firstId) {
+      setFieldErrors(errors)
+      focusField(firstId)
+      return
+    }
 
     setSubmitting(true)
     setFieldErrors({})
@@ -180,14 +218,19 @@ export default function CreateTicketPage() {
         name_of_area: areaConcerned,
         remarks,
         assigned_user: Number(assignedUser),
-        priority,
+        priority: priority!,
         requestor: user ? `${user.first_name} ${user.last_name}` : '',
       })
       toast('Ticket created successfully')
       router.push('/my-tickets')
     } catch (err) {
       console.error(err)
-      if (isApiError(err) && err.status === 422 && err.errors) setFieldErrors(err.errors)
+      if (isApiError(err) && err.status === 422 && err.errors) {
+        setFieldErrors(err.errors)
+        const firstField = ['type_of_concern', 'name_of_area', 'area_supervisor', 'remarks', 'assigned_user', 'priority']
+          .find(name => err.errors?.[name])
+        if (firstField) focusField(`f-${firstField}`)
+      }
       toast(getErrorMessage(err, 'Failed to create ticket'), 'error')
     } finally {
       setSubmitting(false)
@@ -196,6 +239,7 @@ export default function CreateTicketPage() {
 
   const fe = (name: string) => fieldErrors[name]
   const cls = (name: string, base = input) => (fe(name) ? `${base} ${inputError}` : base)
+  const describedBy = (name: string) => (fe(name) ? `err-${name}` : undefined)
 
   // --- Derived preview data ---
   const now = new Date()
@@ -229,19 +273,25 @@ export default function CreateTicketPage() {
             />
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
 
             {/* Type of Concern */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type of Concern <span className="text-red-500">*</span>
-              </label>
+              <span id="lbl-type_of_concern" className="block text-sm font-medium text-gray-700 mb-2">
+                Type of Concern <span className="text-red-500" aria-hidden="true">*</span>
+              </span>
               {!lookups && !lookupError ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div
+                  id="f-type_of_concern"
+                  role="group"
+                  aria-labelledby="lbl-type_of_concern"
+                  aria-describedby={describedBy('type_of_concern')}
+                  className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+                >
                   {(lookups?.concernTypes ?? []).map(({ id, label }) => {
                     const meta = CONCERN_META[label]
                     const Icon = meta?.icon ?? Tag
@@ -259,11 +309,11 @@ export default function CreateTicketPage() {
                         }`}
                       >
                         <span className="flex items-center gap-2 text-sm font-medium">
-                          <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+                          <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-500'} aria-hidden="true" />
                           {label}
                         </span>
                         {meta && (
-                          <span className={`text-xs ${isActive ? 'text-blue-500/80' : 'text-gray-400'}`}>
+                          <span className={`text-xs ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
                             {meta.description}
                           </span>
                         )}
@@ -278,23 +328,26 @@ export default function CreateTicketPage() {
             {/* Devices - only visible when Hardware is selected */}
             {typeOfConcern === HARDWARE_CONCERN && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Devices <span className="text-red-500">*</span>
-                </label>
-                <div className="space-y-2">
+                <span id="lbl-devices" className="block text-sm font-medium text-gray-700 mb-2">
+                  Devices <span className="text-red-500" aria-hidden="true">*</span>
+                </span>
+                <div role="group" aria-labelledby="lbl-devices" aria-describedby={describedBy('devices')} className="space-y-2">
                   {devices.map((device, i) => (
                     <div key={i} className="flex gap-2">
                       <input
+                        id={`f-devices.${i}.type`}
                         type="text"
+                        aria-label={`Device ${i + 1} name`}
                         value={device.type}
                         onChange={e => updateDevice(i, 'type', e.target.value)}
                         placeholder="e.g. Monitor, Printer, Scanner"
                         className={`flex-1 ${cls(`devices.${i}.type`)}`}
-                        aria-invalid={!!fe(`devices.${i}.type`)}
-                        required={typeOfConcern === HARDWARE_CONCERN}
+                        aria-invalid={!!fe(`devices.${i}.type`) || !!fe('devices')}
+                        aria-describedby={describedBy(`devices.${i}.type`) ?? describedBy('devices')}
                       />
                       <input
                         type="number"
+                        aria-label={`Device ${i + 1} quantity`}
                         min={1}
                         value={device.quantity}
                         onChange={e => updateDevice(i, 'quantity', e.target.value)}
@@ -305,10 +358,10 @@ export default function CreateTicketPage() {
                         <button
                           type="button"
                           onClick={() => removeDeviceRow(i)}
-                          className="px-3 text-gray-400 hover:text-red-500 transition"
-                          aria-label="Remove device"
+                          className="px-3 text-gray-500 hover:text-red-600 transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                          aria-label={`Remove device ${i + 1}`}
                         >
-                          ✕
+                          <X size={16} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -318,7 +371,7 @@ export default function CreateTicketPage() {
                 <button
                   type="button"
                   onClick={addDeviceRow}
-                  className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="mt-2 rounded text-sm text-blue-700 hover:text-blue-800 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   + Add another device
                 </button>
@@ -329,12 +382,14 @@ export default function CreateTicketPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
               <div>
-                <FieldLabel icon={MapPin}>Area Concerned</FieldLabel>
+                <FieldLabel icon={MapPin} htmlFor="f-name_of_area">Area Concerned</FieldLabel>
                 <select
+                  id="f-name_of_area"
                   value={areaConcerned}
                   onChange={e => { setAreaConcerned(e.target.value); clearFieldError('name_of_area') }}
                   className={cls('name_of_area')}
                   aria-invalid={!!fe('name_of_area')}
+                  aria-describedby={describedBy('name_of_area')}
                   required
                 >
                   <option value="">-- Select Hospital Area --</option>
@@ -346,14 +401,16 @@ export default function CreateTicketPage() {
               </div>
 
               <div>
-                <FieldLabel icon={User}>Area Supervisor</FieldLabel>
+                <FieldLabel icon={User} htmlFor="f-area_supervisor">Area Supervisor</FieldLabel>
                 <input
+                  id="f-area_supervisor"
                   type="text"
                   value={areaSupervisor}
                   onChange={e => { setAreaSupervisor(e.target.value); clearFieldError('area_supervisor') }}
                   placeholder="e.g. Jane Doe"
                   className={cls('area_supervisor')}
                   aria-invalid={!!fe('area_supervisor')}
+                  aria-describedby={describedBy('area_supervisor')}
                   required
                 />
                 <FieldError id="err-area_supervisor" messages={fe('area_supervisor')} />
@@ -363,14 +420,16 @@ export default function CreateTicketPage() {
 
             {/* Remarks */}
             <div>
-              <FieldLabel icon={MessageSquare}>Remarks</FieldLabel>
+              <FieldLabel icon={MessageSquare} htmlFor="f-remarks">Remarks</FieldLabel>
               <textarea
+                id="f-remarks"
                 value={remarks}
                 onChange={e => { setRemarks(e.target.value); clearFieldError('remarks') }}
                 placeholder="Describe the issue in detail — what happened, when it started, and any error messages."
                 rows={4}
                 className={`${cls('remarks')} resize-none`}
                 aria-invalid={!!fe('remarks')}
+                aria-describedby={describedBy('remarks')}
                 required
               />
               <FieldError id="err-remarks" messages={fe('remarks')} />
@@ -378,15 +437,18 @@ export default function CreateTicketPage() {
 
             {/* Assign User */}
             <div>
-              <FieldLabel icon={UserCheck}>Personnel Assigned</FieldLabel>
+              <FieldLabel icon={UserCheck} htmlFor="f-assigned_user">Personnel Assigned</FieldLabel>
               <select
+                id="f-assigned_user"
+                disabled={!lookups}
                 value={assignedUser}
                 onChange={e => { setAssignedUser(e.target.value); clearFieldError('assigned_user') }}
                 className={cls('assigned_user')}
                 aria-invalid={!!fe('assigned_user')}
+                aria-describedby={describedBy('assigned_user')}
                 required
               >
-                <option value="">-- Select Personnel --</option>
+                <option value="">{lookups ? '-- Select Personnel --' : 'Loading…'}</option>
                 {employees.map(person => (
                   <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
                 ))}
@@ -396,13 +458,22 @@ export default function CreateTicketPage() {
 
             {/* Priority */}
             <div>
-              <FieldLabel icon={Clock}>Priority</FieldLabel>
+              <span id="lbl-priority" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
+                <Clock size={14} className="text-gray-400" aria-hidden="true" />
+                Priority <span className="text-red-500" aria-hidden="true">*</span>
+              </span>
               {!lookups && !lookupError ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
                   {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                <div
+                  id="f-priority"
+                  role="group"
+                  aria-labelledby="lbl-priority"
+                  aria-describedby={describedBy('priority')}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1"
+                >
                   {(lookups?.priorities ?? []).map(p => {
                     const style = PRIORITY_STYLES[p.level] ?? PRIORITY_FALLBACK
                     const isActive = priority === p.id
@@ -416,17 +487,14 @@ export default function CreateTicketPage() {
                           isActive ? style.highlight : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        <input
-                          type="radio"
-                          name="priority"
-                          checked={isActive}
-                          readOnly
-                          tabIndex={-1}
-                          className="h-4 w-4 mt-0.5 shrink-0 cursor-pointer"
-                        />
+                        {isActive ? (
+                          <CircleDot size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                        ) : (
+                          <Circle size={16} className="mt-0.5 shrink-0 text-gray-400" aria-hidden="true" />
+                        )}
                         <div>
                           <div>{p.level}</div>
-                          <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-400">
+                          <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-500">
                             {`SLA ${p.sla_days} ${p.sla_days > 1 ? 'days' : 'day'}`}
                           </div>
                         </div>
@@ -461,8 +529,8 @@ export default function CreateTicketPage() {
         {/* Ticket Preview */}
         <div className="relative bg-white rounded-2xl border border-t-8 border-t-orange-400 p-5 sm:p-6 mt-5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-                <Ticket size={13} className="text-gray-400" />
-                <span className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+                <Ticket size={13} className="text-gray-500" aria-hidden="true" />
+                <span className="text-xs font-semibold tracking-widest text-gray-500 uppercase">
                 Ticket Preview
                 </span>
             </div>
@@ -486,7 +554,7 @@ export default function CreateTicketPage() {
                     Service Level Agreement target: <span className="font-medium text-gray-800">{selectedPriority.sla_days} days</span>
                 </p>
                 ) : (
-                <p className="text-sm text-gray-400">Select a priority to see the SLA target.</p>
+                <p className="text-sm text-gray-500">Select a priority to see the SLA target.</p>
                 )}
             </div>
         </div>
