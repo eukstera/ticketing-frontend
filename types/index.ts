@@ -44,6 +44,7 @@ export interface DepartmentTicket {
   status: string
   priority: string
   department: string
+  department_id: number
   date_activities: DateActivity[]
   requested_activity: ActivityInfo | null
   assigned_activity: ActivityInfo | null

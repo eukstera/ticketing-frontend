@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import Navbar from '@/components/NavBar'
 import { getDepartmentTickets, markTicketComplete, assignTicket } from '@/lib/tickets'
-import { isAuthenticated } from '@/lib/auth'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { getErrorMessage, isAbortError } from '@/lib/api'
+import ErrorState from '@/components/ui/ErrorState'
 import { DepartmentTicket } from '@/types'
 import AssignModal from '@/components/AssignModal'
 import CommentsModal from '@/components/CommentsModal'
@@ -13,10 +14,11 @@ import FilterPills, { buildStatusPills, buildPriorityPills } from '@/components/
 import TicketsTable from '@/components/department-tickets/TicketsTable'
 import Pagination from '@/components/department-tickets/Pagination'
 import { toast } from '@/components/Toast'
+import { readDeepLinkFilter, clearDeepLinkFilter } from '@/lib/ticketFilters'
 
 export default function DepartmentTicketsPage() {
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const authed = useAuthGuard()
+  const abortRef = useRef<AbortController | null>(null)
   const [tickets, setTickets] = useState<DepartmentTicket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -25,8 +27,9 @@ export default function DepartmentTicketsPage() {
   const [lastPage, setLastPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [expanded, setExpanded] = useState<number[]>([])
-  const [statusFilter, setStatusFilter] = useState<string | null>(null)
-  const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
+  const [deepLink] = useState(readDeepLinkFilter)
+  const [statusFilter, setStatusFilter] = useState<string | null>(deepLink?.type === 'status' ? deepLink.level : null)
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(deepLink && deepLink.type !== 'status' ? deepLink.level : null)
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({})
   const [priorityCounts, setPriorityCounts] = useState<Record<string, number>>({})
   const [prioritySla, setPrioritySla] = useState<Record<string, number>>({})
@@ -38,41 +41,33 @@ export default function DepartmentTicketsPage() {
   const [completing, setCompleting] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    if (!isAuthenticated()) {
-      router.push('/auth/login')
-      return
-    }
-
-    const statusFromStorage = sessionStorage.getItem('ticketStatusFilter')
-    if (statusFromStorage) {
-      const stored = JSON.parse(statusFromStorage)
-      if(stored.type == 'status'){
-        setStatusFilter(stored.level)
-      }else{
-        setPriorityFilter(stored.level)
-      }
-      sessionStorage.removeItem('ticketStatusFilter')
-    }
-  }, [router])
+    clearDeepLinkFilter()
+  }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!authed) return
     const timeout = setTimeout(() => {
       fetchTickets(1)
     }, 300)
-    return () => clearTimeout(timeout)
-  }, [mounted, statusFilter, priorityFilter, search])
+    return () => {
+      clearTimeout(timeout)
+      abortRef.current?.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchTickets reads the filters directly
+  }, [authed, statusFilter, priorityFilter, search])
 
   async function fetchTickets(page: number, loadState: boolean = true) {
-    if(loadState) setLoading(true)
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+    if (loadState) setLoading(true)
     setError('')
     try {
       const res = await getDepartmentTickets(page, {
         status: statusFilter,
         priority: priorityFilter,
         search,
-      })
+      }, controller.signal)
       const ticketData = res.result.ticket
       setTickets(ticketData.data)
       setCurrentPage(ticketData.current_page)
@@ -82,10 +77,11 @@ export default function DepartmentTicketsPage() {
       setPriorityCounts(res.result.priority_counts)
       setPrioritySla(res.result.priority_sla)
     } catch (err) {
+      if (isAbortError(err)) return
       console.error(err)
-      setError('Failed to load tickets')
+      setError(getErrorMessage(err, 'Failed to load tickets'))
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) setLoading(false)
     }
   }
   
@@ -106,7 +102,7 @@ export default function DepartmentTicketsPage() {
       fetchTickets(currentPage, false)
     } catch (err) {
       console.error(err)
-      toast('Failed to mark ticket as complete', 'error')
+      toast(getErrorMessage(err, 'Failed to mark ticket as complete'), 'error')
     } finally {
       setCompleting(false)
     }
@@ -137,7 +133,7 @@ export default function DepartmentTicketsPage() {
     setPriorityFilter(prev => (prev === value ? null : value))
   }
 
-  if (!mounted) return null
+  if (!authed) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,9 +168,7 @@ export default function DepartmentTicketsPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
-            {error}
-          </div>
+          <ErrorState message={error} onRetry={() => fetchTickets(currentPage)} className="mb-4" />
         )}
 
         {loading ? (
