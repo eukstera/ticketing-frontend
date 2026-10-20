@@ -1,6 +1,9 @@
 import { getToken, removeToken } from '@/lib/auth'
 
-const DEV_FALLBACK_URL = 'http://ticketing-api.test/api'
+// `php artisan serve` default. For another device on the LAN set
+// NEXT_PUBLIC_API_URL in .env.local (see README).
+const DEV_FALLBACK_URL = 'http://localhost:8000/api'
+let warnedMissingUrl = false
 const IS_DEV = process.env.NODE_ENV === 'development'
 
 // Resolved per request (not at module load) so a missing prod env var surfaces
@@ -11,6 +14,10 @@ function getBaseUrl(): string {
   if (process.env.NODE_ENV === 'production') {
     console.error('NEXT_PUBLIC_API_URL is not set; refusing to call the API.')
     throw new ApiError(0, 'API URL is not configured.')
+  }
+  if (!warnedMissingUrl) {
+    warnedMissingUrl = true
+    console.warn(`NEXT_PUBLIC_API_URL is not set; using ${DEV_FALLBACK_URL}. See .env.local.example.`)
   }
   return DEV_FALLBACK_URL
 }
