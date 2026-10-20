@@ -7,7 +7,7 @@ import { toast } from '@/components/Toast'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
-import { AuthUser, saveUser } from '@/lib/auth'
+import { saveUser } from '@/lib/auth'
 import { FieldErrors, getErrorMessage, isApiError } from '@/lib/api'
 import { PASSWORD_RULES, changePassword, updateProfile, validateNewPassword } from '@/lib/profile'
 import { btnPrimary, input, inputError } from '@/lib/styles'
@@ -100,8 +100,7 @@ function ReadOnly({ label, value }: { label: string; value?: string | null }) {
 
 export default function ProfilePage() {
   const authed = useAuthGuard()
-  // useUser is typed as the base User; the stored object also carries role/department/designation.
-  const user = useUser() as AuthUser | null
+  const user = useUser()
 
   // Drafts shadow the stored user only while the user is typing.
   const [nameDraft, setNameDraft] = useState<{ first: string; last: string } | null>(null)

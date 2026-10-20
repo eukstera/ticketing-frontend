@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import AssignModal from '@/components/AssignModal'
@@ -16,7 +17,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { assignTicket, getTicket, markTicketComplete, takeTicket } from '@/lib/tickets'
-import { PRIORITY_FALLBACK, PRIORITY_STYLES, statusStyles } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
 import { DateActivity, DepartmentTicket, TicketDetail } from '@/types'
 
 interface DetailState {
@@ -68,7 +69,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   if (children === null || children === undefined || children === '') return null
   return (
     <div>
-      <dt className="text-xs text-gray-400">{label}</dt>
+      <dt className="text-xs text-gray-500">{label}</dt>
       <dd className="mt-0.5 text-sm text-gray-700">{children}</dd>
     </div>
   )
@@ -79,6 +80,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const ticketId = Number(rawId)
   const authed = useAuthGuard()
   const user = useUser()
+  const router = useRouter()
 
   const [state, setState] = useState<DetailState | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
@@ -161,9 +163,18 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        <h1 className="sr-only">Ticket</h1>
         <Link
           href="/tickets"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+          onClick={e => {
+            // Return to wherever the user came from (keeps list filters); fall
+            // back to the link's href when this page was opened directly.
+            if (window.history.length > 1) {
+              e.preventDefault()
+              router.back()
+            }
+          }}
+          className="mb-4 inline-flex items-center gap-1.5 rounded text-sm text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
           <ArrowLeft size={14} aria-hidden="true" />
           Back to tickets
@@ -256,7 +267,7 @@ function TicketBody({
       <section className="rounded-xl border border-gray-200 bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">{ticket.ticket_number}</h1>
+            <h2 className="text-xl font-semibold text-gray-800">{ticket.ticket_number}</h2>
             <p className="mt-0.5 text-sm text-gray-500">
               {ticket.department.name} &middot; requested {formatDateTime(ticket.created_at)}
             </p>
@@ -274,7 +285,7 @@ function TicketBody({
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span
             className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-              statusStyles[ticket.status.label] || 'bg-gray-100 text-gray-700'
+              (STATUS_STYLES[ticket.status.label] ?? STATUS_FALLBACK).badge
             }`}
           >
             {ticket.status.label}
@@ -282,7 +293,7 @@ function TicketBody({
           <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyle.badge}`}>
             {ticket.priority.level}
           </span>
-          {ticket.is_overdue && (
+          {ticket.is_overdue && ticket.status.label !== 'Overdue' && (
             <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
               Overdue
             </span>
@@ -302,7 +313,7 @@ function TicketBody({
           <Field label="Area">{d.name_of_area}</Field>
           <Field label="Area supervisor">{d.area_supervisor}</Field>
           <Field label="Requester">{requester}</Field>
-          <Field label="Assigned to">{assignee ?? <span className="text-gray-400">Unassigned</span>}</Field>
+          <Field label="Assigned to">{assignee ?? <span className="text-gray-500">Unassigned</span>}</Field>
         </dl>
         <dl className="mt-3 space-y-3">
           <Field label={isIT ? 'Remarks' : 'Scope of work'}>
