@@ -1,21 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { api } from '@/lib/api'
-import { saveToken, saveUser, register } from '@/lib/auth'
+import { useState } from 'react'
+import { api, isApiError } from '@/lib/api'
 import { getDesignations, createDesignation, Designation } from '@/lib/tickets'
-import { AuthResponse } from '@/types'
 import AuthField from './AuthField'
 
 const DEPARTMENTS = [
   { id: '1', label: 'IT' },
   { id: '2', label: 'Engineering' }
-]
-
-const ROLES = [
-  { id: '1', label: 'Normal User' },
-  { id: '2', label: 'Department Head' },
 ]
 
 const ADD_NEW_VALUE = '__add_new__'
@@ -30,8 +22,10 @@ const INITIAL_FORM = {
   role_id: 1, // normal user
 }
 
-export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: () => void }) {
-  const router = useRouter()
+// Admin-only account creation (POST /admin/users). Public self-registration was
+// removed, so this is no longer rendered on '/'; it is reused by the admin
+// users page. Creating a user never touches the current session.
+export default function RegisterForm({ onCreated }: { onCreated?: () => void }) {
   const [form, setForm] = useState(INITIAL_FORM)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(false)
@@ -45,20 +39,8 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
   const [newDesignation, setNewDesignation] = useState('')
   const [savingDesignation, setSavingDesignation] = useState(false)
 
-  // Designations are scoped per department, so re-fetch whenever the
-  // selected department changes. Clear out the old list/selection first so
-  // stale options from the previous department don't briefly show.
-  useEffect(() => {
-    setDesignations([])
-    set('designation_id', '')
-    setAddingDesignation(false)
-    setDesignationsError('')
-
-    if (!form.department_id) return
-
-    fetchDesignations(Number(form.department_id))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.department_id])
+  const set = (field: keyof typeof INITIAL_FORM, value: string) =>
+    setForm(prev => ({ ...prev, [field]: value }))
 
   async function fetchDesignations(departmentId: number) {
     setLoadingDesignations(true)
@@ -74,8 +56,17 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
     }
   }
 
-  const set = (field: keyof typeof INITIAL_FORM, value: string) =>
-    setForm(prev => ({ ...prev, [field]: value }))
+  // Designations are scoped per department, so re-fetch whenever the
+  // selected department changes. Clear out the old list/selection first so
+  // stale options from the previous department don't briefly show.
+  function handleDepartmentChange(value: string) {
+    setForm(prev => ({ ...prev, department_id: value, designation_id: '' }))
+    setDesignations([])
+    setAddingDesignation(false)
+    setDesignationsError('')
+
+    if (value) fetchDesignations(Number(value))
+  }
 
   function handleDesignationChange(value: string) {
     if (value === ADD_NEW_VALUE) {
@@ -132,25 +123,22 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
     setError('')
     setErrors({})
     try {
-      const res = await register({
+      await api.post('/admin/users', {
         ...form,
         designation_id: Number(form.designation_id),
         department_id: Number(form.department_id),
         role_id: Number(form.role_id),
       })
-      
-      if (res.success) {
-        saveToken(res.result.token)
-        saveUser(res.result.user)
-        router.push('/dashboard')
-      }else{
-        const e = res as { message?: string; errors?: Record<string, string[]> }
-        setError(e.message || 'Registration failed')
-        if (e.errors) setErrors(e.errors)
-      }
-
-    } catch (err: unknown) {
+      setForm(INITIAL_FORM)
+      setDesignations([])
+      onCreated?.()
+    } catch (err) {
+      if (isApiError(err)) {
+        setError(err.message || 'Could not create the user')
+        if (err.errors) setErrors(err.errors)
+      } else {
         setError('Something went wrong')
+      }
     } finally {
       setLoading(false)
     }
@@ -158,9 +146,9 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
 
   return (
     <>
-      <h2 className="font-serif text-[25px] font-medium text-[#0F2B32] mb-1.5">Register</h2>
+      <h2 className="font-serif text-[25px] font-medium text-[#0F2B32] mb-1.5">Create user</h2>
       <p className="text-[13.5px] text-[#7C8B87] leading-relaxed mb-7">
-        Fill in required details to register.
+        Fill in the required details to create an account.
       </p>
 
       {error && (
@@ -184,7 +172,7 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
           </label>
           <select
             value={form.department_id}
-            onChange={e => set('department_id', e.target.value)}
+            onChange={e => handleDepartmentChange(e.target.value)}
             className="text-sm px-3.5 py-2.5 rounded-lg border border-black/10 bg-white outline-none focus:border-[#1F5C57] focus:ring-4 focus:ring-[#1F5C57]/10 transition"
           >
             <option value="">--Select Department--</option>
@@ -263,52 +251,14 @@ export default function RegisterForm({ onSwitchToLogin }: { onSwitchToLogin?: ()
           {errors.designation_id && <p className="text-[#D9522E] text-xs mt-0.5">{errors.designation_id[0]}</p>}
         </div>
 
-        {/* <div>
-          <label className="block text-xs font-semibold text-[#0F2B32] mb-2">
-            Role <span className="text-[#D9522E]">*</span>
-          </label>
-          <div className="flex gap-3">
-            {ROLES.map(r => (
-              <label
-                key={r.id}
-                className={`flex-1 flex items-center justify-center gap-2 border rounded-lg py-2.5 text-sm font-medium cursor-pointer transition ${
-                  form.role_id === r.id
-                    ? 'border-[#1F5C57] bg-[#E4EEE8] text-[#0F2B32]'
-                    : 'border-black/10 text-[#4C5C5A] hover:bg-black/[0.02]'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={r.id}
-                  checked={form.role_id === r.id}
-                  onChange={() => set('role_id', r.id)}
-                  className="hidden"
-                />
-                {r.label}
-              </label>
-            ))}
-          </div>
-          {errors.role_id && <p className="text-[#D9522E] text-xs mt-1">{errors.role_id[0]}</p>}
-        </div> */}
-
         <button
           type="submit"
           disabled={loading}
           className="w-full mt-3 bg-[#0F2B32] hover:bg-[#123B3E] text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60"
         >
-          {loading ? 'Registering...' : 'Register'}
+          {loading ? 'Creating...' : 'Create user'}
         </button>
       </form>
-
-      {onSwitchToLogin && (
-        <p className="text-center text-xs text-[#7C8B87] mt-6">
-          Already registered?{' '}
-          <button onClick={onSwitchToLogin} className="text-[#D9522E] font-semibold hover:underline">
-            Log in
-          </button>
-        </p>
-      )}
     </>
   )
 }

@@ -2,12 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/api'
+import { isApiError } from '@/lib/api'
 import { login } from '@/lib/auth'
-import { AuthResponse } from '@/types'
 import AuthField from './AuthField'
 
-export default function LoginForm({ onSwitchToRegister }: { onSwitchToRegister?: () => void }) {
+export default function LoginForm() {
   const router = useRouter()
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string[]>>({})
@@ -23,17 +22,24 @@ export default function LoginForm({ onSwitchToRegister }: { onSwitchToRegister?:
       const res = await login(form)
       if (res.success) {
         router.push('/dashboard')
-      }else{
-        const e = res as 
-        { 
-          message?: string
-          errors?: Record<string, string[]> 
-        }
-        setError(e.message || 'Login failed')
-        if (e.errors) setErrors(e.errors)
+      } else {
+        setError(res.message || 'Login failed')
       }
     } catch (err: unknown) {
-      setError('Something went wrong')
+      if (isApiError(err)) {
+        if (err.status === 429) {
+          setError('Too many attempts, try again in a minute.')
+        } else if (err.status === 403) {
+          setError('Your account is deactivated. Contact your department head.')
+        } else if (err.status === 0) {
+          setError(err.message)
+        } else {
+          setError(err.message || 'Login failed')
+          if (err.errors) setErrors(err.errors)
+        }
+      } else {
+        setError('Could not reach the server. Check your connection and try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -77,15 +83,6 @@ export default function LoginForm({ onSwitchToRegister }: { onSwitchToRegister?:
           {!loading && <span aria-hidden="true">→</span>}
         </button>
       </form>
-
-      {onSwitchToRegister && (
-        <p className="text-center text-xs text-[#7C8B87] mt-6">
-          Don&apos;t have an account?{' '}
-          <button onClick={onSwitchToRegister} className="text-[#D9522E] font-semibold hover:underline">
-            Register here
-          </button>
-        </p>
-      )}
     </>
   )
 }
