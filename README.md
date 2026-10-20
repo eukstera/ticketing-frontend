@@ -20,6 +20,38 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## LAN / dev setup
+
+Copy `.env.local.example` to `.env.local` (git-ignored) and edit it.
+
+**Same machine** (Laravel via `php artisan serve` on 127.0.0.1:8000):
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+```
+
+**Opening the app from another device** (e.g. `http://192.168.117.86:3000`):
+
+1. Backend: `php artisan serve --host=0.0.0.0 --port=8000`, and allow TCP 8000 in Windows Firewall.
+2. `.env.local`:
+   ```
+   NEXT_PUBLIC_API_URL=http://192.168.117.86:8000/api
+   NEXT_DEV_ALLOWED_ORIGINS=192.168.117.86
+   ```
+   `NEXT_DEV_ALLOWED_ORIGINS` is a comma-separated list of hosts (no scheme or port; wildcards like `*.example.dev` work). It feeds `allowedDevOrigins` in `next.config.ts`.
+3. The BE CORS config must allow the origin you browse from (`http://192.168.117.86:3000`).
+
+Notes:
+
+- **Restart `npm run dev`** after editing `.env.local` or `next.config.ts`.
+- `NEXT_PUBLIC_*` values are inlined into the JS at build/dev start, so changing them needs a restart (or rebuild), not just a refresh.
+- If the dev origin is not allowed, Next blocks `/_next/webpack-hmr`, the page never hydrates and the console/`.next/dev/logs` show "Blocked cross-origin request ... add it to allowedDevOrigins". Forms are written so that this cannot leak credentials into the URL (they use `method="post"` and their submit stays disabled until hydrated), but the app will not work until the origin is allowed.
+- Do **not** use Laragon's `TicketingSystem-API.gbtrghsc.dev` host. It serves a different, old copy of the API (`C:\laragon\www\TicketingSystem-API`), not the `../TicketingSystem-API` next to this project inside "Ticketing System".
+
+## Tests
+
+`npm test` runs the unit tests (Vitest); `npm run test:watch` watches.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
