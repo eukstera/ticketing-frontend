@@ -13,6 +13,10 @@ const SIZE_CLASS = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
+// Open modals, oldest first. Only the topmost handles Escape/Tab, so a
+// ConfirmModal opened from inside another modal closes alone.
+const openModals: symbol[] = []
+
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
@@ -66,7 +70,11 @@ export default function Modal({
       panel.focus()
     }
 
+    const token = Symbol('modal')
+    openModals.push(token)
+
     function handleKeyDown(e: KeyboardEvent) {
+      if (openModals[openModals.length - 1] !== token) return
       if (e.key === 'Escape') {
         e.stopPropagation()
         onCloseRef.current()
@@ -95,6 +103,8 @@ export default function Modal({
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      const index = openModals.indexOf(token)
+      if (index !== -1) openModals.splice(index, 1)
       document.body.style.overflow = previousOverflow
       previouslyFocused?.focus?.()
     }
