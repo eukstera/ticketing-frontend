@@ -9,11 +9,12 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
 
   const hasAnyActivity = steps.some(s => s.activity)
   if (!hasAnyActivity) {
-    return <p className="text-sm text-gray-400">No timeline activity yet</p>
+    return <p className="text-sm text-gray-500">No timeline activity yet</p>
   }
 
   return (
-    <div className="flex justify-center">
+    // Stacked (vertical) below sm, horizontal stepper from sm up
+    <div className="flex flex-col items-start sm:flex-row sm:justify-center">
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1
         const reached = !!step.activity
@@ -26,39 +27,45 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
         : null
 
         return (
-          <div key={step.match} className="flex items-start">
-            <div className="flex flex-col items-center w-25 shrink-0">
+          <div key={step.match} className="flex flex-col sm:flex-row sm:items-start">
+            <div className="flex items-start gap-3 sm:flex-col sm:items-center sm:gap-0 sm:w-28 shrink-0">
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mb-1 ${
-                  reached ? step.bg : 'bg-gray-100 text-gray-300'
+                className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 sm:mb-1 ${
+                  reached ? step.bg : 'bg-gray-100 text-gray-500'
                 }`}
               >
                 {step.icon}
               </div>
-              {reached ? (
-                <>
-                  <p className="text-[11px] text-gray-400 text-center leading-tight">
-                    {dateStr} {timeStr}
-                  </p>
-                  <p className="text-xs text-gray-600 text-center leading-tight truncate w-full">
-                    {step.activity!.user ?? '—'}
-                  </p>
-                  <p className="text-xs font-semibold text-gray-800 text-center leading-tight">
-                    {step.label}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-[11px] text-gray-300 text-center leading-tight">Pending</p>
-                  <p className="text-xs text-gray-300 text-center leading-tight">&nbsp;</p>
-                  <p className="text-xs font-medium text-gray-300 text-center leading-tight">
-                    {step.label}
-                  </p>
-                </>
-              )}
+              <div className="flex flex-col min-w-0 text-left sm:items-center sm:text-center sm:w-full">
+                {reached ? (
+                  <>
+                    <p className="text-[11px] text-gray-500 leading-tight">
+                      {dateStr} {timeStr}
+                    </p>
+                    <p className="text-xs text-gray-600 leading-tight truncate w-full">
+                      {step.activity!.user ?? '—'}
+                    </p>
+                    <p className="text-xs font-semibold text-gray-800 leading-tight">
+                      {step.label}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-gray-500 leading-tight">Pending</p>
+                    <p className="hidden sm:block text-xs text-gray-500 leading-tight">&nbsp;</p>
+                    <p className="text-xs font-medium text-gray-500 leading-tight">
+                      {step.label}
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
             {!isLast && (
-              <div className={`w-6 h-px shrink-0 mt-3 ${reached ? 'bg-gray-300' : 'bg-gray-200'}`} />
+              <div
+                className={`shrink-0 w-px h-4 ml-3 sm:ml-0 sm:w-6 sm:h-px sm:mt-3 ${
+                  reached ? 'bg-gray-300' : 'bg-gray-200'
+                }`}
+              />
             )}
           </div>
         )
