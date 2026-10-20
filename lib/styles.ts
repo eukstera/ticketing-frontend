@@ -244,11 +244,19 @@ export const btnPrimary = `${btnBase} bg-blue-600 text-white hover:bg-blue-700 f
 export const btnSecondary = `${btnBase} border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 focus-visible:ring-gray-400`
 export const btnDanger = `${btnBase} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`
 export const btnSuccess = `${btnBase} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`
-/** Size modifier for table-row / inline actions; append after a btn* constant. */
-export const btnSm = 'px-3 py-1.5 text-xs'
+/** Blue-tinted secondary, e.g. the accomplishment-report trigger. */
+export const btnTint = `${btnBase} border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-500`
+/**
+ * Size modifier for table-row / inline actions; append after a btn* constant.
+ * The `!` is required: btnBase already sets px-4 py-2 text-sm, and Tailwind
+ * resolves same-property conflicts by stylesheet order, not class order.
+ */
+export const btnSm = '!px-3 !py-1.5 !text-xs'
 
 export const input =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-gray-50 disabled:text-gray-500'
+/** `input` at its natural width (date/select/inline filters). `input` + `w-auto` does not work: w-full sorts after w-auto. */
+export const inputAuto = input.replace('w-full', 'w-auto')
 /** Append to `input` when the field has a validation error. */
 export const inputError = 'border-red-400 focus:border-red-500 focus:ring-red-500/30'
 
