@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowRight } from 'lucide-react'
 import { isApiError } from '@/lib/api'
 import { login } from '@/lib/auth'
 import AuthField from './AuthField'
@@ -53,7 +54,7 @@ export default function LoginForm() {
       </p>
 
       {error && (
-        <div className="bg-[#FAECE7] border border-[#F0997B] text-[#993C1D] rounded-lg px-4 py-3 mb-4 text-sm">
+        <div role="alert" className="bg-[#FAECE7] border border-[#F0997B] text-[#993C1D] rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}
@@ -62,6 +63,8 @@ export default function LoginForm() {
         <AuthField
           label="Email"
           type="email"
+          name="email"
+          autoComplete="email"
           value={form.email}
           onChange={v => setForm({ ...form, email: v })}
           error={errors.email?.[0]}
@@ -69,6 +72,8 @@ export default function LoginForm() {
         <AuthField
           label="Password"
           type="password"
+          name="password"
+          autoComplete="current-password"
           value={form.password}
           onChange={v => setForm({ ...form, password: v })}
           error={errors.password?.[0]}
@@ -80,7 +85,7 @@ export default function LoginForm() {
           className="w-full mt-1 bg-[#0F2B32] hover:bg-[#123B3E] text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading ? 'Logging in…' : 'Log in'}
-          {!loading && <span aria-hidden="true">→</span>}
+          {!loading && <ArrowRight size={16} aria-hidden="true" />}
         </button>
       </form>
     </>
