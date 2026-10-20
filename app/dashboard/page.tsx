@@ -55,6 +55,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
+        <h1 className="sr-only">Dashboard</h1>
         <DashboardFilters
           month={month}
           onMonthChange={setMonth}
@@ -64,8 +65,17 @@ export default function HomePage() {
         <p className="mb-3 text-sm text-gray-500">Overall tickets assigned to your department</p>
 
         {loading ? (
+          <div aria-busy="true">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
             {[0, 1, 2, 3].map(i => <CardSkeleton key={i} lines={2} />)}
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="space-y-5">
+              <CardSkeleton lines={4} />
+              <CardSkeleton lines={3} />
+            </div>
+            <CardSkeleton lines={6} />
+          </div>
           </div>
         ) : error || !stats ? (
           <ErrorState message={error || 'Failed to load dashboard'} onRetry={() => setReloadToken(t => t + 1)} />
