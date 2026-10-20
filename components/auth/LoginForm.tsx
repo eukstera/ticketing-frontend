@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
+import { useHydrated } from '@/hooks/useHydrated'
 import { isApiError } from '@/lib/api'
 import { login } from '@/lib/auth'
 import AuthField from './AuthField'
 
 export default function LoginForm() {
   const router = useRouter()
+  const hydrated = useHydrated()
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(false)
@@ -59,11 +61,12 @@ export default function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {/* method="post": if this ever submits natively (JS not attached, e.g. a
+          blocked dev origin) the credentials go in the body, never the URL. */}
+      <form method="post" onSubmit={handleSubmit} className="flex flex-col gap-4">
         <AuthField
           label="Email"
           type="email"
-          name="email"
           autoComplete="email"
           value={form.email}
           onChange={v => setForm({ ...form, email: v })}
@@ -72,7 +75,6 @@ export default function LoginForm() {
         <AuthField
           label="Password"
           type="password"
-          name="password"
           autoComplete="current-password"
           value={form.password}
           onChange={v => setForm({ ...form, password: v })}
@@ -81,7 +83,7 @@ export default function LoginForm() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !hydrated}
           className="w-full mt-1 bg-[#0F2B32] hover:bg-[#123B3E] text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading ? 'Logging in…' : 'Log in'}

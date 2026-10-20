@@ -2,6 +2,7 @@
 
 import { FormEvent, useId, useState } from 'react'
 import Modal from '@/components/ui/Modal'
+import { useHydrated } from '@/hooks/useHydrated'
 import { useOptions } from '@/hooks/useOptions'
 import { getErrorMessage, isApiError } from '@/lib/api'
 import { AdminRow, createAdmin, updateAdmin } from '@/lib/admin'
@@ -106,6 +107,7 @@ export default function AdminFormModal({
 }) {
   const mode = row ? 'edit' : 'create'
   const formId = useId()
+  const hydrated = useHydrated()
   const [values, setValues] = useState<Values>(() => initialValues(resource, row))
   const [active, setActive] = useState(row?.status !== false)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
@@ -162,13 +164,13 @@ export default function AdminFormModal({
           <button type="button" onClick={onClose} disabled={saving} className={btnSecondary}>
             Cancel
           </button>
-          <button type="submit" form={formId} disabled={saving} className={btnPrimary}>
+          <button type="submit" form={formId} disabled={saving || !hydrated} className={btnPrimary}>
             {saving ? 'Saving…' : mode === 'create' ? 'Create' : 'Save changes'}
           </button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form id={formId} method="post" onSubmit={handleSubmit} className="space-y-5" noValidate>
         {banner && (
           <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {banner}

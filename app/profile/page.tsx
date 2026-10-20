@@ -6,6 +6,7 @@ import Navbar from '@/components/NavBar'
 import { toast } from '@/components/Toast'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useHydrated } from '@/hooks/useHydrated'
 import { useUser } from '@/hooks/useUser'
 import { saveUser } from '@/lib/auth'
 import { FieldErrors, getErrorMessage, isApiError } from '@/lib/api'
@@ -42,7 +43,6 @@ function TextField({
       </label>
       <input
         id={id}
-        name={id}
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -100,6 +100,7 @@ function ReadOnly({ label, value }: { label: string; value?: string | null }) {
 
 export default function ProfilePage() {
   const authed = useAuthGuard()
+  const hydrated = useHydrated()
   const user = useUser()
 
   // Drafts shadow the stored user only while the user is typing.
@@ -207,7 +208,7 @@ export default function ProfilePage() {
               <Skeleton className="h-9 w-full" />
             </div>
           ) : (
-            <form onSubmit={handleNameSubmit} noValidate className="space-y-4">
+            <form method="post" onSubmit={handleNameSubmit} noValidate className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <TextField
                   id="first_name"
@@ -244,7 +245,7 @@ export default function ProfilePage() {
               </p>
 
               <div className="flex justify-end">
-                <button type="submit" disabled={!nameChanged || savingName} className={btnPrimary}>
+                <button type="submit" disabled={!hydrated || !nameChanged || savingName} className={btnPrimary}>
                   {savingName ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
@@ -256,7 +257,7 @@ export default function ProfilePage() {
           <h2 id="password-heading" className="mb-4 text-sm font-semibold text-gray-800">
             Change password
           </h2>
-          <form onSubmit={handlePasswordSubmit} noValidate className="space-y-4">
+          <form method="post" onSubmit={handlePasswordSubmit} noValidate className="space-y-4">
             <TextField
               id="current_password"
               label="Current password"
@@ -300,7 +301,7 @@ export default function ProfilePage() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
+                disabled={!hydrated || savingPassword || !currentPassword || !newPassword || !confirmPassword}
                 className={btnPrimary}
               >
                 {savingPassword ? 'Changing…' : 'Change password'}
