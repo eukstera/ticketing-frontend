@@ -3,11 +3,14 @@ export default function Pagination({
   lastPage,
   total,
   onPageChange,
+  noun = 'tickets',
 }: {
   currentPage: number
   lastPage: number
   total: number
   onPageChange: (page: number) => void
+  /** Label for the total, e.g. 'users'. */
+  noun?: string
 }) {
   const pages = Array.from({ length: lastPage }, (_, i) => i + 1)
     .filter(p => p === 1 || p === lastPage || Math.abs(p - currentPage) <= 1)
@@ -20,7 +23,7 @@ export default function Pagination({
   return (
     <div className="flex items-center justify-between mt-4">
       <p className="text-sm text-gray-500">
-        Page {currentPage} of {lastPage} &middot; {total} tickets
+        Page {currentPage} of {lastPage} &middot; {total} {noun}
       </p>
       <div className="flex items-center gap-1.5">
         <button
