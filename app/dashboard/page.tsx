@@ -1,57 +1,56 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Navbar from '@/components/NavBar'
 import { getDashboardStats, DashboardStats } from '@/lib/dashboard'
-import { isAuthenticated } from '@/lib/auth'
+import { getErrorMessage, isAbortError } from '@/lib/api'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 import DashboardFilters from '@/components/dashboard/DashboardFilters'
 import StatCard from '@/components/dashboard/StatCard'
 import PriorityStatistics from '@/components/dashboard/PriorityStatistics'
 import TodaysTicketCard from '@/components/dashboard/TodaysTicketCard'
 import TopPerformerCard from '@/components/dashboard/TopPerformerCard'
+import ErrorState from '@/components/ui/ErrorState'
+import { CardSkeleton } from '@/components/ui/Skeleton'
 
+// Local-time YYYY-MM (toISOString would use UTC and be off near month ends).
 function currentMonth() {
-  return new Date().toISOString().slice(0, 7) // YYYY-MM
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+interface StatsResult {
+  key: string
+  stats: DashboardStats | null
+  error: string
 }
 
 export default function HomePage() {
-  const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const authed = useAuthGuard()
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null)
-  const [month, setMonth] = useState(currentMonth())
+  const [month, setMonth] = useState(currentMonth)
+  const [reloadToken, setReloadToken] = useState(0)
+  const [result, setResult] = useState<StatsResult | null>(null)
+
+  const requestKey = `${priorityFilter ?? ''}|${month}|${reloadToken}`
+  const loading = result?.key !== requestKey
+  const stats = result?.stats ?? null
+  const error = loading ? '' : result?.error ?? ''
 
   useEffect(() => {
-    setMounted(true)
-    if (!isAuthenticated()) {
-      router.push('/auth/login')
-      return
-    }
-  }, [router])
+    if (!authed) return
+    const controller = new AbortController()
+    getDashboardStats({ priority: priorityFilter, date: month, signal: controller.signal })
+      .then(res => setResult({ key: requestKey, stats: res.result, error: '' }))
+      .catch(err => {
+        if (isAbortError(err)) return
+        console.error(err)
+        setResult({ key: requestKey, stats: null, error: getErrorMessage(err, 'Failed to load dashboard') })
+      })
+    return () => controller.abort()
+  }, [authed, priorityFilter, month, requestKey])
 
-  useEffect(() => {
-    if (!mounted) return
-    fetchStats()
-  }, [mounted, priorityFilter, month])
-
-  async function fetchStats() {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await getDashboardStats({ priority: priorityFilter, date: month })
-      setStats(res.result)
-    } catch (err) {
-      console.error(err)
-      setError('Failed to load dashboard')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (!mounted) return null
+  if (!authed) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,33 +64,31 @@ export default function HomePage() {
           stats={stats?.priority_stats ?? []}
         />
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
-            {error}
-          </div>
-        )}
-
         <p className="mb-3 text-sm text-gray-500">Overall tickets assigned to your department</p>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-400">Loading dashboard...</div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
+            {[0, 1, 2, 3].map(i => <CardSkeleton key={i} lines={2} />)}
+          </div>
+        ) : error || !stats ? (
+          <ErrorState message={error || 'Failed to load dashboard'} onRetry={() => setReloadToken(t => t + 1)} />
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
-              <StatCard value={stats?.overview.open ?? 0} label="Open" color="blue" status="Open" />
-              <StatCard value={stats?.overview.in_progress ?? 0} label="In-progress" color="amber" status="In-progress" />
-              <StatCard value={stats?.overview.completed ?? 0} label="Completed" color="green" status="Completed" />
-              <StatCard value={stats?.overview.overdue ?? 0} label="Overdue" color="red" status="Overdue" />
+              <StatCard value={stats.overview.open} label="Open" color="blue" status="Open" />
+              <StatCard value={stats.overview.in_progress} label="In-progress" color="amber" status="In-progress" />
+              <StatCard value={stats.overview.completed} label="Completed" color="green" status="Completed" />
+              <StatCard value={stats.overview.overdue} label="Overdue" color="red" status="Overdue" />
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div className="space-y-5">
-                <PriorityStatistics stats={stats?.priority_stats ?? []} />
+                <PriorityStatistics stats={stats.priority_stats} />
                 <TodaysTicketCard
-                  data={stats?.todays_ticket ?? { total: 0, completed: 0, percent_completed: 0 }}
+                  data={stats.todays_ticket}
                 />
               </div>
-              <TopPerformerCard performers={stats?.top_performers ?? []} />
+              <TopPerformerCard performers={stats.top_performers} />
             </div>
           </>
         )}
