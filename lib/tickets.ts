@@ -1,5 +1,5 @@
 // lib/tickets.ts
-import { api } from './api'
+import { api, BlobResult } from './api'
 import { DepartmentTicketsResponse } from '@/types'
 
 export interface TicketComment {
@@ -27,26 +27,40 @@ export interface CreateTicketPayload {
   requestor: string
 }
 
-export function getDepartmentTickets(
-  page = 1,
-  filters?: { status?: string | null; priority?: string | null; search?: string }
-) {
-  const query = new URLSearchParams({ page: String(page) })
-  if (filters?.status) query.set('status', filters.status)
-  if (filters?.priority) query.set('priority', filters.priority)
-  if (filters?.search) query.set('search', filters.search)
-  return api.get<DepartmentTicketsResponse>(`/getDepartmentTickets?${query.toString()}`)
+export interface TicketListFilters {
+  status?: string | null
+  priority?: string | null
+  search?: string
+  date_from?: string | null
+  date_to?: string | null
+  per_page?: number
+  sort?: string | null
+  dir?: 'asc' | 'desc' | null
 }
 
-export function getMyTickets(
-  page = 1,
-  filters?: { status?: string | null; priority?: string | null; search?: string }
+function fetchTicketList(
+  endpoint: '/getDepartmentTickets' | '/getMyTickets',
+  page: number,
+  filters?: TicketListFilters,
+  signal?: AbortSignal
 ) {
   const query = new URLSearchParams({ page: String(page) })
-  if (filters?.status) query.set('status', filters.status)
-  if (filters?.priority) query.set('priority', filters.priority)
-  if (filters?.search) query.set('search', filters.search)
-  return api.get<DepartmentTicketsResponse>(`/getMyTickets?${query.toString()}`)
+  if (filters) {
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== null && value !== undefined && value !== '') {
+        query.set(key, String(value))
+      }
+    }
+  }
+  return api.get<DepartmentTicketsResponse>(`${endpoint}?${query.toString()}`, { signal })
+}
+
+export function getDepartmentTickets(page = 1, filters?: TicketListFilters, signal?: AbortSignal) {
+  return fetchTicketList('/getDepartmentTickets', page, filters, signal)
+}
+
+export function getMyTickets(page = 1, filters?: TicketListFilters, signal?: AbortSignal) {
+  return fetchTicketList('/getMyTickets', page, filters, signal)
 }
 
 export function markTicketComplete(ticketId: number) {
@@ -54,9 +68,13 @@ export function markTicketComplete(ticketId: number) {
 }
 
 export function assignTicket(ticketId: number, userId: number) {
-  // NOTE: kept the original endpoint shape (`/${ticketId}/assign`) used by the
-  // previous inline fetch call — flag this with the backend team if it looks off.
   return api.post(`/tickets/${ticketId}/assign`, { user_id: userId })
+}
+
+// "Take ticket": any employee of the handling department may self-assign.
+// The BE has no dedicated endpoint, so this is assign with the caller's own id.
+export function takeTicket(ticketId: number, userId: number) {
+  return assignTicket(ticketId, userId)
 }
 
 export function getTicketComments(ticketId: number) {
@@ -68,8 +86,8 @@ export function addTicketComment(ticketId: number, comment: string) {
 }
 
 export function updateTicketComment(ticketId: number, commentId: number, comment: string) {
-  // NOTE: guessed as PATCH /tickets/{id}/comments/{commentId} to match REST
-  // convention — confirm against the actual backend route if this 404s.
+  // ticketId is unused by the route (PATCH /tickets/comments/{comment}) but kept
+  // so callers don't change.
   return api.patch<{ result: { comment: TicketComment } }>(
     `/tickets/comments/${commentId}`,
     { comment }
@@ -80,76 +98,28 @@ export function createTicket(payload: CreateTicketPayload) {
   return api.post<{ message: string }>('/saveRequestTicketIT', payload)
 }
 
-export interface AccomplishmentReportResult {
-  blob: Blob
-  filename: string
-}
+export type AccomplishmentReportResult = BlobResult
 
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
-// Parse a 'YYYY-MM-DD' input value as a local date (avoids UTC day-shift).
-function parseLocalDate(isoDate: string) {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
-
-// ASSUMPTION: the logged-in user is stored at localStorage['user'] as JSON
-// with a `last_name` field (matches the shape used elsewhere in this file,
-// e.g. TicketComment.user). Adjust the key/path here if your app stores
-// auth state differently (e.g. inside a larger 'auth' object, or under a
-// different key).
-function getStoredLastName(): string | null {
-  try {
-    const raw = localStorage.getItem('user')
-    if (!raw) return null
-    const user = JSON.parse(raw)
-    return user?.last_name ?? null
-  } catch {
-    return null
-  }
-}
-
-function buildFilename(lastName: string, dateFrom: string, dateTo: string) {
-  const from = parseLocalDate(dateFrom)
-  const to = parseLocalDate(dateTo)
-  const sameMonth = from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
-  const monthName = (d: Date) => d.toLocaleString('en-US', { month: 'long' })
-
-  const rangeLabel = sameMonth
-    ? `${monthName(from)} ${from.getDate()}-${to.getDate()}`
-    : `${monthName(from)} ${from.getDate()} - ${monthName(to)} ${to.getDate()}`
-
-  return `${lastName} ${rangeLabel} Report.docx`
-}
-
-export async function downloadAccomplishmentReport(
+// userId is admin-only on the BE (a non-admin passing another id gets 403).
+export function downloadAccomplishmentReport(
   dateFrom: string,
-  dateTo: string
+  dateTo: string,
+  signal?: AbortSignal,
+  userId?: number
 ): Promise<AccomplishmentReportResult> {
   const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo })
-
-  const res = await api.getBlob(
-    `/reports/accomplishment?${query.toString()}`,
-    DOCX_MIME
-  )
-
-  const blob = await res.blob()
-
-  const lastName = getStoredLastName()
-  const filename = lastName
-    ? buildFilename(lastName, dateFrom, dateTo)
-    : `${dateFrom}_${dateTo}_Report.docx` // no user in storage — generic fallback
-
-  return { blob, filename }
+  if (userId) query.set('user_id', String(userId))
+  return api.getBlob(`/reports/accomplishment?${query.toString()}`, DOCX_MIME, { signal })
 }
-
 
 export interface Designation {
   id: number
   department_id: number
   designation: string
-  status: number
+  status: boolean
 }
  
 export function getDesignations(departmentId: number) {

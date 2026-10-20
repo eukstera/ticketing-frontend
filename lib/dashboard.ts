@@ -40,15 +40,17 @@ export interface DashboardStatsResponse {
     result: DashboardStats
 }
 
-export function getDashboardStats(params?: { 
-    priority?: string | null
-    date?: string | null 
+export function getDashboardStats(params?: {
+  priority?: string | null
+  date?: string | null // Y-m; a malformed value returns 422
+  signal?: AbortSignal
 }) {
-
   const query = new URLSearchParams()
   if (params?.priority) query.set('priority', params.priority)
   if (params?.date) query.set('date', params.date)
 
   const qs = query.toString()
-  return api.get<DashboardStatsResponse>(`/dashboard${qs ? `?${qs}` : ''}`)
+  return api.get<DashboardStatsResponse>(`/dashboard${qs ? `?${qs}` : ''}`, {
+    signal: params?.signal,
+  })
 }

@@ -3,39 +3,10 @@ export interface User {
   first_name: string
   last_name: string
   email: string
-  designation_id: string
+  designation_id: number
   department_id: number
   role_id: number
   status: boolean
-}
-
-export interface Ticket {
-  id: number
-  status_id: number
-  priority_id: number
-  department: string
-  area_supervisor: string
-  assigned_user?: number
-  status: boolean
-  created_at: string
-  updated_at: string
-  subject?: string
-  description?: string
-  priority?: { label: string; slug: string }
-  ticket_status?: { label: string; slug: string }
-}
-
-export interface TicketStatus {
-  id: number
-  label: string
-  slug: string
-}
-
-export interface Priority {
-  id: number
-  label: string
-  slug: string
-  level: number
 }
 
 export interface AuthResponse {
@@ -45,7 +16,7 @@ export interface AuthResponse {
     user: User,
     token: string
   }
-  errors: Record<string, | string[]>
+  errors?: Record<string, string[]>
 }
 
 // types/index.ts
@@ -77,9 +48,8 @@ export interface DepartmentTicket {
   requested_activity: ActivityInfo | null
   assigned_activity: ActivityInfo | null
   completed_activity: ActivityInfo | null
+  priority_sla?: number
   comments_count?: number
-  status_counts: Record<string, number>
-  priority_counts: Record<string, number>
   devices: Device[]
 }
 

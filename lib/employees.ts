@@ -6,9 +6,10 @@ export interface Employee {
   first_name: string
   last_name: string
   designation: string
-  email: string
 }
 
-export function getEmployees() {
-  return api.get<{ result: { users: Employee[] } }>('/employees')
+// departmentId is optional; the BE defaults to the caller's department.
+export function getEmployees(departmentId?: number, signal?: AbortSignal) {
+  const qs = departmentId ? `?department_id=${departmentId}` : ''
+  return api.get<{ result: { users: Employee[] } }>(`/employees${qs}`, { signal })
 }
