@@ -1,8 +1,11 @@
 'use client'
 
 import { useId, useState, FormEvent } from 'react'
+import { Download, Loader2 } from 'lucide-react'
 import { downloadAccomplishmentReport } from '@/lib/tickets'
+import { btnPrimary, btnSecondary, input } from '@/lib/styles'
 import Modal from '@/components/ui/Modal'
+import ErrorState from '@/components/ui/ErrorState'
 
 interface AccomplishmentReportModalProps {
   isOpen: boolean
@@ -138,31 +141,19 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             disabled={isGenerating}
-            className="flex-1 px-5 py-1.5 border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
+            className={`${btnSecondary} flex-1`}
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            form={formId}
-            disabled={isGenerating}
-            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-1.5 text-white rounded text-sm font-medium transition disabled:opacity-60 bg-blue-600 hover:bg-blue-700"
-          >
+          <button type="submit" form={formId} disabled={isGenerating} className={`${btnPrimary} flex-1`}>
             {isGenerating ? (
               <>
-                <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity="0.3" />
-                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
+                <Loader2 size={14} className="animate-spin" aria-hidden="true" />
                 Generating…
               </>
             ) : (
               <>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 3v12" />
-                  <path d="M7 10l5 5 5-5" />
-                  <path d="M4 19h16" />
-                </svg>
+                <Download size={14} aria-hidden="true" />
                 Download
               </>
             )}
@@ -170,16 +161,17 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <p className="text-[13px] text-gray-500 mb-4">Choose a date range</p>
+      <p className="text-sm text-gray-500 mb-4">Choose a date range</p>
 
       <form id={formId} onSubmit={handleDownload}>
-        <div className="grid grid-cols-3 gap-1.5 mb-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-3.5">
           {PRESETS.map((p) => (
             <button
               key={p.key}
               type="button"
               onClick={() => applyPreset(p.key)}
-              className={`text-xs font-medium px-2 py-1.5 rounded-md border transition whitespace-nowrap ${
+              aria-pressed={activePreset === p.key}
+              className={`text-xs font-medium px-2 py-1.5 rounded-md border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 activePreset === p.key
                   ? 'bg-blue-50 text-blue-700 border-blue-200'
                   : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -199,7 +191,7 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
                 value={dateFrom}
                 onChange={(e) => handleManualDateChange('from', e.target.value)}
                 required
-                className="mt-1 w-full text-sm font-normal border border-gray-300 rounded px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`${input} mt-1 font-normal`}
               />
             </label>
           </div>
@@ -211,22 +203,13 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
                 value={dateTo}
                 onChange={(e) => handleManualDateChange('to', e.target.value)}
                 required
-                className="mt-1 w-full text-sm font-normal border border-gray-300 rounded px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`${input} mt-1 font-normal`}
               />
             </label>
           </div>
         </div>
 
-        {errorMsg && (
-          <div role="alert" className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded px-3 py-2 mt-3 text-sm">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4" />
-              <path d="M12 16h.01" />
-            </svg>
-            {errorMsg}
-          </div>
-        )}
+        {errorMsg && <ErrorState message={errorMsg} className="mt-3" />}
       </form>
     </Modal>
   )
