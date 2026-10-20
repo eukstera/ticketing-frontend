@@ -6,12 +6,11 @@ import { STAT_CARD_THEME } from '@/lib/styles'
 export default function StatCard({
   value,
   label,
-  color,
   status,
 }: {
   value: number
   label: string
-  color: string
+  color?: string // unused; callers may still pass it
   status: keyof typeof STAT_CARD_THEME
 }) {
   const router = useRouter()

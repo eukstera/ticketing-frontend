@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { StatusPill, PriorityPill } from '@/lib/departmentTickets'
-import { STATUS_PILL_DEFS, PRIORITY_PALETTE, PRIORITY_DOT, PRIORITY_BADGE, PRIORITY_RING, STATUS_RING, FALLBACK_DOT, FALLBACK_COLOR, FALLBACK_BADGE, FALLBACK_RING } from '@/lib/styles'
+import { STATUS_PILL_DEFS, PRIORITY_PALETTE, PRIORITY_BADGE, PRIORITY_RING, STATUS_RING, FALLBACK_COLOR, FALLBACK_BADGE, FALLBACK_RING } from '@/lib/styles'
 
 
 export function buildStatusPills(counts: Record<string, number>): StatusPill[] {
@@ -53,7 +53,6 @@ export default function FilterPills({
 
   const activePill = priorityPills.find(p => p.value === priorityFilter)
   const triggerColor = activePill ? activePill.color : FALLBACK_COLOR
-  const triggerDot = activePill ? (PRIORITY_DOT[activePill.label] ?? FALLBACK_DOT) : FALLBACK_DOT
   const triggerLabel = activePill ? activePill.label : 'All Priorities'
   const triggerBadge = activePill ? (PRIORITY_BADGE[activePill.label] ?? FALLBACK_BADGE) : FALLBACK_BADGE
   const priorityRing = activePill ? (PRIORITY_RING[activePill.label] ?? FALLBACK_RING) : FALLBACK_RING
@@ -116,7 +115,6 @@ export default function FilterPills({
 
             {priorityPills.map(pill => {
               const isActive = priorityFilter === pill.value
-              const dot = PRIORITY_DOT[pill.label] ?? FALLBACK_DOT
               const badge = PRIORITY_BADGE[pill.label] ?? FALLBACK_BADGE
               return (
                 <button

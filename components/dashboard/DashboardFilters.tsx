@@ -2,14 +2,13 @@ import { DashboardStats } from '@/lib/dashboard'
 import { useRouter } from 'next/navigation'
 
 export default function DashboardFilters({
-  priorityFilter,
-  onPriorityChange,
   month,
   onMonthChange,
   stats
 }: {
-  priorityFilter: string | null
-  onPriorityChange: (value: string | null) => void
+  // unused; callers may still pass them
+  priorityFilter?: string | null
+  onPriorityChange?: (value: string | null) => void
   month: string
   onMonthChange: (value: string) => void
   stats: DashboardStats['priority_stats']
