@@ -6,11 +6,11 @@ export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
     const { date, time } = formatDateTime(ticket.requested_activity.created_at)
     return (
       <div className="text-xs">
-        <p className="text-gray-400">Requested by:</p>
+        <p className="text-gray-500">Requested by:</p>
         <p className="text-gray-700 font-medium">
           {ticket.requested_activity.user}
         </p>
-        <p className="text-gray-400">{date} {time}</p>
+        <p className="text-gray-500">{date} {time}</p>
       </div>
     )
   }
@@ -19,11 +19,11 @@ export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
     const { date, time } = formatDateTime(ticket.assigned_activity.created_at)
     return (
       <div className="text-xs">
-        <p className="text-gray-400">Assigned to:</p>
+        <p className="text-gray-500">Assigned to:</p>
         <p className="text-gray-700 font-medium">
           {ticket.assigned_activity.user}
         </p>
-        <p className="text-gray-400">{date} {time}</p>
+        <p className="text-gray-500">{date} {time}</p>
       </div>
     )
   }
@@ -32,11 +32,11 @@ export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
     const { date, time } = formatDateTime(ticket.completed_activity.created_at)
     return (
       <div className="text-xs">
-        <p className="text-gray-400">Completed by:</p>
+        <p className="text-gray-500">Completed by:</p>
         <p className="text-gray-700 font-medium">
           {ticket.completed_activity.user}
         </p>
-        <p className="text-gray-400">{date} {time}</p>
+        <p className="text-gray-500">{date} {time}</p>
       </div>
     )
   }
@@ -52,11 +52,11 @@ export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
 
       return (
         <div className="text-xs">
-          <p className="text-gray-400">{label}</p>
+          <p className="text-gray-500">{label}</p>
           <p className="text-gray-700 font-medium">
             {name}
           </p>
-          <p className="text-gray-400">{date} {time}</p>
+          <p className="text-gray-500">{date} {time}</p>
         </div>
       )
     }

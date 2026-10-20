@@ -6,10 +6,9 @@ import ActionInfo from './ActionInfo'
 import LiveTimer from './LiveTimer'
 import CommentButton from './CommentButton'
 import TimelineStepper from './TimelineStepper'
-import { User } from '@/types'
 import { getTimerStartDate } from '@/hooks/useElapsedTime'
-import { getUser } from '@/lib/auth'
-import { useEffect, useState } from 'react'
+import { useUser } from '@/hooks/useUser'
+import type { AuthUser } from '@/lib/auth'
 
 const COLUMN_COUNT = 10
 
@@ -18,6 +17,7 @@ export default function TicketsTable({
   expanded,
   onToggleExpand,
   onAssign,
+  onTake,
   onMarkComplete,
   onOpenComments,
 }: {
@@ -25,15 +25,11 @@ export default function TicketsTable({
   expanded: number[]
   onToggleExpand: (id: number) => void
   onAssign: (id: number) => void
+  onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
-
-    const [user, setUser] = useState<User | null>(null)
-
-    useEffect(() => {
-        setUser(getUser())
-    }, [])
+  const user = useUser()
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
@@ -70,6 +66,7 @@ export default function TicketsTable({
                 isExpanded={expanded.includes(ticket.id)}
                 onToggleExpand={onToggleExpand}
                 onAssign={onAssign}
+                onTake={onTake}
                 onMarkComplete={onMarkComplete}
                 onOpenComments={onOpenComments}
               />
@@ -87,14 +84,16 @@ function TicketRow({
   isExpanded,
   onToggleExpand,
   onAssign,
+  onTake,
   onMarkComplete,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
-  user: User | null
+  user: AuthUser | null
   isExpanded: boolean
   onToggleExpand: (id: number) => void
   onAssign: (id: number) => void
+  onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
@@ -136,10 +135,10 @@ function TicketRow({
               <span className="text-gray-400">⏱</span>
               <LiveTimer startDate={timerStartDate} />
             </div>
-          ) : <span className="text-xs text-gray-300">—</span>}
+          ) : <span className="text-xs text-gray-500">—</span>}
         </td>
         <td className="px-4 py-3">
-          <ActionCell ticket={ticket} onAssign={onAssign} onMarkComplete={onMarkComplete} />
+          <ActionCell ticket={ticket} onAssign={onAssign} onTake={onTake} onMarkComplete={onMarkComplete} />
         </td>
         <td className="px-3 py-3 text-center">
           <CommentButton count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
