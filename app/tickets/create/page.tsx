@@ -2,24 +2,31 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Monitor, HardDrive, Wifi, User, MapPin, MessageSquare, UserCheck, Clock, Ticket } from 'lucide-react'
+import { Monitor, HardDrive, Wifi, User, MapPin, MessageSquare, UserCheck, Clock, Ticket, Tag } from 'lucide-react'
 import Navbar from '@/components/NavBar'
-import { isAuthenticated, getUser } from '@/lib/auth'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useUser } from '@/hooks/useUser'
 import { createTicket, CreateTicketDevice } from '@/lib/tickets'
 import { getEmployees, Employee } from '@/lib/employees'
+import { getPriorities, getConcernTypes, Priority, LookupItem } from '@/lib/lookups'
+import { getErrorMessage, isAbortError, isApiError, FieldErrors } from '@/lib/api'
+import ErrorState from '@/components/ui/ErrorState'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
-import { PRIORITY_STYLES, PRIORITY_FALLBACK } from '@/lib/styles'
+import { PRIORITY_STYLES, PRIORITY_FALLBACK, input, inputError, btnPrimary, btnSecondary } from '@/lib/styles'
 
 // service_department is fixed to IT (1) for now - Engineering (2) isn't
 // selectable from this form yet. Surface it here so it's easy to find if
 // that changes.
 const SERVICE_DEPARTMENT_IT = 1
 
-const CONCERN_TYPES: { value: 'Software' | 'Hardware' | 'Network'; icon: typeof Monitor; description: string }[] = [
-  { value: 'Software', icon: Monitor, description: 'Apps, systems, IHOMIS' },
-  { value: 'Hardware', icon: HardDrive, description: 'PCs, printers, devices' },
-  { value: 'Network', icon: Wifi, description: 'LAN, Wi-Fi, connectivity' },
-]
+// Icon/description per known concern label; unknown labels from the BE fall back to Tag.
+const CONCERN_META: Record<string, { icon: typeof Monitor; description: string }> = {
+  Software: { icon: Monitor, description: 'Apps, systems, IHOMIS' },
+  Hardware: { icon: HardDrive, description: 'PCs, printers, devices' },
+  Network: { icon: Wifi, description: 'LAN, Wi-Fi, connectivity' },
+}
+const HARDWARE_CONCERN = 'Hardware'
 
 const HOSPITAL_AREAS = [
   'Emergency Room',
@@ -40,23 +47,6 @@ const HOSPITAL_AREAS = [
   'Laboratory',
 ]
 
-const PRIORITY_OPTIONS: { id: number; label: string; sla: number }[] = [
-  { id: 1, label: 'Urgent & IHOMIS Related', sla: 1 },
-  { id: 2, label: 'Urgent', sla: 2 },
-  { id: 3, label: 'Important but not urgent', sla: 3 },
-  { id: 4, label: 'Long Term', sla: 10 },
-]
-
-// Dot + text color for each priority's SLA line. Mirrors the urgency
-// ordering in PRIORITY_STYLES (lib/styles.ts) — kept local since these are
-// plain Tailwind classes rather than the pill background/border pairs.
-const PRIORITY_META: Record<string, { dot: string; text: string }> = {
-  'Urgent & IHOMIS Related': { dot: 'bg-red-500', text: 'text-gray-400' },
-  'Urgent': { dot: 'bg-orange-500', text: 'text-gray-400' },
-  'Important but not urgent': { dot: 'bg-yellow-500', text: 'text-gray-400' },
-  'Long Term': { dot: 'bg-green-500', text: 'text-gray-400' },
-}
-
 function FieldLabel({
   icon: Icon,
   children,
@@ -72,6 +62,15 @@ function FieldLabel({
   )
 }
 
+function FieldError({ id, messages }: { id: string; messages?: string[] }) {
+  if (!messages?.length) return null
+  return (
+    <p id={id} className="mt-1 text-xs text-red-600">
+      {messages[0]}
+    </p>
+  )
+}
+
 function PreviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between text-sm">
@@ -83,45 +82,72 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 
 export default function CreateTicketPage() {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<{ first_name: string; last_name: string } | null>(null)
+  const authed = useAuthGuard()
+  const user = useUser()
+  const [submitting, setSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
-  const [typeOfConcern, setTypeOfConcern] = useState<'Software' | 'Hardware' | 'Network' | ''>('')
+  const [lookups, setLookups] = useState<{
+    priorities: Priority[]
+    concernTypes: LookupItem[]
+    employees: Employee[]
+  } | null>(null)
+  const [lookupError, setLookupError] = useState('')
+  const [reloadToken, setReloadToken] = useState(0)
+
+  const [typeOfConcern, setTypeOfConcern] = useState('')
   const [areaSupervisor, setAreaSupervisor] = useState('')
   const [areaConcerned, setAreaConcerned] = useState('')
   const [assignedUser, setAssignedUser] = useState('')
-  const [assignedUserIT, setAssignedUserIT] = useState<Employee[]>([])
   const [remarks, setRemarks] = useState('')
   const [priority, setPriority] = useState<number | null>(null)
   const [devices, setDevices] = useState<CreateTicketDevice[]>([{ type: '', quantity: 1 }])
 
   useEffect(() => {
-    setMounted(true)
-    if (!isAuthenticated()) {
-      router.push('/auth/login')
-      return
-    }
-    setUser(getUser())
+    if (!authed) return
+    const controller = new AbortController()
+    const { signal } = controller
 
-    getEmployees()
-      .then(res => {
-        setAssignedUserIT(res.result.users)
+    Promise.all([
+      getPriorities(SERVICE_DEPARTMENT_IT, signal),
+      getConcernTypes(signal),
+      getEmployees(SERVICE_DEPARTMENT_IT, signal),
+    ])
+      .then(([p, c, e]) => {
+        setLookupError('')
+        setLookups({
+          priorities: p.result.priorities,
+          concernTypes: c.result.concern_types,
+          employees: e.result.users,
+        })
       })
-      .catch(() => {
-        toast('Failed to load assigned personnel', 'error')
+      .catch(err => {
+        if (isAbortError(err)) return
+        console.error(err)
+        setLookupError(getErrorMessage(err, 'Failed to load the form options'))
       })
-      .finally(() => setLoading(false))
-  }, [router])
+    return () => controller.abort()
+  }, [authed, reloadToken])
 
-  function handleConcernChange(value: 'Software' | 'Hardware' | 'Network') {
+  function clearFieldError(...names: string[]) {
+    setFieldErrors(prev => {
+      if (!names.some(n => prev[n])) return prev
+      const next = { ...prev }
+      names.forEach(n => delete next[n])
+      return next
+    })
+  }
+
+  function handleConcernChange(value: string) {
     setTypeOfConcern(value)
-    if (value === 'Hardware' && devices.length === 0) {
+    clearFieldError('type_of_concern', 'devices')
+    if (value === HARDWARE_CONCERN && devices.length === 0) {
       setDevices([{ type: '', quantity: 1 }])
     }
   }
 
   function updateDevice(index: number, field: keyof CreateTicketDevice, value: string) {
+    clearFieldError('devices', `devices.${index}.${field === 'type' ? 'type' : 'quantity'}`)
     setDevices(prev =>
       prev.map((d, i) =>
         i !== index ? d : { ...d, [field]: field === 'quantity' ? Math.max(1, Number(value) || 1) : value }
@@ -137,22 +163,23 @@ export default function CreateTicketPage() {
     setDevices(prev => prev.filter((_, i) => i !== index))
   }
 
-  if (!mounted) return null
+  if (!authed) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!typeOfConcern || !priority || !areaSupervisor.trim() || !areaConcerned) return
+    if (!typeOfConcern || !priority || !areaSupervisor.trim() || !areaConcerned || !assignedUser) return
 
-    setLoading(true)
+    setSubmitting(true)
+    setFieldErrors({})
     try {
       await createTicket({
         service_department: SERVICE_DEPARTMENT_IT,
         area_supervisor: areaSupervisor,
         type_of_concern: typeOfConcern,
-        devices: typeOfConcern === 'Hardware' ? devices.filter(d => d.type.trim()) : [],
+        devices: typeOfConcern === HARDWARE_CONCERN ? devices.filter(d => d.type.trim()) : [],
         name_of_area: areaConcerned,
         remarks,
-        assigned_user: assignedUser,
+        assigned_user: Number(assignedUser),
         priority,
         requestor: user ? `${user.first_name} ${user.last_name}` : '',
       })
@@ -160,18 +187,23 @@ export default function CreateTicketPage() {
       router.push('/my-tickets')
     } catch (err) {
       console.error(err)
-      toast('Failed to create ticket', 'error')
+      if (isApiError(err) && err.status === 422 && err.errors) setFieldErrors(err.errors)
+      toast(getErrorMessage(err, 'Failed to create ticket'), 'error')
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
+
+  const fe = (name: string) => fieldErrors[name]
+  const cls = (name: string, base = input) => (fe(name) ? `${base} ${inputError}` : base)
 
   // --- Derived preview data ---
   const now = new Date()
   const previewTicketNumber = `${String(now.getMonth() + 1).padStart(2, '0')}-XXX-${now.getFullYear()}`
-  const assignedPerson = assignedUserIT.find(u => String(u.id) === assignedUser)
+  const employees = lookups?.employees ?? []
+  const assignedPerson = employees.find(u => String(u.id) === assignedUser)
   const assignedPersonName = assignedPerson ? `${assignedPerson.first_name} ${assignedPerson.last_name}` : ''
-  const selectedPriority = PRIORITY_OPTIONS.find(p => p.id === priority)
+  const selectedPriority = lookups?.priorities.find(p => p.id === priority)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,6 +221,14 @@ export default function CreateTicketPage() {
             Fill in the details below. Fields marked <span className="text-red-500">*</span> are required.
           </p>
 
+          {lookupError && (
+            <ErrorState
+              message={lookupError}
+              onRetry={() => setReloadToken(t => t + 1)}
+              className="mb-5"
+            />
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
 
             {/* Type of Concern */}
@@ -196,35 +236,47 @@ export default function CreateTicketPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Type of Concern <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {CONCERN_TYPES.map(({ value: c, icon: Icon, description }) => {
-                  const isActive = typeOfConcern === c
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => handleConcernChange(c)}
-                      className={`flex flex-col items-start gap-1 py-2.5 px-3.5 rounded-lg border-2 text-left transition ${
-                        isActive
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
-                        {c}
-                      </span>
-                      <span className={`text-xs ${isActive ? 'text-blue-500/80' : 'text-gray-400'}`}>
-                        {description}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+              {!lookups && !lookupError ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(lookups?.concernTypes ?? []).map(({ id, label }) => {
+                    const meta = CONCERN_META[label]
+                    const Icon = meta?.icon ?? Tag
+                    const isActive = typeOfConcern === label
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleConcernChange(label)}
+                        aria-pressed={isActive}
+                        className={`flex flex-col items-start gap-1 py-2.5 px-3.5 rounded-lg border-2 text-left transition ${
+                          isActive
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+                          {label}
+                        </span>
+                        {meta && (
+                          <span className={`text-xs ${isActive ? 'text-blue-500/80' : 'text-gray-400'}`}>
+                            {meta.description}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <FieldError id="err-type_of_concern" messages={fe('type_of_concern')} />
             </div>
 
             {/* Devices - only visible when Hardware is selected */}
-            {typeOfConcern === 'Hardware' && (
+            {typeOfConcern === HARDWARE_CONCERN && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Devices <span className="text-red-500">*</span>
@@ -237,15 +289,17 @@ export default function CreateTicketPage() {
                         value={device.type}
                         onChange={e => updateDevice(i, 'type', e.target.value)}
                         placeholder="e.g. Monitor, Printer, Scanner"
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required={typeOfConcern === 'Hardware'}
+                        className={`flex-1 ${cls(`devices.${i}.type`)}`}
+                        aria-invalid={!!fe(`devices.${i}.type`)}
+                        required={typeOfConcern === HARDWARE_CONCERN}
                       />
                       <input
                         type="number"
                         min={1}
                         value={device.quantity}
                         onChange={e => updateDevice(i, 'quantity', e.target.value)}
-                        className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`!w-20 ${cls(`devices.${i}.quantity`)}`}
+                        aria-invalid={!!fe(`devices.${i}.quantity`)}
                       />
                       {devices.length > 1 && (
                         <button
@@ -260,6 +314,7 @@ export default function CreateTicketPage() {
                     </div>
                   ))}
                 </div>
+                <FieldError id="err-devices" messages={fe('devices')} />
                 <button
                   type="button"
                   onClick={addDeviceRow}
@@ -277,8 +332,9 @@ export default function CreateTicketPage() {
                 <FieldLabel icon={MapPin}>Area Concerned</FieldLabel>
                 <select
                   value={areaConcerned}
-                  onChange={e => setAreaConcerned(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={e => { setAreaConcerned(e.target.value); clearFieldError('name_of_area') }}
+                  className={cls('name_of_area')}
+                  aria-invalid={!!fe('name_of_area')}
                   required
                 >
                   <option value="">-- Select Hospital Area --</option>
@@ -286,6 +342,7 @@ export default function CreateTicketPage() {
                     <option key={area} value={area}>{area}</option>
                   ))}
                 </select>
+                <FieldError id="err-name_of_area" messages={fe('name_of_area')} />
               </div>
 
               <div>
@@ -293,11 +350,13 @@ export default function CreateTicketPage() {
                 <input
                   type="text"
                   value={areaSupervisor}
-                  onChange={e => setAreaSupervisor(e.target.value)}
+                  onChange={e => { setAreaSupervisor(e.target.value); clearFieldError('area_supervisor') }}
                   placeholder="e.g. Jane Doe"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={cls('area_supervisor')}
+                  aria-invalid={!!fe('area_supervisor')}
                   required
                 />
+                <FieldError id="err-area_supervisor" messages={fe('area_supervisor')} />
               </div>
               
             </div>
@@ -307,12 +366,14 @@ export default function CreateTicketPage() {
               <FieldLabel icon={MessageSquare}>Remarks</FieldLabel>
               <textarea
                 value={remarks}
-                onChange={e => setRemarks(e.target.value)}
+                onChange={e => { setRemarks(e.target.value); clearFieldError('remarks') }}
                 placeholder="Describe the issue in detail — what happened, when it started, and any error messages."
                 rows={4}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className={`${cls('remarks')} resize-none`}
+                aria-invalid={!!fe('remarks')}
                 required
               />
+              <FieldError id="err-remarks" messages={fe('remarks')} />
             </div>
 
             {/* Assign User */}
@@ -320,52 +381,61 @@ export default function CreateTicketPage() {
               <FieldLabel icon={UserCheck}>Personnel Assigned</FieldLabel>
               <select
                 value={assignedUser}
-                onChange={e => setAssignedUser(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={e => { setAssignedUser(e.target.value); clearFieldError('assigned_user') }}
+                className={cls('assigned_user')}
+                aria-invalid={!!fe('assigned_user')}
                 required
               >
                 <option value="">-- Select Personnel --</option>
-                {assignedUserIT.map(person => (
+                {employees.map(person => (
                   <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
                 ))}
               </select>
+              <FieldError id="err-assigned_user" messages={fe('assigned_user')} />
             </div>
 
             {/* Priority */}
             <div>
               <FieldLabel icon={Clock}>Priority</FieldLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                {PRIORITY_OPTIONS.map(p => {
-                  const style = PRIORITY_STYLES[p.label] ?? PRIORITY_FALLBACK
-                  const meta = PRIORITY_META[p.label]
-                  const isActive = priority === p.id
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setPriority(p.id)}
-                      className={`flex items-start gap-2.5 py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition text-left ${
-                        isActive ? style.highlight : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="priority"
-                        checked={isActive}
-                        readOnly
-                        className="h-4 w-4 mt-0.5 shrink-0 cursor-pointer"
-                      />
-                      <div>
-                        <div>{p.label}</div>
-                        <div className={`flex items-center gap-1.5 text-xs font-normal mt-0.5 ${meta.text}`}>
-                          {/* <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> */}
-                          {`SLA ${p.sla} ${(p.sla > 1) ? 'days' : 'day'}`}
+              {!lookups && !lookupError ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                  {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                  {(lookups?.priorities ?? []).map(p => {
+                    const style = PRIORITY_STYLES[p.level] ?? PRIORITY_FALLBACK
+                    const isActive = priority === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setPriority(p.id); clearFieldError('priority') }}
+                        aria-pressed={isActive}
+                        className={`flex items-start gap-2.5 py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition text-left ${
+                          isActive ? style.highlight : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="priority"
+                          checked={isActive}
+                          readOnly
+                          tabIndex={-1}
+                          className="h-4 w-4 mt-0.5 shrink-0 cursor-pointer"
+                        />
+                        <div>
+                          <div>{p.level}</div>
+                          <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-400">
+                            {`SLA ${p.sla_days} ${p.sla_days > 1 ? 'days' : 'day'}`}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <FieldError id="err-priority" messages={fe('priority')} />
             </div>
 
             {/* Actions */}
@@ -373,16 +443,16 @@ export default function CreateTicketPage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex py-2.5 px-4 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+                className={btnSecondary}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="flex py-2.5 px-5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-60"
+                disabled={submitting || !lookups}
+                className={btnPrimary}
               >
-                {loading ? 'Submitting...' : 'Submit Ticket'}
+                {submitting ? 'Submitting...' : 'Submit Ticket'}
               </button>
             </div>
           </form>
@@ -413,7 +483,7 @@ export default function CreateTicketPage() {
             <div className="pt-7">
                 {selectedPriority ? (
                 <p className="text-sm text-gray-600">
-                    Service Level Agreement target: <span className="font-medium text-gray-800">{selectedPriority.sla} days</span>
+                    Service Level Agreement target: <span className="font-medium text-gray-800">{selectedPriority.sla_days} days</span>
                 </p>
                 ) : (
                 <p className="text-sm text-gray-400">Select a priority to see the SLA target.</p>

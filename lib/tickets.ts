@@ -18,11 +18,11 @@ export interface CreateTicketDevice {
 export interface CreateTicketPayload {
   service_department: number
   area_supervisor: string
-  type_of_concern: 'Software' | 'Hardware' | 'Network'
+  type_of_concern: string
   devices: CreateTicketDevice[]
   name_of_area: string
   remarks: string
-  assigned_user: string
+  assigned_user: number
   priority: number
   requestor: string
 }
