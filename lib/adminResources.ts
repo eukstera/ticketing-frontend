@@ -77,7 +77,8 @@ export const DEPARTMENT_HEAD_ROLE = 'Department Head'
 const str = (v: unknown) => (v == null ? '' : String(v))
 
 const departmentOptions: OptionsSource = {
-  endpoint: () => `/admin/departments${buildQuery({ status: 'active', per_page: 100 })}`,
+  // Active departments only, available to any authenticated user.
+  endpoint: () => '/lookups/departments',
   resultKey: 'departments',
   valueKey: 'id',
   labelKey: 'name',
