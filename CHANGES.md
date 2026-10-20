@@ -103,7 +103,49 @@ Read-only audit; no code changed. Audited by fe-coder1 (lint/hooks/auth), fe-cod
 - Comment delete, `per_page`/sort, a date-range filter, role checks, and logout/me.
 
 ### Planned
-Pending user decision. Proposed phases:
-- **Phase 1:** stabilize lint, auth, hydration and the API contract.
-- **Phase 2:** search/filters in the URL, ticket detail, and admin pages.
-- **Phase 3:** design polish.
+User decisions (relayed by master-orchestrator, 2026-10-20):
+- Registration is admin-only. `/` becomes login only, and user creation moves to the admin pages, reusing the RegisterForm fields.
+- Admin gating uses the role from `GET /me`, replacing the `user.id===1` check.
+- Requestor routes are unchanged; the frontend doesn't use them.
+- Any employee of the handling department may take any ticket. Add a "Take ticket" (self-assign) action next to assign-to-employee; assigning is not limited to Heads.
+- The backend returns real 4xx errors `{success:false, message, errors?}` (422/403/404/401). The frontend builds one `ApiError` handler around that.
+- Tokens expire after 7 days. A global 401 handler clears the token and redirects to `/`.
+
+Contract confirmations from the backend:
+- Activity `user` is `string | null`.
+- `User.status` is a boolean, and `designation_id` is a number.
+- Password is hidden in user payloads.
+- Comment responses include `user {id, first_name, last_name}`.
+- CORS exposes `Content-Disposition`, so the frontend's filename fallback can be removed.
+
+Phases:
+- **Phase 1 (stabilize):**
+  - **Auth (fe-coder1):**
+    - Fix the `/auth/login` redirects.
+    - Add `useUser`/`useAuthGuard` hooks built on `useSyncExternalStore`.
+    - Fix all lint errors and warnings.
+    - Read the user in a hydration-safe way.
+    - Use `GET /me` for the role, and gate the NavBar and pages on it.
+    - Call `POST /logout`.
+    - Make `/` login only.
+  - **API layer (fe-coder2):**
+    - Rework `request()` around a typed `ApiError` (422 errors, 401 → clear token and redirect), and handle non-JSON bodies safely.
+    - Check that `NEXT_PUBLIC_API_URL` is set, and send the ngrok header in dev only.
+    - Add abort and race guards to fetches.
+    - Align types with the backend.
+    - Load priorities and SLA from `/priority`, employees from `/employees?department_id`, and concern types and nature of work from `/lookups/*`.
+    - Read the report filename from `Content-Disposition`.
+    - Add the "Take ticket" action.
+    - Stop sending the dashboard `priority` param (unless the backend implements it), and compute the default month in local time.
+  - **Quick wins (fe-designer):** fix `TimelineStepper` `w-25`, correct the my-tickets title, show a dashboard error state instead of zeros, and turn the polish checklist into specs.
+- **Phase 2 (features):** built against the backend's CHANGES.md "API contract".
+  - A shared ticket list page with URL-synced filters (keyword, status, priority, date range, per_page, sort).
+  - A ticket detail page at `app/tickets/[id]`, including comment delete.
+  - Admin CRUD for users/roles (including user creation), departments, priorities+SLA, and concern types, shown in the NavBar only to admins.
+  - fe-designer delivers the shared `<Modal>`, button/input constants and skeleton/empty/error states first.
+- **Phase 3 (polish):**
+  - Consolidate `styles.ts`.
+  - Responsive table cards.
+  - lucide icons.
+  - Contrast and focus fixes.
+  - Auth palette as theme tokens.
