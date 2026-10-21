@@ -21,13 +21,14 @@ Status and priority colours: **only** via `STATUS_STYLES` / `PRIORITY_STYLES` in
 ## Shared building blocks (already built)
 
 ### `lib/styles.ts` constants
-`btnPrimary`, `btnSecondary`, `btnDanger`, `btnSuccess` (all `rounded-lg px-4 py-2 text-sm font-medium` with `focus-visible:ring-2`), `btnSm` (size modifier `px-3 py-1.5 text-xs`), `input` (full-width, `focus:ring-2 ring-blue-500/30`), `inputError` (append to `input`).
+`btnPrimary`, `btnSecondary`, `btnDanger`, `btnSuccess` (all `rounded-lg px-4 py-2 text-sm font-medium` with `focus-visible:ring-2`), `btnTint` (blue-tinted secondary), `btnSm` (size modifier, uses `!` so it overrides the base size), `input` (full-width, `focus:ring-2 ring-blue-500/30`), `inputAuto` (same at natural width), `inputError` (append to `input`), `fieldClass(hasError)` from `ui/Field`.
 Usage: `className={`${btnPrimary} ${btnSm}`}`.
 
 ### `components/ui/*`
 - `Modal` `{ isOpen, onClose, title?, ariaLabel?, size?: 'sm'|'md'|'lg', footer?, closeOnBackdrop?, bodyClassName?, panelClassName?, children }`. `role="dialog"`, `aria-modal`, `aria-labelledby` (title), focus trap + restore, Escape, backdrop mousedown closes, body scroll lock, bottom sheet below `sm`. Pass `ariaLabel` when there is no `title`. Set `closeOnBackdrop={false}` while saving.
 - `Skeleton`, `TableSkeleton { rows?, columns? }`, `CardSkeleton { lines?, className? }`.
-- `EmptyState { icon?, title, description?, action?: { label, onClick }, className? }`.
+- `EmptyState { icon?, title, description?, action?: { label, onClick } | { label, href }, className? }`.
+- `Field { id?, label, icon?, required?, hint?, error?, className?, *ClassName overrides, children: (control) => node }` and `FieldGroup` (same, for a `role="group"` of buttons/inputs). The child spreads `control` (`id`, `required`, `aria-invalid`, `aria-describedby`) onto its `<input>/<select>/<textarea>`; the error is `role="alert"`. Use these for every form field.
 - `ErrorState { message, onRetry?, className? }`, `role="alert"`.
 - `Avatar { firstName?, lastName?, size?: 'sm'|'md'|'lg', className? }`, decorative (`aria-hidden`).
 
@@ -78,180 +79,38 @@ Icon-only buttons have `aria-label`; interactive elements show `focus-visible` r
 
 ---
 
-# Phase 3 polish list
+# Polish log (Phases 1-3): done and open
 
-Ordered by priority. Line numbers are from the working tree at the time of writing (after Phase 1 commits). Files marked **(in flight)** are being edited by fe-coder1/2 in Phase 1/2, so re-grep before editing; the class changes still apply. "Owner" is a suggestion. No visual redesign: every item keeps today's look except where stated.
+Status after the final polish batch. Everything below is committed on `main`; `npx tsc --noEmit`, eslint and `npm test` were green at each commit. Not covered by any automated check: real-browser behaviour, a screen-reader pass, an axe/Lighthouse run, and `next build` (never run in this effort). Treat the a11y items as "implemented per the ARIA patterns", not "verified with assistive tech".
 
-## P1 (High)
+## Done (with commits)
 
-### 0. One form field: `components/ui/Field.tsx` (do this first)
-Owner: fe-designer. Four hand-rolled field implementations each re-solve label association, required markers, hints, errors and `aria-*`, and have already drifted (different focus styles, error markup, `*` handling):
-
-| Where | What it is |
-|---|---|
-| `components/auth/AuthField.tsx` | auth palette (hex), `useId`, password toggle, `role="alert"` error |
-| `components/admin/AdminFormModal.tsx` (field loop `:245-289` + `SelectField` `:89-138`) | inline label/input/select/help/error per field, `aria-describedby` for errors only (help text is not linked) |
-| `app/profile/page.tsx` `TextField` (`:16-66`) | `htmlFor`/`id`, hint + error ids joined into `aria-describedby`, `role="alert"` |
-| `app/tickets/create/page.tsx` `FieldLabel` (`:50`) + `FieldError` (`:64`) + per-field wiring | icon label with `htmlFor`, errors via `fe(name)`/`cls(name)` |
-
-Also touched by the same shape: `components/auth/RegisterForm.tsx` selects (labels without `htmlFor`) and the `AccomplishmentModal` date labels.
-
-Target API (app tokens; the auth form keeps its own look through a `tone="auth"` prop or by passing its class strings, same values):
-```tsx
-<Field label="First name" required hint="As on your ID" error={errors.first_name?.[0]} icon={User}>
-  {(p) => <input {...p} className={input} value={...} onChange={...} />}   // render-prop spreads { id, required, 'aria-invalid', 'aria-describedby' }
-</Field>
-```
-- `Field` generates the id with `useId`, renders `<label htmlFor>` (+ optional lucide `icon`, `*` marker `aria-hidden`), the hint `<div id=...-hint>` and the error `<p id=...-error role="alert">`, and hands `{ id, required, 'aria-invalid', 'aria-describedby': [hint?, error?] }` to its child. It also exports `fieldClass(error?: boolean)` -> `input` or `input + inputError`.
-- Migrate in this order: profile -> admin form -> create ticket -> auth (last, because of the palette). Each migration must keep its tests green (`npm test`).
-- Done when `grep -rn "htmlFor" app components` only matches `Field.tsx` and the few intentional implicit-label cases.
-
-### 1. Consolidate `lib/styles.ts` legacy maps onto `STATUS_STYLES` / `PRIORITY_STYLES`
-Owner: fe-designer (styles.ts) + the file owners below for call sites. Do styles.ts first, then switch callers, then delete the old exports.
-
-**1a. Extend the canonical maps** (`lib/styles.ts`):
-- `PriorityStyle` (:140) gains `dot: string` and `ring: string`. Values come straight from the legacy maps: dot = `PRIORITY_DOT` (:47-54: red-600, orange-600, amber-500, purple-500, fuchsia-500, emerald-500), ring = `PRIORITY_RING` (:65-73: `ring-{red,orange,amber,purple,fuchsia,emerald}-400`). `PRIORITY_FALLBACK` (:197) gets `dot: 'bg-gray-400'`, `ring: 'ring-gray-400'`.
-- `StatusStyle` (:96) gains `card: string` = the `STAT_CARD_THEME` strings (:6-11), e.g. Open `bg-blue-100 border-blue-200 text-blue-700 hover:bg-blue-200`. `STATUS_FALLBACK` (:128) gets a neutral `card`.
-- New `export const STATUS_ALL: StatusStyle` for the "All" pill: `pill: 'bg-gray-100 text-gray-700 border-gray-300'`, `ring: 'ring-gray-400'`, gray `badge`/`card`.
-- Fix `highlight` (:158-202): only the first entry has a text colour. Make every entry `bg-X-100 border-X-200 text-X-700` (X = orange, amber, purple, fuchsia, emerald). `PRIORITY_FALLBACK.highlight` (:202) is fuchsia by mistake -> `'bg-gray-100 border-gray-200 text-gray-700'`.
-
-**1b. Complex purple vs fuchsia mismatch.** `PRIORITY_COLOR_MAP['Complex']` (:19) is `bg-purple-500` while every other Complex variant (text/pill/badge/ring/dot/solid) is fuchsia. Fuchsia is canonical. This is the only visible change in the whole consolidation: the Complex bar in the dashboard Priority Statistics goes `bg-purple-500` -> `bg-fuchsia-500`. All other legacy values already equal their `PRIORITY_STYLES.solid` counterparts (Urgent & IHOMIS red-500, Urgent orange-500, Important amber-400, Long Term purple-400, Simple emerald-400).
-
-**1c. Switch call sites, then delete legacy exports:**
-
-| File:line | Now | Change to |
+| Area | What changed | Commits |
 |---|---|---|
-| `components/department-tickets/FilterPills.tsx:3` | imports 10 legacy maps | `import { STATUS_STYLES, STATUS_ALL, PRIORITY_STYLES, PRIORITY_FALLBACK } from '@/lib/styles'` |
-| `FilterPills.tsx:7` | `STATUS_PILL_DEFS.map(...)` | build from `(STATUS_STYLES[label] ?? STATUS_ALL).pill` over `['All','Open','In-progress','Completed','Overdue']` |
-| `FilterPills.tsx:21,55` | `PRIORITY_PALETTE[level] ?? FALLBACK_COLOR` | `(PRIORITY_STYLES[level] ?? PRIORITY_FALLBACK).pill` |
-| `FilterPills.tsx:56,58,59,119,120` | `PRIORITY_DOT/BADGE/RING[...] ?? FALLBACK_*` | `.dot` / `.badge` / `.ring` of the same `PRIORITY_STYLES[...] ?? PRIORITY_FALLBACK` lookup |
-| `FilterPills.tsx:71` | `STATUS_RING[pill.label] ?? 'ring-gray-400'` | `(STATUS_STYLES[pill.label] ?? STATUS_ALL).ring` |
-| `components/dashboard/PriorityStatistics.tsx:2-3,17` | `PRIORITY_COLOR_MAP` + fallback array | `PRIORITY_STYLES[row.level]?.solid ?? PRIORITY_SOLID_FALLBACKS[i % n]` (keep the 3 fallback colours as `PRIORITY_SOLID_FALLBACKS`) |
-| `components/dashboard/StatCard.tsx:4,15,25` | `STAT_CARD_THEME[status]` | `(STATUS_STYLES[status] ?? STATUS_FALLBACK).card`; type `status: string` |
-| `components/department-tickets/StatusCell.tsx:2,6` | flat `statusStyles[...] \|\| 'bg-gray-100 text-gray-700'` | `(STATUS_STYLES[ticket.status] ?? STATUS_FALLBACK).badge` |
-| `components/department-tickets/TicketsTable.tsx:2,122` **(in flight)** | flat `priorityStyles[...] \|\| 'text-gray-600'` | `(PRIORITY_STYLES[ticket.priority] ?? PRIORITY_FALLBACK).text` |
-| `app/tickets/create/page.tsx:50-58` | local `PRIORITY_META` (dot/text) | drop it; use `PRIORITY_STYLES[p.label].dot` if the dot is wanted (the dot span at :361 is commented out) |
+| Shared UI | `Modal` (dialog roles, focus trap/restore, Escape, backdrop, scroll lock, bottom sheet, topmost-modal-only keys), `Skeleton`, `EmptyState` (+ `action.href`), `ErrorState`, `Avatar`; `btn*`/`input` constants; `btnSm` fixed with `!` modifiers; `btnTint`, `inputAuto` | 5425364, e90f0f7, c3f4de4, 5511da5 |
+| Modals/toasts | ConfirmModal on `Modal` (+`error`), Toast live region/dismiss/pause, Assign/Accomplishment/Comments on `Modal` (CommentsModal now renders `CommentThread`) | c1aca12, f60861a, e3400e9, d0fa529, c3f4de4 |
+| Nav | `aria-current`, focus rings, hamburger expanded/controls (lucide), Escape + focus return, "My profile", gutters, contrast; skip link in the layout; `<main id="main">` on every page/shell | d77c0fc, 8a45ef8, 5c5b71e, 8885403 |
+| Lists | Table cards below `md`, `Pagination` as a labelled nav with `aria-current`, wrap, 36px targets; `FilterPills` group/listbox with keyboard model; empty/404/error states; `px-4 sm:px-6` | f6a9052, 8a45ef8, 5a176d0, 6e8fd44, 897f1af |
+| Dashboard | empty-data states (no 0% for an empty day, empty priority chart message), `h2` headings, month label, focus rings, hidden empty pill row | 31d6ac9 |
+| Forms | `ui/Field` + `FieldGroup` (label/hint/error/id wiring, tested) used by `AuthField`, profile, `AdminFormModal`, create-ticket; create-ticket 422 mapper (`lib/createTicketErrors.ts`, tested): keys with a control show inline and focus the first one in form order, keys without one (e.g. `service_department`) go to the form banner | 4f59e58, ce4b010, 8ea77d9, 4907e55, fba9742, d177066, d236f1c |
+| Auth | login labels/`aria-invalid`/`role="alert"`/autocomplete, keyboard-reachable password toggle; palette moved to `theme.extend.colors.auth.*` with identical values (verified by comparing the compiled CSS) | 0d35a17, 72df7b1 |
+| Styles | legacy status/priority maps deleted; `STATUS_STYLES`/`PRIORITY_STYLES` are the only source; `formatDateTime`/`formatDateTimeText` live in `lib/format.ts`; timeline icons are lucide | 1d2ea9d, 906eed1, 02d2a3a, c5a9e12, 5d4d2f3 |
+| Misc a11y | `CommentButton` names the ticket and count (40px), `TimelineStepper` stacks on mobile with accessible contrast (the invalid `w-25` is gone) | 8932d9f, a85bf99, a8dfb28 |
 
-When no caller is left, delete from `lib/styles.ts`: `STAT_CARD_THEME`, `PRIORITY_COLOR_MAP` (+ `_FALLBACK_COLORS`, replaced by `PRIORITY_SOLID_FALLBACKS`), `STATUS_PILL_DEFS`, `PRIORITY_PALETTE`, `PRIORITY_DOT`, `PRIORITY_BADGE`, `PRIORITY_RING`, `STATUS_RING`, `FALLBACK_*`, and the flat `statusStyles` (:136) / `priorityStyles` (:207).
+### Deliberate visual changes (everything else keeps the original look)
+- Dashboard Priority Statistics: the **Complex** bar is `bg-fuchsia-500` (was `purple-500`), matching every other Complex variant. (906eed1)
+- Create-ticket priority cards: the selected card's `highlight` now carries a matching `text-*-700` colour for every priority (previously only the first had one), and an **unknown priority falls back to gray** instead of Complex's fuchsia. (11ed7b5)
+- Comments modal: the add-comment form scrolls with the list instead of being pinned to the bottom (it now shares `CommentThread` with the ticket detail page). (c3f4de4)
+- Small size/contrast bumps: `CommentButton` 24px -> 40px, gray-400 text -> gray-500, mobile gutters, small buttons now really render small (`btnSm`).
 
-**1d. Housekeeping in the same pass:**
-- `lib/styles.ts:1` imports `StatusPill` from `@/lib/departmentTickets` (a type): make it `import type`, or drop it once `STATUS_PILL_DEFS` is gone.
-- Move `formatDateTime` (:224) to a new `lib/format.ts` (`components/department-tickets/ActionInfo.tsx:2` is the only importer; `CommentsModal.tsx:105` has its own near-duplicate to replace with it). Delete the stale `// lib/ticketStyles.ts` comment (:90).
-- `TimelineStep.icon` (:215-221): change `icon: string` (emoji) to `icon: LucideIcon` with `Flag` / `User` / `Check`; `TimelineStepper.tsx` renders `<step.Icon size={12} aria-hidden="true" />` (also item 4).
+### Decisions worth keeping
+- **Admin status pills stay solid blue** when selected, while ticket `FilterPills` use tinted pills with a ring. The admin filter is a single binary choice (all / active / inactive) where a strong selected state reads best; ticket filters are categories whose colour carries meaning (status/priority), so they keep their own hues.
+- **Tailwind class conflicts are resolved by stylesheet order, not class order.** Never combine two same-property utilities in one string (`px-4` + `px-3`, `w-full` + `w-auto`, `text-sm` + `text-xs`) and expect the later one to win. Use `!` modifiers (`btnSm`) or a dedicated constant (`inputAuto`, `btnTint`).
+- **Disclosure vs menu**: the account menu and priority dropdown follow the menu/listbox keyboard patterns; if either grows beyond a couple of items, add Home/End/typeahead.
 
-### 2. Responsive card layout for `TicketsTable` below `md`
-Owner: fe-designer spec, fe-coder1 implements after their Phase 2 commit (file **in flight**).
-`components/department-tickets/TicketsTable.tsx`:
-- `:35` wrapper (`min-w-[900px]` table): add `hidden md:block` to the existing wrapper div (`bg-white rounded-xl border border-gray-200 overflow-x-auto hidden md:block`).
-- Add a sibling `<ul className="md:hidden space-y-3">` rendering one `<li className="bg-white rounded-xl border border-gray-200 p-4">` per ticket:
-  - header: `flex items-start justify-between gap-3` with the ticket number (`text-sm font-semibold text-gray-800`) and `<StatusCell>`;
-  - body: `<dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">`; each pair is `<dt className="text-xs text-gray-500">` / `<dd className="text-gray-700">` for Concern/Nature of work, Area, Priority (as a `PRIORITY_STYLES[...].badge` pill), Elapsed (`LiveTimer`); `<ActionInfo>` spans both columns (`col-span-2`);
-  - footer: `mt-3 flex items-center justify-between gap-3` with `<ActionCell>` left and `<CommentButton>` right;
-  - details: `<button type="button" aria-expanded aria-controls className="mt-3 text-xs font-medium text-blue-600 inline-flex items-center gap-1">` ("Details" + `ChevronDown`) reveals the same timeline/remarks/devices/supervisor block, stacked.
-- Desktop expanded row: `:151` `grid grid-cols-2 gap-6` -> `grid grid-cols-1 gap-6 md:grid-cols-2`; `:157` `border-l border-gray-200 pl-6` -> `md:border-l md:border-gray-200 md:pl-6`; `:150` td `px-8` -> `px-4 md:px-8`.
-- Share row content through small components (`TicketMeta`, `TicketDetails`) so both layouts render the same data.
-
-### 3. Contrast and focus-visible sweeps
-Owner: fe-designer for shared pieces; file owners for in-flight files. Rule: real text is at least `gray-500` on white; decorative icons may stay `gray-400`; every interactive element shows a ring on keyboard focus.
-
-**3a. Focus-visible** (add `focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500` unless noted; add a `focusRing` constant to `lib/styles.ts` with exactly that string and reuse it):
-- `components/NavBar.tsx:70-77` and `:137-145` links: append `rounded focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none`.
-- `NavBar.tsx:92-98` avatar button: add `aria-label="Account menu" aria-haspopup="menu" aria-expanded={userMenuOpen}` + ring (keep `title`).
-- `NavBar.tsx:121-129` hamburger: add `aria-expanded={menuOpen} aria-controls="mobile-menu"` (give the panel at :135 `id="mobile-menu"`) + ring; replace the 3 hand-made spans with lucide `Menu` / `X` size 20 (`p-2` -> `p-2.5` for a 40px target).
-- `components/auth/AuthField.tsx:45`: delete `tabIndex={-1}` so keyboard users can reveal the password; button gets `focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C57]/40 rounded`.
-- `components/department-tickets/CommentButton.tsx:4`: add ring; `w-6 h-6` -> `w-8 h-8`; add `aria-label={count ? `Actions taken (${count})` : 'Actions taken'}`.
-- Search boxes where the input has `outline-none` and no ring: the wrapper `div` gets `focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30`; add `aria-label` to the `<input>`. Sites: `app/tickets/page.tsx:158-165` **(in flight)**, `app/my-tickets/page.tsx:161-168` **(in flight)**, `components/AssignModal.tsx:89-96`.
-- `components/dashboard/DashboardFilters.tsx:45`: replace `focus:border-blue-500 focus:outline-none` with the shared `input` string plus `sm:w-auto` (adds the ring) and `aria-label="Month"`.
-- `components/CommentsModal.tsx:164` Edit button is `opacity-0 group-hover:opacity-100`, so keyboard users never see it: add `focus-visible:opacity-100` (and `text-gray-400` -> `text-gray-500`).
-- `components/department-tickets/FilterPills.tsx:66,81,98,122`: add ring classes; status pills `aria-pressed={statusFilter === pill.value}`; trigger `aria-haspopup="listbox" aria-expanded={open}`; Escape closes the dropdown.
-- `TicketsTable.tsx:105-117` **(in flight)**: the expand control becomes a real `<button type="button" aria-expanded aria-controls className="rounded focus-visible:ring-2 focus-visible:ring-blue-500">` inside the first cell (remove `onClick` from the `<td>`s).
-
-**3b. Contrast** (`text-gray-400` -> `text-gray-500`; `text-gray-300` -> `text-gray-500`), text only:
-- `components/CommentsModal.tsx:138,140,157,159,164`; `components/AssignModal.tsx:105,107`; `components/dashboard/PriorityStatistics.tsx:14,33`; `components/dashboard/TopPerformerCard.tsx:22`.
-- `components/department-tickets/FilterPills.tsx:86,110,135`; `Pagination.tsx:35` (ellipsis); `NavBar.tsx:107,153`.
-- **(in flight)** `components/department-tickets/TicketsTable.tsx:56,153,160,171,180` and `:139` (`text-gray-300` "—"); `ActionCell.tsx` "—" spans (`text-gray-300`); `ActionInfo.tsx` label lines (`text-gray-400`).
-- `app/tickets/create/page.tsx:78,79,217,395,419` (`text-gray-300` at :79) and `PRIORITY_META.text` (:54-57).
-- Do not touch decorative icon colours (`<Icon ... className="text-gray-400">`).
-
-**3c. Misc a11y found on the way:** `AuthField.tsx:26-37` label is not tied to its input -> `useId()` + `htmlFor`/`id`, `aria-invalid`, `aria-describedby` for the error line (:63) with `role="alert"`; `AccomplishmentModal.tsx:195,207` labels need `htmlFor`/`id`; `app/tickets/create/page.tsx:60-73,196,229` `FieldLabel` needs `htmlFor`.
-
-## P2 (Medium)
-
-### 4. Lucide swap for the remaining emoji / inline SVG
-Owner: fe-designer (shared/modal files), file owners for in-flight ones. Decorative icons get `aria-hidden="true"`.
-
-| File:line | Now | Replace with |
-|---|---|---|
-| `app/tickets/page.tsx:159`, `app/my-tickets/page.tsx:162`, `components/AssignModal.tsx:90` | `🔍` span | `<Search size={16} className="text-gray-400" aria-hidden="true" />` |
-| `app/my-tickets/page.tsx:180`, `components/AccomplishmentModal.tsx:147,255` | inline download SVG (3 copies) | `<Download size={18} />` (14 inside the button at :255) |
-| `components/AccomplishmentModal.tsx:168` | close X SVG | `<X size={16} />` (or migrate the modal onto `Modal`, which provides the close button) |
-| `AccomplishmentModal.tsx:222` | alert SVG | `<ErrorState message={errorMsg} />` |
-| `AccomplishmentModal.tsx:247` | spinner SVG | `<Loader2 size={14} className="animate-spin" />` |
-| `components/AssignModal.tsx:129` | `✓` | `<Check size={16} className="text-blue-600" />` |
-| `components/CommentsModal.tsx:131` | `✕` text button | removed by migrating onto `Modal title="Actions Taken"` (built-in `X` + `aria-label="Close"`) |
-| `app/tickets/create/page.tsx:257` | `✕` | `<X size={16} />` (aria-label already present) |
-| `components/auth/AuthField.tsx:48,55` | eye-off / eye SVGs | `<EyeOff size={18} strokeWidth={1.8} />` / `<Eye size={18} strokeWidth={1.8} />` |
-| `components/department-tickets/CommentButton.tsx:7` | speech-bubble SVG | `<MessageSquare size={14} />` |
-| `components/department-tickets/FilterPills.tsx:91` | chevron SVG | `<ChevronDown size={14} className="text-gray-500 mr-1" />` |
-| `components/department-tickets/TicketsTable.tsx:109,135` **(in flight)** | `▼`/`›`, `⏱` | `ChevronDown`/`ChevronRight` size 16; `Timer` size 12 |
-| `lib/styles.ts:219-221` + `TimelineStepper.tsx:36` | `🚩 👤 ✓` | `Flag` / `User` / `Check`, size 12 (see 1d) |
-| `components/NavBar.tsx:126-128` | 3-span hamburger | `Menu` / `X` size 20 (see 3a) |
-
-### 5. `Pagination` wrap and semantics
-Owner: fe-designer (file not in flight). `components/department-tickets/Pagination.tsx`:
-- `:21` `flex items-center justify-between mt-4` -> `mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`
-- `:25` `flex items-center gap-1.5` -> `flex flex-wrap items-center gap-1.5`
-- Wrap the controls in `<nav aria-label="Pagination">`; page buttons get `aria-current={p === currentPage ? 'page' : undefined}` and `aria-label={`Page ${p}`}`; Previous/Next keep their text.
-- `:40` `w-8 h-8` -> `w-9 h-9`; `:29,:53` add `focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`.
-- `:22-24` copy says "tickets": make it a prop (`itemLabel = 'tickets'`) so admin lists can reuse it.
-
-### 6. Tickets pages gutter `px-4 sm:px-6`
-Owner: fe-coder1 (files **in flight**), one line each.
-- `app/tickets/page.tsx:141` and `app/my-tickets/page.tsx:143`: `max-w-7xl mx-auto px-6 py-6` -> `max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6` (matches `app/dashboard/page.tsx:58`).
-- `components/NavBar.tsx:50`: `max-w-7xl mx-auto px-6` -> `max-w-7xl mx-auto px-4 sm:px-6` so the navbar aligns with the page gutter.
-
-## P3 (Low)
-
-### 7. Auth palette as theme tokens (same values, no visual change)
-Owner: fe-designer. Add to `tailwind.config.js:9` (`theme.extend`):
-```js
-colors: {
-  auth: {
-    ink: '#0F2B32',         // headings, labels, primary button
-    'ink-hover': '#123B3E', // button hover, panel gradient end
-    brand: '#1F5C57',       // focus border/ring
-    accent: '#D9522E',      // required marker, links, errors
-    muted: '#7C8B87',
-    body: '#4C5C5A',
-    mint: '#E4EEE8',        // selected role card
-    'err-bg': '#FAECE7',
-    'err-border': '#F0997B',
-    'err-text': '#993C1D',
-    page: '#f9fafb',
-  },
-},
-```
-Mechanical replacement (hex tokens keep Tailwind opacity modifiers working: `ring-[#1F5C57]/10` -> `ring-auth-brand/10`):
-
-| Find | Replace |
-|---|---|
-| `[#0F2B32]` | `auth-ink` |
-| `[#123B3E]` | `auth-ink-hover` |
-| `[#1F5C57]` | `auth-brand` |
-| `[#D9522E]` | `auth-accent` |
-| `[#7C8B87]` | `auth-muted` |
-| `[#4C5C5A]` | `auth-body` |
-| `[#E4EEE8]` | `auth-mint` |
-| `[#FAECE7]` / `[#F0997B]` / `[#993C1D]` | `auth-err-bg` / `auth-err-border` / `auth-err-text` |
-| `[#f9fafb]` | `auth-page` |
-
-Applies to `components/auth/AuthField.tsx` (5 hits), `AuthShell.tsx` (2; the inline gradient `style` at :17 stays, values unchanged), `LoginForm.tsx` (4), `RegisterForm.tsx` (16). Verify with `grep -rn "\[#" components/auth` returning nothing, then eyeball login and register once.
-
-### 8. Small cleanups
-- `components/NavBar.tsx:6` unused `Image` import; `:62` brand `text-sm sm:block` has no matching `hidden`, so drop `sm:block`; delete the commented-out logo block (:55-64) or restore it.
-- `components/dashboard/StatCard.tsx:11` unused `color` prop (callers `app/dashboard/page.tsx:81-84`).
-- **(in flight)** `components/department-tickets/ActionCell.tsx:17-26` shows "Edit" but calls `onAssign`, and hard-codes user id 1 (also `NavBar.tsx:27`): confirm the intended behaviour against the backend contract before relabelling.
-- `components/AssignModal.tsx:79` fixed `h-[600px]`: via `Modal`, `panelClassName="h-[600px] max-h-[90dvh]"`; `AccomplishmentModal.tsx:176` preset grid `grid-cols-3` -> `grid-cols-2 sm:grid-cols-3`.
-
-## Modal migration reminder (fe-coder1, Phase 2)
-`AssignModal`, `CommentsModal`, `AccomplishmentModal` move onto `components/ui/Modal` as described in the Modal spec above. That alone resolves the dialog roles, focus trap, Escape, backdrop, scroll-lock and bottom-sheet items from the audit; do not hand-roll them again.
+## Open (none blocks release)
+1. **Auth error text contrast.** The login error/required text uses `#D9522E` on white (about 3.9:1 at 12px), under the 4.5:1 AA target. Fixing it means changing the token value (e.g. a darker `auth.accent`), which is a visual change, so it was left as-is pending a decision.
+2. **Admin tables on phones.** They scroll horizontally (`min-w-[640px]`) rather than stacking into cards like the ticket list. Acceptable for an admin tool; reuse the ticket card pattern if that changes.
+3. **Page titles.** Only the ticket detail page sets `document.title`; the other client pages share the layout title.
+4. **Account menu keys.** It has `role="menu"` with Escape and focus management but no arrow-key navigation (it holds two items). Add arrows if items are added.
+5. **Verification gap.** Run a keyboard-only pass and one screen reader (NVDA/VoiceOver) over login, ticket list, ticket detail, create-ticket, profile and an admin list/form; run axe on the same pages; run `next build` once in CI.
