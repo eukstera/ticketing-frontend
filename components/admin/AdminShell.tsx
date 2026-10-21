@@ -35,17 +35,25 @@ export default function AdminShell({
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-6">
+      <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-6">
         {!user ? (
           <CardSkeleton lines={4} />
         ) : !isAdmin(user) ? (
-          <ErrorState message="You don't have access to this page. Admin accounts only." />
+          <div className="space-y-3">
+            <ErrorState message="You don't have access to this page. Admin accounts only." />
+            <Link
+              href="/dashboard"
+              className="inline-block rounded text-sm text-blue-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              Back to the dashboard
+            </Link>
+          </div>
         ) : (
           <>
             {back && (
               <Link
                 href="/admin"
-                className="mb-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                className="mb-3 inline-flex items-center gap-1 rounded text-sm text-blue-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 <ArrowLeft size={14} aria-hidden="true" />
                 Admin
@@ -61,7 +69,7 @@ export default function AdminShell({
             {children(user)}
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

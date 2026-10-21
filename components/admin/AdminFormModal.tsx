@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useId, useState } from 'react'
+import { FormEvent, useEffect, useId, useRef, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import { useHydrated } from '@/hooks/useHydrated'
 import { useOptions } from '@/hooks/useOptions'
@@ -113,6 +113,10 @@ export default function AdminFormModal({
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [banner, setBanner] = useState('')
   const [saving, setSaving] = useState(false)
+  // Bumped after a failed submit so the effect below moves focus to the problem.
+  const [failedSubmits, setFailedSubmits] = useState(0)
+  const formRef = useRef<HTMLFormElement>(null)
+  const bannerRef = useRef<HTMLDivElement>(null)
 
   function setValue(name: string, value: string) {
     setValues(prev => {
@@ -123,6 +127,12 @@ export default function AdminFormModal({
     })
     setErrors(prev => (prev[name] ? { ...prev, [name]: [] } : prev))
   }
+
+  useEffect(() => {
+    if (failedSubmits === 0) return
+    const firstInvalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')
+    ;(firstInvalid ?? bannerRef.current)?.focus()
+  }, [failedSubmits])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -148,6 +158,7 @@ export default function AdminFormModal({
       } else {
         setBanner('Something went wrong. Try again.')
       }
+      setFailedSubmits(n => n + 1)
     } finally {
       setSaving(false)
     }
@@ -156,7 +167,8 @@ export default function AdminFormModal({
   return (
     <Modal
       isOpen
-      onClose={onClose}
+      // Don't let Escape or the backdrop discard an in-flight save.
+      onClose={saving ? () => {} : onClose}
       title={`${mode === 'create' ? 'Add' : 'Edit'} ${resource.singular}`}
       closeOnBackdrop={!saving}
       footer={
@@ -170,9 +182,14 @@ export default function AdminFormModal({
         </>
       }
     >
-      <form id={formId} method="post" onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form ref={formRef} id={formId} method="post" onSubmit={handleSubmit} className="space-y-5" noValidate>
         {banner && (
-          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div
+            ref={bannerRef}
+            tabIndex={-1}
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+          >
             {banner}
           </div>
         )}
@@ -181,12 +198,19 @@ export default function AdminFormModal({
           const id = `${formId}-${field.name}`
           const fieldError = errors[field.name]?.[0]
           const errorId = fieldError ? `${id}-error` : undefined
+          const helpId = field.help && !fieldError ? `${id}-help` : undefined
+          const describedBy = [helpId, errorId].filter(Boolean).join(' ') || undefined
           const required = field.required || (field.requiredOnCreateOnly && mode === 'create')
           return (
             <div key={field.name}>
               <label htmlFor={id} className="mb-1 block text-xs font-medium text-gray-600">
                 {field.label}
-                {required && <span className="text-red-500"> *</span>}
+                {required && (
+                  <span className="text-red-500" aria-hidden="true">
+                    {' '}
+                    *
+                  </span>
+                )}
               </label>
               {field.type === 'select' ? (
                 <SelectField
@@ -195,7 +219,7 @@ export default function AdminFormModal({
                   value={values[field.name]}
                   values={values}
                   invalid={!!fieldError}
-                  describedBy={errorId}
+                  describedBy={describedBy}
                   onChange={v => setValue(field.name, v)}
                 />
               ) : (
@@ -209,11 +233,15 @@ export default function AdminFormModal({
                   minLength={field.type === 'password' ? field.min : undefined}
                   autoComplete={field.type === 'password' ? 'new-password' : 'off'}
                   aria-invalid={!!fieldError}
-                  aria-describedby={errorId}
+                  aria-describedby={describedBy}
                   className={`${input} ${fieldError ? inputError : ''}`}
                 />
               )}
-              {field.help && !fieldError && <p className="mt-1 text-xs text-gray-500">{field.help}</p>}
+              {helpId && (
+                <p id={helpId} className="mt-1 text-xs text-gray-500">
+                  {field.help}
+                </p>
+              )}
               {fieldError && (
                 <p id={errorId} role="alert" className="mt-1 text-xs text-red-600">
                   {fieldError}
