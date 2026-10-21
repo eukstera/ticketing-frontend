@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, Search, SearchX, Inbox } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Construction, Inbox, Lock, Plus, Search, SearchX } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
 import AdminFormModal from '@/components/admin/AdminFormModal'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -22,7 +22,17 @@ import {
   reactivateAdmin,
 } from '@/lib/admin'
 import { AdminResource, AdminResourceKey, RowContext, getAdminResource } from '@/lib/adminResources'
-import { btnDanger, btnPrimary, btnSecondary, btnSm, btnSuccess, input } from '@/lib/styles'
+import {
+  STATUS_FALLBACK,
+  STATUS_STYLES,
+  btnDanger,
+  btnPrimary,
+  btnSecondary,
+  btnSm,
+  btnSuccess,
+  input,
+  inputAuto,
+} from '@/lib/styles'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -36,7 +46,12 @@ interface ListResult {
   key: string
   data?: Paginator<AdminRow>
   error?: string
+  /** 404 (route not on the server yet) or 403 (no permission): not retryable. */
+  blocked?: 'unavailable' | 'forbidden'
 }
+
+const ACTIVE_BADGE = STATUS_STYLES.Completed.badge
+const INACTIVE_BADGE = STATUS_FALLBACK.badge
 
 function errorMessage(err: unknown): string {
   if (isApiError(err)) {
@@ -63,6 +78,7 @@ function listErrorMessage(title: string, err: unknown): string {
 // (useSearchParams for the URL-backed list state).
 export default function AdminResourcePage({ resource: resourceKey }: { resource: AdminResourceKey }) {
   const resource = getAdminResource(resourceKey)
+  const uid = useId()
   const filters = resource.filters ?? []
   const { params, update } = useAdminListParams(filters.map(f => f.param))
 
@@ -80,6 +96,14 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
   const [draft, setDraft] = useState<{ base: string; value: string } | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchValue = draft && draft.base === params.search ? draft.value : params.search
+
+  // Do not fire a navigation after the page is gone.
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current)
+    },
+    []
+  )
 
   function handleSearch(value: string) {
     setDraft({ base: params.search, value })
@@ -106,6 +130,10 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
       .then(data => setResult({ key, data }))
       .catch(err => {
         if (isAbortError(err)) return
+        // 403 must not log the user out and must not refetch: only a 401 ends the
+        // session (api.ts), and a blocked list has no controls left to re-trigger it.
+        if (isApiError(err) && err.status === 404) return setResult({ key, blocked: 'unavailable' })
+        if (isApiError(err) && err.status === 403) return setResult({ key, blocked: 'forbidden' })
         console.error(err)
         setResult({ key, error: listErrorMessage(resource.title, err) })
       })
@@ -132,8 +160,9 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
 
   const data = result?.data
   const stale = !!result && result.key !== key
-  const loadingFirst = !result || (!data && !result.error && stale)
+  const loadingFirst = !result || (!data && !result.error && !result.blocked && stale)
   const error = result && !stale ? result.error : undefined
+  const blocked = result && !stale ? result.blocked : undefined
 
   // Deactivating the last row on the last page leaves an empty page behind.
   useEffect(() => {
@@ -188,14 +217,17 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
       subtitle={resource.description}
       back
       actions={
-        <button type="button" onClick={() => setForm({ row: null })} className={btnPrimary}>
-          <Plus size={14} aria-hidden="true" />
-          Add {resource.singular}
-        </button>
+        blocked ? undefined : (
+          <button type="button" onClick={() => setForm({ row: null })} className={btnPrimary}>
+            <Plus size={14} aria-hidden="true" />
+            Add {resource.singular}
+          </button>
+        )
       }
     >
       {me => (
         <>
+          {!blocked && (
           <div className="mb-4 flex flex-wrap items-end gap-3">
             <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-xs font-medium text-gray-500 sm:max-w-xs">
               Search
@@ -243,13 +275,34 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
             </div>
 
             {hasFilters && (
-              <button type="button" onClick={clearFilters} className="pb-2 text-sm text-blue-600 hover:underline">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded pb-2 text-sm text-blue-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
                 Clear filters
               </button>
             )}
           </div>
+          )}
 
-          {error ? (
+          {blocked === 'unavailable' ? (
+            <div className="rounded-xl border border-gray-200 bg-white">
+              <EmptyState
+                icon={Construction}
+                title="Not available yet"
+                description="This section isn't enabled on the server."
+              />
+            </div>
+          ) : blocked === 'forbidden' ? (
+            <div className="rounded-xl border border-gray-200 bg-white">
+              <EmptyState
+                icon={Lock}
+                title={`You don't have access to ${resource.title.toLowerCase()}`}
+                description="Ask an administrator if you think this is wrong."
+              />
+            </div>
+          ) : error ? (
             <ErrorState message={error} onRetry={() => setRefresh(n => n + 1)} />
           ) : loadingFirst ? (
             <TableSkeleton rows={8} columns={resource.columns.length + 2} />
@@ -311,7 +364,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                             <td className="px-4 py-3">
                               <span
                                 className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                  active ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'
+                                  active ? ACTIVE_BADGE : INACTIVE_BADGE
                                 }`}
                               >
                                 {active ? 'Active' : 'Inactive'}
@@ -321,27 +374,42 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                               <div className="flex justify-end gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setForm({ row })}
-                                  disabled={!!lock?.edit}
+                                  onClick={() => {
+                                    if (!lock?.edit) setForm({ row })
+                                  }}
+                                  aria-disabled={!!lock?.edit}
+                                  aria-describedby={lock?.edit ? `${uid}-edit-${row.id}` : undefined}
                                   title={lock?.edit}
                                   aria-label={`Edit ${resource.singular} ${title}`}
-                                  className={`${btnSecondary} ${btnSm}`}
+                                  className={`${btnSecondary} ${btnSm} ${lock?.edit ? 'cursor-not-allowed opacity-50' : ''}`}
                                 >
                                   Edit
+                                  {lock?.edit && (
+                                    <span id={`${uid}-edit-${row.id}`} className="sr-only">
+                                      {lock.edit}
+                                    </span>
+                                  )}
                                 </button>
                                 {active ? (
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      if (lock?.deactivate) return
                                       setDeactivateError('')
                                       setToDeactivate(row)
                                     }}
-                                    disabled={!!lock?.deactivate}
+                                    aria-disabled={!!lock?.deactivate}
+                                    aria-describedby={lock?.deactivate ? `${uid}-deactivate-${row.id}` : undefined}
                                     title={lock?.deactivate}
                                     aria-label={`Deactivate ${resource.singular} ${title}`}
-                                    className={`${btnDanger} ${btnSm}`}
+                                    className={`${btnDanger} ${btnSm} ${lock?.deactivate ? 'cursor-not-allowed opacity-50' : ''}`}
                                   >
                                     Deactivate
+                                    {lock?.deactivate && (
+                                      <span id={`${uid}-deactivate-${row.id}`} className="sr-only">
+                                        {lock.deactivate}
+                                      </span>
+                                    )}
                                   </button>
                                 ) : (
                                   <button
@@ -425,7 +493,7 @@ function FilterSelect({
         value={value}
         onChange={e => onChange(e.target.value)}
         disabled={loading}
-        className={`${input} w-auto`}
+        className={inputAuto}
       >
         <option value="">{filter.allLabel}</option>
         {options.map(o => (
