@@ -1,5 +1,5 @@
 import { DepartmentTicket } from '@/types'
-import { formatDateTime } from '@/lib/styles'
+import { formatDateTime } from '@/lib/format'
 
 export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
   if (ticket.status === 'Open' && ticket.requested_activity) {

@@ -1,93 +1,3 @@
-import { StatusPill } from '@/lib/departmentTickets'
-
-// START DASHBOARD
-
-// Status Card
-export const STAT_CARD_THEME: Record<string, string> = {
-  Open: `bg-blue-100 border-blue-200 text-blue-700 hover:bg-blue-200`,
-  'In-progress': 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200',
-  Completed: 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200',
-  Overdue: 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200',
-} as const
-
-// Priority
-export const PRIORITY_COLOR_MAP: Record<string, string> = {
-  'Urgent & IHOMIS Related': 'bg-red-500',
-  'Urgent': 'bg-orange-500',
-  'Important but not urgent': 'bg-amber-400',
-  'Long Term': 'bg-purple-400',
-  'Complex': 'bg-purple-500',
-  'Simple': 'bg-emerald-400',
-}
-
-export const PRIORITY_COLOR_MAP_FALLBACK_COLORS = ['bg-blue-500', 'bg-teal-400', 'bg-indigo-400']
-
-// END DASHBOARD
-
-
-// START DEPARTMENT-TICKETS
-
-export const STATUS_PILL_DEFS: Omit<StatusPill, 'count'>[] = [
-  { label: 'All', value: null, color: 'bg-gray-100 text-gray-700 border-gray-300' },
-  { label: 'Open', value: 'Open', color: 'bg-blue-50 text-blue-700 border-blue-300' },
-  { label: 'In-progress', value: 'In-progress', color: 'bg-amber-50 text-amber-700 border-amber-300' },
-  { label: 'Completed', value: 'Completed', color: 'bg-green-50 text-green-700 border-green-300' },
-  { label: 'Overdue', value: 'Overdue', color: 'bg-red-50 text-red-700 border-red-300' },
-]
-
-export const PRIORITY_PALETTE: Record<string, string> = {
-  'Urgent & IHOMIS Related': 'bg-white text-red-700 border-red-300',
-  'Urgent': 'bg-white text-orange-700 border-orange-300',
-  'Important but not urgent': 'bg-white text-amber-700 border-amber-300',
-  'Long Term': 'bg-white text-purple-700 border-purple-300',
-  'Complex': 'bg-white text-fuchsia-700 border-fuchsia-300',
-  'Simple': 'bg-white text-emerald-700 border-emerald-300',
-}
-
-export const PRIORITY_DOT: Record<string, string> = {
-  'Urgent & IHOMIS Related': 'bg-red-600',
-  'Urgent': 'bg-orange-600',
-  'Important but not urgent': 'bg-amber-500',
-  'Long Term': 'bg-purple-500',
-  'Complex': 'bg-fuchsia-500',
-  'Simple': 'bg-emerald-500',
-}
-
-export const PRIORITY_BADGE: Record<string, string> = {
-  'Urgent & IHOMIS Related': 'bg-red-600 text-white',
-  'Urgent': 'bg-orange-100 text-orange-700',
-  'Important but not urgent': 'bg-amber-100 text-amber-700',
-  'Long Term': 'bg-purple-100 text-purple-700',
-  'Complex': 'bg-fuchsia-100 text-fuchsia-700',
-  'Simple': 'bg-emerald-100 text-emerald-700',
-}
-
-export const PRIORITY_RING: Record<string, string> = {
-  'All Priorities': 'ring-gray-400',
-  'Urgent & IHOMIS Related': 'ring-red-400',
-  'Urgent': 'ring-orange-400',
-  'Important but not urgent': 'ring-amber-400',
-  'Long Term': 'ring-purple-400',
-  'Complex': 'ring-fuchsia-400',
-  'Simple': 'ring-emerald-400',
-}
-
-export const STATUS_RING: Record<string, string> = {
-  'All': 'ring-gray-400',
-  'Open': 'ring-blue-400',
-  'In-progress': 'ring-amber-400',
-  'Completed': 'ring-green-400',
-  'Overdue': 'ring-red-400',
-}
-
-export const FALLBACK_DOT = 'bg-gray-400'
-export const FALLBACK_COLOR = 'bg-white text-gray-700 border-gray-300'
-export const FALLBACK_BADGE = 'bg-gray-100 text-gray-600'
-export const FALLBACK_RING = 'ring-gray-400'
-
-
-
-// lib/ticketStyles.ts
 // Single source of truth for status/priority colors used across the app.
 // Each status/priority is defined ONCE here with every variant (pill, badge,
 // ring, solid bar) it needs. Add a new status/priority by adding one entry;
@@ -141,11 +51,6 @@ export const STATUS_FALLBACK: StatusStyle = {
 /** The "All" entry of the status filter row. */
 export const STATUS_ALL: StatusStyle = { ...STATUS_FALLBACK }
 
-// Kept for any older code still importing the flat lowercase map -
-// derived from STATUS_STYLES so there's only one place to edit a color.
-export const statusStyles: Record<string, string> = Object.fromEntries(
-  Object.entries(STATUS_STYLES).map(([label, s]) => [label, s.badge])
-)
 
 export interface PriorityStyle {
   /** Plain text color, used next to the priority label in the tickets table */
@@ -233,11 +138,6 @@ export const PRIORITY_FALLBACK: PriorityStyle = {
 /** Bars for priority levels that have no PRIORITY_STYLES entry, cycled by index. */
 export const PRIORITY_SOLID_FALLBACKS = ['bg-blue-500', 'bg-teal-400', 'bg-indigo-400']
 
-// Kept for any older code still importing the flat lowercase map -
-// derived from PRIORITY_STYLES so there's only one place to edit a color.
-export const priorityStyles: Record<string, string> = Object.fromEntries(
-  Object.entries(PRIORITY_STYLES).map(([label, s]) => [label, s.text])
-)
 
 export interface TimelineStep {
   match: string
@@ -252,17 +152,7 @@ export const fullTimelineSequence: TimelineStep[] = [
   { match: 'Completed', label: 'Completed Date', bg: 'bg-green-100 text-green-600', icon: '✓' },
 ]
 
-export function formatDateTime(dateStr: string) {
-  const d = new Date(dateStr)
-  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  const time = d
-    .toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })
-    .toLowerCase()
-  return { date, time }
-}
 
-
-// END DEPARTMENT-TICKETS
 
 // START SHARED UI (buttons / inputs)
 // Class-string constants for the shared look. Compose with template strings,

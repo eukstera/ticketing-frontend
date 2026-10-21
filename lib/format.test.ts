@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount } from './format'
+import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -76,5 +76,13 @@ describe('safeCount', () => {
     expect(safeCount(null)).toBe(0)
     expect(safeCount(undefined)).toBe(0)
     expect(safeCount(NaN)).toBe(0)
+  })
+})
+
+describe('formatDateTime', () => {
+  it('splits an ISO timestamp into a long date and a lowercase 12-hour time', () => {
+    const { date, time } = formatDateTime('2026-10-20T15:05:00')
+    expect(date).toBe('20 October 2026')
+    expect(time).toMatch(/^0?3:05 pm$/)
   })
 })

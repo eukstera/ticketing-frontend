@@ -43,3 +43,13 @@ export function monthLabel(yearMonth: string): string {
 export function safeCount(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
+
+/** Split an ISO timestamp into a long date ("20 October 2026") and a lowercase 12-hour time ("3:05 pm"). */
+export function formatDateTime(dateStr: string) {
+  const d = new Date(dateStr)
+  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  const time = d
+    .toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })
+    .toLowerCase()
+  return { date, time }
+}
