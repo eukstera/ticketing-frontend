@@ -37,6 +37,52 @@ describe('error helpers', () => {
     expect(getErrorMessage(new Error('boom'), 'fallback')).toBe('fallback')
   })
 
+  it('hides framework text for 405, 5xx, network and non-JSON failures', async () => {
+    const { getErrorMessage, ApiError, NETWORK_MESSAGE, SERVER_MESSAGE, NOT_AVAILABLE_MESSAGE } = await load()
+    const laravel405 = 'The GET method is not supported for route api/admin/users. Supported methods: POST.'
+    expect(getErrorMessage(new ApiError(405, laravel405))).toBe(NOT_AVAILABLE_MESSAGE)
+    expect(getErrorMessage(new ApiError(500, 'SQLSTATE[42S02]: Base table not found'))).toBe(SERVER_MESSAGE)
+    expect(getErrorMessage(new ApiError(503, 'Service Unavailable'))).toBe(SERVER_MESSAGE)
+    expect(getErrorMessage(new ApiError(0, 'Network error', undefined, false))).toBe(NETWORK_MESSAGE)
+    expect(getErrorMessage(new TypeError('Failed to fetch'))).toBe(NETWORK_MESSAGE)
+    // non-JSON body: our placeholder text is never shown
+    expect(getErrorMessage(new ApiError(404, 'Server responded with 404', undefined, false))).toBe(
+      "We couldn't find what you were looking for."
+    )
+  })
+
+  it('keeps preferring the API message for 401/403/404/409/422/429', async () => {
+    const { getErrorMessage, ApiError } = await load()
+    for (const status of [401, 403, 404, 409, 422, 429]) {
+      expect(getErrorMessage(new ApiError(status, 'Written for users'))).toBe('Written for users')
+    }
+  })
+
+  it('does not show framework internals even inside a 4xx', async () => {
+    const { getErrorMessage, ApiError } = await load()
+    expect(getErrorMessage(new ApiError(404, 'The route api/nope could not be found.'))).toBe(
+      "We couldn't find what you were looking for."
+    )
+    expect(getErrorMessage(new ApiError(404, 'No query results for model [App\Models\Ticket] 9'))).toBe(
+      "We couldn't find what you were looking for."
+    )
+  })
+
+  it('turns a rejected fetch into a status-0 ApiError', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
+    const { api, getErrorMessage, NETWORK_MESSAGE } = await load()
+    const err = await api.get('/me').catch(e => e)
+    expect(err).toMatchObject({ status: 0 })
+    expect(getErrorMessage(err)).toBe(NETWORK_MESSAGE)
+  })
+
+  it('marks API-written messages as fromServer and placeholders as not', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<html>Bad gateway</html>', { status: 502 })))
+    const { api } = await load()
+    const err = await api.get('/x').catch(e => e)
+    expect(err).toMatchObject({ status: 502, fromServer: false })
+  })
+
   it('isAbortError detects AbortError DOMExceptions', async () => {
     const { isAbortError } = await load()
     expect(isAbortError(new DOMException('x', 'AbortError'))).toBe(true)

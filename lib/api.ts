@@ -13,7 +13,7 @@ function getBaseUrl(): string {
   if (url) return url
   if (process.env.NODE_ENV === 'production') {
     console.error('NEXT_PUBLIC_API_URL is not set; refusing to call the API.')
-    throw new ApiError(0, 'API URL is not configured.')
+    throw new ApiError(0, 'API URL is not configured.', undefined, false)
   }
   if (!warnedMissingUrl) {
     warnedMissingUrl = true
@@ -28,29 +28,53 @@ export class ApiError extends Error {
   readonly success = false as const
   readonly status: number
   readonly errors?: FieldErrors
+  /**
+   * True when `message` was written by the API for the user. False for our own
+   * placeholder text (non-JSON body, network failure) so it is never shown.
+   */
+  readonly fromServer: boolean
 
-  constructor(status: number, message: string, errors?: FieldErrors) {
+  constructor(status: number, message: string, errors?: FieldErrors, fromServer = true) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.errors = errors
+    this.fromServer = fromServer
   }
 }
 
+export const NETWORK_MESSAGE = "Couldn't reach the server. Check your connection and try again."
+export const SERVER_MESSAGE = 'Something went wrong on the server. Please try again.'
+export const NOT_AVAILABLE_MESSAGE = "This feature isn't available yet."
+
 const STATUS_MESSAGES: Record<number, string> = {
+  401: 'Your session has expired. Please sign in again.',
   403: "You don't have permission to do that.",
+  404: "We couldn't find what you were looking for.",
   409: "This ticket's status changed, refresh and try again.",
   429: 'Too many attempts, wait a minute and try again.',
 }
 
+// Laravel/PHP internals that must never reach a user, even inside a 4xx.
+const FRAMEWORK_MESSAGE =
+  /method is not supported|could not be found|no query results|sqlstate|app\|illuminate|vendor[\/]|stack trace|class "/i
+
 /**
- * Friendly text for any thrown value. Prefers the server's message, then a
- * status-based message, then the caller's fallback.
+ * Friendly text for any thrown value. 405, 5xx, network failures and non-JSON
+ * bodies always get our own copy (the server text there is framework output).
+ * For other statuses the API's own message is preferred, unless it looks like
+ * framework output; then a status-based message, then the caller's fallback.
  */
 export function getErrorMessage(err: unknown, fallback = 'Something went wrong.'): string {
   if (err instanceof ApiError) {
-    return err.message || STATUS_MESSAGES[err.status] || fallback
+    if (err.status === 0) return NETWORK_MESSAGE
+    if (err.status === 405) return NOT_AVAILABLE_MESSAGE
+    if (err.status >= 500) return SERVER_MESSAGE
+    if (err.fromServer && err.message && !FRAMEWORK_MESSAGE.test(err.message)) return err.message
+    return STATUS_MESSAGES[err.status] ?? fallback
   }
+  // A fetch() that never got a response rejects with a TypeError.
+  if (err instanceof TypeError) return NETWORK_MESSAGE
   return fallback
 }
 
@@ -87,10 +111,12 @@ function toApiError(res: Response, body: unknown): ApiError {
     message?: string
     errors?: FieldErrors
   }
+  const fromServer = typeof b.message === 'string' && b.message !== ''
   return new ApiError(
     res.status,
-    b.message || `Server responded with ${res.status}`,
-    b.errors
+    fromServer ? (b.message as string) : `Server responded with ${res.status}`,
+    b.errors,
+    fromServer
   )
 }
 
@@ -104,7 +130,14 @@ function handleUnauthorized(endpoint: string) {
 }
 
 async function send(endpoint: string, options: RequestInit): Promise<Response> {
-  const res = await fetch(`${getBaseUrl()}${endpoint}`, options)
+  let res: Response
+  try {
+    res = await fetch(`${getBaseUrl()}${endpoint}`, options)
+  } catch (err) {
+    // No response at all (offline, DNS, CORS, refused). Aborts pass through.
+    if (err instanceof TypeError) throw new ApiError(0, 'Network error', undefined, false)
+    throw err
+  }
   if (res.status === 401) handleUnauthorized(endpoint)
   return res
 }
