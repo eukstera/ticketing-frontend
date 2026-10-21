@@ -84,6 +84,28 @@ Ordered by priority. Line numbers are from the working tree at the time of writi
 
 ## P1 (High)
 
+### 0. One form field: `components/ui/Field.tsx` (do this first)
+Owner: fe-designer. Four hand-rolled field implementations each re-solve label association, required markers, hints, errors and `aria-*`, and have already drifted (different focus styles, error markup, `*` handling):
+
+| Where | What it is |
+|---|---|
+| `components/auth/AuthField.tsx` | auth palette (hex), `useId`, password toggle, `role="alert"` error |
+| `components/admin/AdminFormModal.tsx` (field loop `:245-289` + `SelectField` `:89-138`) | inline label/input/select/help/error per field, `aria-describedby` for errors only (help text is not linked) |
+| `app/profile/page.tsx` `TextField` (`:16-66`) | `htmlFor`/`id`, hint + error ids joined into `aria-describedby`, `role="alert"` |
+| `app/tickets/create/page.tsx` `FieldLabel` (`:50`) + `FieldError` (`:64`) + per-field wiring | icon label with `htmlFor`, errors via `fe(name)`/`cls(name)` |
+
+Also touched by the same shape: `components/auth/RegisterForm.tsx` selects (labels without `htmlFor`) and the `AccomplishmentModal` date labels.
+
+Target API (app tokens; the auth form keeps its own look through a `tone="auth"` prop or by passing its class strings, same values):
+```tsx
+<Field label="First name" required hint="As on your ID" error={errors.first_name?.[0]} icon={User}>
+  {(p) => <input {...p} className={input} value={...} onChange={...} />}   // render-prop spreads { id, required, 'aria-invalid', 'aria-describedby' }
+</Field>
+```
+- `Field` generates the id with `useId`, renders `<label htmlFor>` (+ optional lucide `icon`, `*` marker `aria-hidden`), the hint `<div id=...-hint>` and the error `<p id=...-error role="alert">`, and hands `{ id, required, 'aria-invalid', 'aria-describedby': [hint?, error?] }` to its child. It also exports `fieldClass(error?: boolean)` -> `input` or `input + inputError`.
+- Migrate in this order: profile -> admin form -> create ticket -> auth (last, because of the palette). Each migration must keep its tests green (`npm test`).
+- Done when `grep -rn "htmlFor" app components` only matches `Field.tsx` and the few intentional implicit-label cases.
+
 ### 1. Consolidate `lib/styles.ts` legacy maps onto `STATUS_STYLES` / `PRIORITY_STYLES`
 Owner: fe-designer (styles.ts) + the file owners below for call sites. Do styles.ts first, then switch callers, then delete the old exports.
 
