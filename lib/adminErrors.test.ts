@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError } from '@/lib/api'
+import { ApiError, NETWORK_MESSAGE, SERVER_MESSAGE } from '@/lib/api'
 import { UNAVAILABLE_COPY, isUnavailable, safeErrorMessage } from '@/lib/adminErrors'
 
 const LARAVEL_405 = 'The GET method is not supported for route api/admin/users. Supported methods: POST.'
@@ -15,36 +15,32 @@ describe('isUnavailable', () => {
 })
 
 describe('safeErrorMessage', () => {
-  it('never leaks the raw Laravel 405 text', () => {
-    const msg = safeErrorMessage(new ApiError(405, LARAVEL_405))
-    expect(msg).toBe(UNAVAILABLE_COPY)
-    expect(msg).not.toMatch(/GET method|route|Supported methods/i)
-  })
-
-  it('uses our own copy for 404, 403 and 5xx', () => {
-    expect(safeErrorMessage(new ApiError(404, 'No query results for model'))).toBe(UNAVAILABLE_COPY)
-    expect(safeErrorMessage(new ApiError(403, 'This action is unauthorized.'))).toBe(
-      "You don't have permission to do that."
-    )
-    for (const status of [500, 502, 503]) {
-      const msg = safeErrorMessage(new ApiError(status, 'SQLSTATE[HY000]: General error'))
-      expect(msg).toBe('The server had a problem. Try again in a moment.')
+  it('shows the admin copy for a missing route and never the Laravel 405 text', () => {
+    for (const status of [404, 405]) {
+      const msg = safeErrorMessage(new ApiError(status, LARAVEL_405))
+      expect(msg).toBe(UNAVAILABLE_COPY)
+      expect(msg).not.toMatch(/GET method|route|Supported methods/i)
     }
   })
 
-  it('passes through the messages the API writes on purpose (409, 422)', () => {
+  it('delegates everything else to getErrorMessage: 5xx and network get app-wide copy', () => {
+    for (const status of [500, 502, 503]) {
+      expect(safeErrorMessage(new ApiError(status, 'SQLSTATE[HY000]: General error'))).toBe(SERVER_MESSAGE)
+    }
+    expect(safeErrorMessage(new ApiError(0, 'API URL is not configured.'))).toBe(NETWORK_MESSAGE)
+    expect(safeErrorMessage(new TypeError('Failed to fetch'))).toBe(NETWORK_MESSAGE)
+  })
+
+  it('passes through messages the API wrote on purpose (409, 422) but filters framework text', () => {
     expect(safeErrorMessage(new ApiError(409, '3 active users hold this role'))).toBe('3 active users hold this role')
     expect(safeErrorMessage(new ApiError(422, 'The email has already been taken.'))).toBe(
       'The email has already been taken.'
     )
+    expect(safeErrorMessage(new ApiError(400, 'Class "App\Models\Foo" not found'))).not.toMatch(/Class/)
   })
 
-  it('keeps our own client-side copy (status 0)', () => {
-    expect(safeErrorMessage(new ApiError(0, 'API URL is not configured.'))).toBe('API URL is not configured.')
-  })
-
-  it('uses the fallback for non-API errors', () => {
-    expect(safeErrorMessage(new TypeError('Failed to fetch'))).toBe('Something went wrong. Try again.')
-    expect(safeErrorMessage(new TypeError('x'), 'custom')).toBe('custom')
+  it('uses the fallback for unknown non-API errors', () => {
+    expect(safeErrorMessage('boom')).toBe('Something went wrong. Try again.')
+    expect(safeErrorMessage('boom', 'custom')).toBe('custom')
   })
 })
