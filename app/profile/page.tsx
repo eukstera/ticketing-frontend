@@ -194,7 +194,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6">
+      <main id="main" className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6">
         <h1 className="text-xl font-semibold text-gray-800">My profile</h1>
 
         <section aria-labelledby="profile-heading" className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
@@ -309,7 +309,7 @@ export default function ProfilePage() {
             </div>
           </form>
         </section>
-      </div>
+      </main>
     </div>
   )
 }

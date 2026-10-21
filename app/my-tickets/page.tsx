@@ -5,7 +5,7 @@ import { TableSkeleton } from '@/components/ui/Skeleton'
 // useSearchParams (inside TicketListPage) needs a Suspense boundary.
 export default function MyTicketsPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6"><TableSkeleton rows={8} columns={10} /></div>}>
+    <Suspense fallback={<main id="main" className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6"><TableSkeleton rows={8} columns={10} /></main>}>
       <TicketListPage mode="mine" />
     </Suspense>
   )

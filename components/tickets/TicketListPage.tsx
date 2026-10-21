@@ -178,7 +178,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+      <main id="main" className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
         <FilterPills
           statusPills={buildStatusPills(data?.statusCounts ?? [])}
           priorityPills={buildPriorityPills(data?.priorityCounts ?? [])}
@@ -264,7 +264,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
             </div>
           )
         ) : null}
-      </div>
+      </main>
 
       <AssignModal
         isOpen={assignTicketId !== null}

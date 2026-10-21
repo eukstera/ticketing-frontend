@@ -162,7 +162,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <main id="main" className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         <h1 className="sr-only">Ticket</h1>
         <Link
           href="/tickets"
@@ -212,7 +212,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             }}
           />
         )}
-      </div>
+      </main>
 
       <AssignModal
         isOpen={assignOpen}

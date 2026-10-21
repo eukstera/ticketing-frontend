@@ -54,7 +54,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
+      <main id="main" className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
         <h1 className="sr-only">Dashboard</h1>
         <DashboardFilters
           month={month}
@@ -99,7 +99,7 @@ export default function HomePage() {
             </div>
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

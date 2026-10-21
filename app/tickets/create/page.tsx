@@ -252,7 +252,7 @@ export default function CreateTicketPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <main id="main" className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-8">
           <div className="flex items-center gap-2 mb-3">
             <span className="w-6 h-px bg-orange-400" />
@@ -321,6 +321,9 @@ export default function CreateTicketPage() {
                     )
                   })}
                 </div>
+              )}
+              {lookups && lookups.concernTypes.length === 0 && (
+                <p className="text-sm text-gray-500">No concern types are configured yet. Ask an administrator to add them.</p>
               )}
               <FieldError id="err-type_of_concern" messages={fe('type_of_concern')} />
             </div>
@@ -448,7 +451,9 @@ export default function CreateTicketPage() {
                 aria-describedby={describedBy('assigned_user')}
                 required
               >
-                <option value="">{lookups ? '-- Select Personnel --' : 'Loading…'}</option>
+                <option value="">
+                  {!lookups ? 'Loading…' : employees.length === 0 ? 'No personnel available' : '-- Select Personnel --'}
+                </option>
                 {employees.map(person => (
                   <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
                 ))}
@@ -502,6 +507,9 @@ export default function CreateTicketPage() {
                     )
                   })}
                 </div>
+              )}
+              {lookups && lookups.priorities.length === 0 && (
+                <p className="text-sm text-gray-500">No priorities are configured for this department yet. Ask an administrator to add them.</p>
               )}
               <FieldError id="err-priority" messages={fe('priority')} />
             </div>
@@ -558,7 +566,7 @@ export default function CreateTicketPage() {
                 )}
             </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
