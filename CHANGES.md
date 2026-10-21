@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-21 — Live API smoke test (logged in)
+
+**Result: 68/68 passed.** Run against `http://localhost:8000/api` (DB `ticketing_api_v2`) with a dev-only QA account (Department Head, IT). Credentials were passed through the environment only and never committed.
+
+**What was covered:**
+- **Auth:** login, its 422 envelope, `/me`, logout and token revocation.
+- **Lookups:** all lookup endpoints.
+- **Ticket lists:** both lists, including the new count arrays, the id filters, search, and 422 on a bad page size or date range.
+- **Ticket lifecycle:** create (and its 422), take, complete, and 409 on completing or assigning a completed ticket.
+- **Ticket detail:** the detail page and 404, plus comment add, edit and delete.
+- **Dashboard.**
+- **Admin CRUD:** departments, roles, designations, priorities, concern types and nature of work.
+
+**Test data left in the database:**
+- The ticket "QA smoke test – safe to ignore" (10-001-2026) stays, as the user decided.
+- The "QA smoke …" admin rows are left deactivated.
+
+**Follow-ups:**
+- **List `priority_sla` arrives as a string:** reported to the backend. The frontend now coerces it to a number (`b263891`).
+- **Dashboard `priority_stats` includes inactive priorities:** reported to the backend.
+- **Not tested yet:** profile (`PATCH /me`, `/me/password`) and the admin users list/edit, which the backend hasn't built yet.
+
 ## 2026-10-21 — Phase 3 (polish: keep the look, make it consistent)
 
 **Status at `782179c`** (checked in a clean worktree): tsc 0, lint 0, `npm test` 161/161 passing across 13 files. No `next build`. The full log with shas per area is in `docs/DESIGN.md` → "Polish log".
