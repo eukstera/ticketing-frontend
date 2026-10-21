@@ -1,13 +1,14 @@
 'use client'
 
 import { FormEvent, useEffect, useId, useRef, useState } from 'react'
+import Field, { FieldControlProps, fieldClass } from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import { useHydrated } from '@/hooks/useHydrated'
 import { useOptions } from '@/hooks/useOptions'
 import { getErrorMessage, isApiError } from '@/lib/api'
 import { AdminRow, createAdmin, updateAdmin } from '@/lib/admin'
 import { AdminField, AdminResource } from '@/lib/adminResources'
-import { btnPrimary, btnSecondary, input, inputError } from '@/lib/styles'
+import { btnPrimary, btnSecondary } from '@/lib/styles'
 
 type Values = Record<string, string>
 
@@ -22,19 +23,15 @@ function initialValues(resource: AdminResource, row: AdminRow | null): Values {
 
 function SelectField({
   field,
-  id,
+  control,
   value,
   values,
-  invalid,
-  describedBy,
   onChange,
 }: {
   field: AdminField
-  id: string
+  control: FieldControlProps
   value: string
   values: Values
-  invalid: boolean
-  describedBy?: string
   onChange: (value: string) => void
 }) {
   const { waiting, loading, options, error } = useOptions(field.options, values)
@@ -47,13 +44,11 @@ function SelectField({
   return (
     <>
       <select
-        id={id}
+        {...control}
         value={value}
         onChange={e => onChange(e.target.value)}
         disabled={waiting || loading}
-        aria-invalid={invalid}
-        aria-describedby={describedBy}
-        className={`${input} ${invalid ? inputError : ''}`}
+        className={fieldClass(control['aria-invalid'])}
       >
         <option value="">{placeholder}</option>
         {options.map(o => (
@@ -197,57 +192,41 @@ export default function AdminFormModal({
         {resource.fields.map(field => {
           const id = `${formId}-${field.name}`
           const fieldError = errors[field.name]?.[0]
-          const errorId = fieldError ? `${id}-error` : undefined
-          const helpId = field.help && !fieldError ? `${id}-help` : undefined
-          const describedBy = [helpId, errorId].filter(Boolean).join(' ') || undefined
           const required = field.required || (field.requiredOnCreateOnly && mode === 'create')
           return (
-            <div key={field.name}>
-              <label htmlFor={id} className="mb-1 block text-xs font-medium text-gray-600">
-                {field.label}
-                {required && (
-                  <span className="text-red-500" aria-hidden="true">
-                    {' '}
-                    *
-                  </span>
-                )}
-              </label>
-              {field.type === 'select' ? (
-                <SelectField
-                  field={field}
-                  id={id}
-                  value={values[field.name]}
-                  values={values}
-                  invalid={!!fieldError}
-                  describedBy={describedBy}
-                  onChange={v => setValue(field.name, v)}
-                />
-              ) : (
-                <input
-                  id={id}
-                  type={field.type}
-                  value={values[field.name]}
-                  onChange={e => setValue(field.name, e.target.value)}
-                  required={required}
-                  min={field.type === 'number' ? field.min : undefined}
-                  minLength={field.type === 'password' ? field.min : undefined}
-                  autoComplete={field.type === 'password' ? 'new-password' : 'off'}
-                  aria-invalid={!!fieldError}
-                  aria-describedby={describedBy}
-                  className={`${input} ${fieldError ? inputError : ''}`}
-                />
-              )}
-              {helpId && (
-                <p id={helpId} className="mt-1 text-xs text-gray-500">
-                  {field.help}
-                </p>
-              )}
-              {fieldError && (
-                <p id={errorId} role="alert" className="mt-1 text-xs text-red-600">
-                  {fieldError}
-                </p>
-              )}
-            </div>
+            <Field
+              key={field.name}
+              id={id}
+              label={field.label}
+              required={required}
+              // Help text gives way to the error message, as before.
+              hint={fieldError ? undefined : field.help}
+              error={fieldError}
+              labelClassName="mb-1 block text-xs font-medium text-gray-600"
+            >
+              {control =>
+                field.type === 'select' ? (
+                  <SelectField
+                    field={field}
+                    control={control}
+                    value={values[field.name]}
+                    values={values}
+                    onChange={v => setValue(field.name, v)}
+                  />
+                ) : (
+                  <input
+                    {...control}
+                    type={field.type}
+                    value={values[field.name]}
+                    onChange={e => setValue(field.name, e.target.value)}
+                    min={field.type === 'number' ? field.min : undefined}
+                    minLength={field.type === 'password' ? field.min : undefined}
+                    autoComplete={field.type === 'password' ? 'new-password' : 'off'}
+                    className={fieldClass(!!fieldError)}
+                  />
+                )
+              }
+            </Field>
           )
         })}
 
