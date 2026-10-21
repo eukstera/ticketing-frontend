@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-10-21 — Phase 3 (polish: keep the look, make it consistent)
+
+**Status at `782179c`** (checked in a clean worktree): tsc 0, lint 0, `npm test` 161/161 passing across 13 files. No `next build`. The full log with shas per area is in `docs/DESIGN.md` → "Polish log".
+
+- **One source for status/priority colours** (`1d2ea9d`, `906eed1`, `02d2a3a`): every caller now reads `STATUS_STYLES` / `PRIORITY_STYLES`, and 16 legacy maps were deleted. `formatDateTime` and `formatDateTimeText` live in `lib/format.ts` (`5d4d2f3`).
+- **One form field component:**
+  - `components/ui/Field` and `FieldGroup` handle label, hint, error and id/aria wiring (`4f59e58`, `ce4b010`).
+  - It is used by AuthField, the profile forms, AdminFormModal and the create-ticket form (`8ea77d9`, `4907e55`, `fba9742`, `d236f1c`).
+  - On create, 422 errors (including inactive department, priority, concern or assignee) show inline, or in a banner when no field matches, and focus moves to the first problem (`d177066`).
+- **Responsive tickets table:** below md it becomes a card list (`f6a9052`).
+- **Icons and tokens:**
+  - lucide replaces every emoji and inline SVG, including the timeline (`c5a9e12`).
+  - The auth palette is now Tailwind `auth.*` tokens with identical values (`72df7b1`).
+- **a11y:** CommentButton names its ticket and comment count and is 40px (`a85bf99`, `a8dfb28`). The built-in "Others" nature-of-work row is locked (`2c7c7e6`).
+- **Deliberate visual changes:**
+  - The Complex priority is fuchsia everywhere, including the dashboard bar (it was purple).
+  - Priority highlight labels are coloured, and an unknown priority falls back to gray instead of fuchsia (`11ed7b5`).
+  - The comment form scrolls with the list inside CommentsModal.
+  - There are small size and contrast increases.
+
+**Open (non-blocking, see DESIGN.md):**
+- **Auth error colour (needs a user decision):** `#D9522E` measures 3.9:1 on white at 12px, below AA. The fix is a darker accent, which is a visible change.
+- **Admin tables on phones:** they scroll sideways instead of stacking into cards.
+- **Page titles:** only the ticket detail page sets `document.title`.
+- **Account menu:** it has no arrow-key navigation.
+- **Manual checks not yet run:** a browser pass, a screen reader pass (NVDA/VoiceOver), an axe scan and `next build`.
+
 ## 2026-10-21 — Phase 2 (features)
 
 Built to the backend Phase 2 contract (`../TicketingSystem-API/CHANGES.md`, Phase 2 + addenda + "List conventions" + "My profile" + "Validation details"). Work by fe-coder1 (admin, tests), fe-coder2 (lists, detail, profile) and fe-designer (shared UI, a11y reviews and fixes).
