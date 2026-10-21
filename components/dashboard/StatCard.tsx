@@ -17,13 +17,14 @@ export default function StatCard({
 
   return (
     <button
+      type="button"
       onClick={() => {
         router.push(`/tickets?status=${encodeURIComponent(status)}`)
       }}
-      className={`block text-left w-full rounded-xl border px-4 py-4 transition sm:px-6 sm:py-5 ${STAT_CARD_THEME[status]}`}
+      className={`block text-left w-full rounded-xl border px-4 py-4 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 sm:px-6 sm:py-5 ${STAT_CARD_THEME[status]}`}
     >
       <div className="text-2xl font-semibold sm:text-3xl">{value}</div>
-      <div className="mt-1 text-xs text-gray-600 sm:text-sm">{label}</div>
+      <div className="mt-1 text-xs text-gray-700 sm:text-sm">{label}</div>
     </button>
   )
 }

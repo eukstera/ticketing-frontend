@@ -3,7 +3,7 @@ import { DashboardStats } from '@/lib/dashboard'
 export default function TopPerformerCard({ performers }: { performers: DashboardStats['top_performers'] }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h3 className="text-base font-semibold text-gray-800">Top Performer</h3>
+      <h2 className="text-base font-semibold text-gray-800">Top Performer</h2>
       <div className="mt-4 max-h-64 space-y-4 overflow-y-auto pr-2">
         {performers.map((p) => (
           <div key={p.user_id} className="flex items-center gap-3">
@@ -19,7 +19,7 @@ export default function TopPerformerCard({ performers }: { performers: Dashboard
           </div>
         ))}
         {performers.length === 0 && (
-          <p className="text-sm text-gray-400">No completed tickets yet this period.</p>
+          <p className="text-sm text-gray-500">No completed tickets yet this period.</p>
         )}
       </div>
     </div>
