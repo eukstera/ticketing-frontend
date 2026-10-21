@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount } from './format'
+import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -46,6 +46,15 @@ describe('optionalSlaLabel', () => {
   it('delegates to slaLabel otherwise', () => {
     expect(optionalSlaLabel(2)).toBe('SLA 2 days')
     expect(optionalSlaLabel(0)).toBe('No SLA')
+  })
+})
+
+describe('commentsLabel', () => {
+  it('names the ticket and pluralizes the count', () => {
+    expect(commentsLabel('10-001-2026')).toBe('Comments for 10-001-2026')
+    expect(commentsLabel('10-001-2026', 0)).toBe('Comments for 10-001-2026')
+    expect(commentsLabel('10-001-2026', 1)).toBe('Comments for 10-001-2026, 1 comment')
+    expect(commentsLabel('10-001-2026', 3)).toBe('Comments for 10-001-2026, 3 comments')
   })
 })
 

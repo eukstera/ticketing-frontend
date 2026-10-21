@@ -165,7 +165,7 @@ function TicketCard({
           onTake={onTake}
           onMarkComplete={onMarkComplete}
         />
-        <CommentButton count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
+        <CommentButton ticketNumber={ticket.ticket_number} count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
       </div>
 
       <Link
@@ -262,7 +262,7 @@ function TicketRow({
           />
         </td>
         <td className="px-3 py-3 text-center">
-          <CommentButton count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
+          <CommentButton ticketNumber={ticket.ticket_number} count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
         </td>
       </tr>
 

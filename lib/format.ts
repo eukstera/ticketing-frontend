@@ -23,6 +23,13 @@ export function optionalSlaLabel(days: number | null | undefined): string | null
   return typeof days === 'number' ? slaLabel(days) : null
 }
 
+/** Accessible name for a ticket's comments button: "Comments for 10-001-2026, 3 comments". */
+export function commentsLabel(ticketNumber: string, count?: number | null): string {
+  const base = `Comments for ${ticketNumber}`
+  if (typeof count !== 'number' || !Number.isFinite(count) || count <= 0) return base
+  return `${base}, ${count} ${count === 1 ? 'comment' : 'comments'}`
+}
+
 /** 'YYYY-MM' -> 'October 2026'; falls back to the raw value when it isn't a valid month. */
 export function monthLabel(yearMonth: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(yearMonth)
