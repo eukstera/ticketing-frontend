@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-10-21 — Never show raw server/framework errors to users
+
+**Trigger.** A user saw "The GET method is not supported for route api/admin/users. Supported methods: POST." on `/admin/users`. That was a 405, because `GET /admin/users` isn't built yet.
+
+**Fixes:**
+- **`lib/api.ts` `getErrorMessage`** (`2dbb5b1`, `70669e3`): users now get friendly copy instead of the raw response for:
+  - network errors (status 0);
+  - 405, which shows "This feature isn't available yet.";
+  - 5xx responses;
+  - non-JSON bodies;
+  - any message that looks like framework output (route not found, query results, SQLSTATE, class or vendor paths).
+
+  Messages the backend writes for users (401, 403, 404, 409, 422, 429) still pass through.
+- **Admin pages** (`c4e951b`, `5ce3ffb`):
+  - A 405 now behaves like a 404 and shows "Not available yet", with no Retry.
+  - "Add user" stays available, because `POST /admin/users` exists (the `createWorksWithoutList` flag).
+  - `lib/adminErrors.ts` delegates to `getErrorMessage`, so there is one set of rules.
+- **Last direct `err.message` displays** in AssignModal and LoginForm now go through `getErrorMessage` (`f41cbfe`).
+- **User decisions recorded** in DESIGN.md (`436413d`): the auth accent `#D9522E` stays as is (accepted contrast exception), and no `next build` is run.
+
+**Status at `5ce3ffb`** (checked in a clean worktree): tsc 0, lint 0, `npm test` 175/175 passing across 14 files.
+
 ## 2026-10-21 — Live API smoke test (logged in)
 
 **Result: 68/68 passed.** Run against `http://localhost:8000/api` (DB `ticketing_api_v2`) with a dev-only QA account (Department Head, IT). Credentials were passed through the environment only and never committed.
