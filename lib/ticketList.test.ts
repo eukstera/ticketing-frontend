@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { optionalSlaLabel } from '@/lib/format'
 import {
   DEFAULT_PER_PAGE,
   EMPTY_LIST_PARAMS,
@@ -6,6 +7,7 @@ import {
   StatusCount,
   TicketListParams,
   buildListQuery,
+  coerceSla,
   hasActiveFilters,
   normalizeListResponse,
   normalizePriorityCounts,
@@ -158,7 +160,32 @@ describe('normalizeListResponse', () => {
     const out = normalizeListResponse(res)
     expect(out.statusCounts.map(s => s.label)).toEqual(['All', 'Open'])
     expect(out.priorityCounts[0]).toMatchObject({ level: 'High', sla_days: 2, legacy: true })
-    expect(out.tickets).toBe(res.result.ticket)
+    expect(out.tickets).toEqual(res.result.ticket)
+  })
+
+  it('coerces a string priority_sla on list rows to a number', () => {
+    const row = (priority_sla: unknown) => ({ id: 1, priority_sla })
+    const res = {
+      message: 'ok',
+      result: {
+        ticket: {
+          data: [row('10'), row('1'), row(3), row(null), row(undefined), row('abc')],
+          current_page: 1, last_page: 1, total: 6, per_page: 10,
+        },
+        status_counts: [],
+        priority_counts: [],
+      },
+    } as unknown as RawTicketListResponse
+
+    const slas = normalizeListResponse(res).tickets.data.map(r => r.priority_sla)
+    expect(slas).toEqual([10, 1, 3, null, undefined, null])
+  })
+
+  it('renders the coerced values as SLA labels ("10" -> 10 days, "1" -> 1 day)', () => {
+    expect(optionalSlaLabel(coerceSla('10'))).toBe('SLA 10 days')
+    expect(optionalSlaLabel(coerceSla('1'))).toBe('SLA 1 day')
+    expect(optionalSlaLabel(coerceSla('0'))).toBe('No SLA')
+    expect(optionalSlaLabel(coerceSla(null))).toBeNull()
   })
 })
 

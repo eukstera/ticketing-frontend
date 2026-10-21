@@ -165,15 +165,30 @@ export function normalizePriorityCounts(
   return Object.entries(raw ?? {}).map(([level, count], i) => ({
     id: -(i + 1),
     level,
-    sla_days: slaByLevel[level] ?? 0,
+    sla_days: coerceSla(slaByLevel[level]) ?? 0,
     count,
     legacy: true,
   }))
 }
 
+/**
+ * List rows have returned `priority_sla` as a string ("10") while the other
+ * endpoints return numbers. null/undefined pass through; anything that is not
+ * a finite number becomes null.
+ */
+export function coerceSla(value: unknown): number | null | undefined {
+  if (value === null || value === undefined) return value
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 export function normalizeListResponse(res: RawTicketListResponse): TicketListResult {
+  const page = res.result.ticket
   return {
-    tickets: res.result.ticket,
+    tickets: {
+      ...page,
+      data: (page.data ?? []).map(row => ({ ...row, priority_sla: coerceSla(row.priority_sla) })),
+    },
     statusCounts: normalizeStatusCounts(res.result.status_counts),
     priorityCounts: normalizePriorityCounts(res.result.priority_counts, res.result.priority_sla),
   }

@@ -51,7 +51,7 @@ export interface DepartmentTicket {
   requested_activity: ActivityInfo | null
   assigned_activity: ActivityInfo | null
   completed_activity: ActivityInfo | null
-  priority_sla?: number
+  priority_sla?: number | null
   comments_count?: number
   devices: Device[]
 }
