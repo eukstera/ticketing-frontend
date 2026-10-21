@@ -30,19 +30,21 @@ export const PASSWORD_MIN_LENGTH = 8
 export interface PasswordRule {
   id: string
   label: string
+  /** Shown when the rule fails at submit time. */
+  message: string
   test: (password: string, current: string) => boolean
 }
 
 // Mirrors the BE rule set; used for both the live checklist and submit-time validation.
 export const PASSWORD_RULES: PasswordRule[] = [
-  { id: 'length', label: `At least ${PASSWORD_MIN_LENGTH} characters`, test: pw => pw.length >= PASSWORD_MIN_LENGTH },
-  { id: 'case', label: 'Upper and lower case letters', test: pw => /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
-  { id: 'number', label: 'At least one number', test: pw => /\d/.test(pw) },
-  { id: 'different', label: 'Different from your current password', test: (pw, current) => pw !== '' && pw !== current },
+  { id: 'length', label: `At least ${PASSWORD_MIN_LENGTH} characters`, message: `Password must have at least ${PASSWORD_MIN_LENGTH} characters.`, test: pw => pw.length >= PASSWORD_MIN_LENGTH },
+  { id: 'case', label: 'Upper and lower case letters', message: 'Password must have upper and lower case letters.', test: pw => /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
+  { id: 'number', label: 'At least one number', message: 'Password must have at least one number.', test: pw => /\d/.test(pw) },
+  { id: 'different', label: 'Different from your current password', message: 'Password must be different from your current one.', test: (pw, current) => pw !== '' && pw !== current },
 ]
 
 /** First unmet rule as a message, or null when the password is acceptable. */
 export function validateNewPassword(password: string, current: string): string | null {
   const failed = PASSWORD_RULES.find(rule => !rule.test(password, current))
-  return failed ? `Password rule not met: ${failed.label.toLowerCase()}.` : null
+  return failed ? failed.message : null
 }

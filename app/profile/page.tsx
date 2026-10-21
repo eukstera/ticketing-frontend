@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Circle } from 'lucide-react'
+import { Check, Circle, Eye, EyeOff } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import { toast } from '@/components/Toast'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { CardSkeleton } from '@/components/ui/Skeleton'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useHydrated } from '@/hooks/useHydrated'
 import { useUser } from '@/hooks/useUser'
@@ -35,22 +35,38 @@ function TextField({
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
   const describedBy = [errors?.length ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
+  const [revealed, setRevealed] = useState(false)
+  const isPassword = type === 'password'
+  const fieldClass = errors?.length ? `${input} ${inputError}` : input
 
   return (
     <div>
       <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-700">
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        autoComplete={autoComplete}
-        aria-invalid={!!errors?.length}
-        aria-describedby={describedBy}
-        className={errors?.length ? `${input} ${inputError}` : input}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          type={isPassword && revealed ? 'text' : type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          autoComplete={autoComplete}
+          aria-invalid={!!errors?.length}
+          aria-describedby={describedBy}
+          className={isPassword ? `${fieldClass} pr-10` : fieldClass}
+        />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setRevealed(r => !r)}
+            aria-pressed={revealed}
+            aria-label={`${revealed ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          >
+            {revealed ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        )}
+      </div>
       {hint && (
         <div id={hintId} className="mt-1 text-xs text-gray-500">
           {hint}
@@ -107,6 +123,7 @@ export default function ProfilePage() {
   const [nameDraft, setNameDraft] = useState<{ first: string; last: string } | null>(null)
   const [savingName, setSavingName] = useState(false)
   const [nameErrors, setNameErrors] = useState<FieldErrors>({})
+  const [nameNotice, setNameNotice] = useState('')
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -128,12 +145,19 @@ export default function ProfilePage() {
     if (!firstName.trim()) errors.first_name = ['Enter your first name.']
     if (!lastName.trim()) errors.last_name = ['Enter your last name.']
     if (Object.keys(errors).length) {
+      setNameNotice('')
       setNameErrors(errors)
       document.getElementById(errors.first_name ? 'first_name' : 'last_name')?.focus()
       return
     }
+    if (!nameChanged) {
+      setNameErrors({})
+      setNameNotice('No changes to save.')
+      return
+    }
 
     setSavingName(true)
+    setNameNotice('')
     setNameErrors({})
     try {
       const res = await updateProfile({ first_name: firstName.trim(), last_name: lastName.trim() })
@@ -143,8 +167,13 @@ export default function ProfilePage() {
       toast('Profile updated')
     } catch (err) {
       console.error(err)
-      if (isApiError(err) && err.status === 422 && err.errors) setNameErrors(err.errors)
-      toast(getErrorMessage(err, 'Failed to update profile'), 'error')
+      if (isApiError(err) && err.status === 422 && err.errors) {
+        // Shown next to the fields (role=alert); a toast would announce it twice.
+        setNameErrors(err.errors)
+        document.getElementById(['first_name', 'last_name'].find(k => err.errors?.[k]) ?? 'first_name')?.focus()
+      } else {
+        toast(getErrorMessage(err, 'Failed to update profile'), 'error')
+      }
     } finally {
       setSavingName(false)
     }
@@ -184,8 +213,9 @@ export default function ProfilePage() {
         setPasswordErrors(err.errors)
         const first = (['current_password', 'password', 'password_confirmation'] as const).find(k => err.errors?.[k])
         if (first) document.getElementById(first)?.focus()
+      } else {
+        toast(getErrorMessage(err, 'Failed to change password'), 'error')
       }
-      toast(getErrorMessage(err, 'Failed to change password'), 'error')
     } finally {
       setSavingPassword(false)
     }
@@ -203,10 +233,7 @@ export default function ProfilePage() {
           </h2>
 
           {!user ? (
-            <div className="space-y-3" aria-busy="true">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </div>
+            <CardSkeleton lines={3} className="border-0 p-0" />
           ) : (
             <form method="post" onSubmit={handleNameSubmit} noValidate className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -217,6 +244,7 @@ export default function ProfilePage() {
                   onChange={v => {
                     setNameDraft({ first: v, last: lastName })
                     setNameErrors(prev => ({ ...prev, first_name: [] }))
+                    setNameNotice('')
                   }}
                   errors={nameErrors.first_name}
                   autoComplete="given-name"
@@ -228,6 +256,7 @@ export default function ProfilePage() {
                   onChange={v => {
                     setNameDraft({ first: firstName, last: v })
                     setNameErrors(prev => ({ ...prev, last_name: [] }))
+                    setNameNotice('')
                   }}
                   errors={nameErrors.last_name}
                   autoComplete="family-name"
@@ -244,8 +273,13 @@ export default function ProfilePage() {
                 Email, department, designation and role can only be changed by an administrator.
               </p>
 
-              <div className="flex justify-end">
-                <button type="submit" disabled={!hydrated || !nameChanged || savingName} className={btnPrimary}>
+              <div className="flex items-center justify-end gap-3">
+                {nameNotice && (
+                  <p role="status" className="text-xs text-gray-500">
+                    {nameNotice}
+                  </p>
+                )}
+                <button type="submit" disabled={!hydrated || savingName} className={btnPrimary}>
                   {savingName ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
@@ -258,6 +292,17 @@ export default function ProfilePage() {
             Change password
           </h2>
           <form method="post" onSubmit={handlePasswordSubmit} noValidate className="space-y-4">
+            {/* Lets password managers attach the new password to this account. */}
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={user?.email ?? ''}
+              readOnly
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
+            />
             <TextField
               id="current_password"
               label="Current password"
@@ -301,7 +346,7 @@ export default function ProfilePage() {
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={!hydrated || savingPassword || !currentPassword || !newPassword || !confirmPassword}
+                disabled={!hydrated || savingPassword}
                 className={btnPrimary}
               >
                 {savingPassword ? 'Changing…' : 'Change password'}
