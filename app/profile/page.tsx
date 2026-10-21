@@ -11,7 +11,8 @@ import { useUser } from '@/hooks/useUser'
 import { saveUser } from '@/lib/auth'
 import { FieldErrors, getErrorMessage, isApiError } from '@/lib/api'
 import { PASSWORD_RULES, changePassword, updateProfile, validateNewPassword } from '@/lib/profile'
-import { btnPrimary, input, inputError } from '@/lib/styles'
+import Field, { fieldClass } from '@/components/ui/Field'
+import { btnPrimary, input } from '@/lib/styles'
 
 function TextField({
   id,
@@ -32,52 +33,36 @@ function TextField({
   autoComplete: string
   hint?: React.ReactNode
 }) {
-  const errorId = `${id}-error`
-  const hintId = `${id}-hint`
-  const describedBy = [errors?.length ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
   const [revealed, setRevealed] = useState(false)
   const isPassword = type === 'password'
-  const fieldClass = errors?.length ? `${input} ${inputError}` : input
+  const error = errors?.[0]
 
   return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-700">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          type={isPassword && revealed ? 'text' : type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          autoComplete={autoComplete}
-          aria-invalid={!!errors?.length}
-          aria-describedby={describedBy}
-          className={isPassword ? `${fieldClass} pr-10` : fieldClass}
-        />
-        {isPassword && (
-          <button
-            type="button"
-            onClick={() => setRevealed(r => !r)}
-            aria-pressed={revealed}
-            aria-label={`${revealed ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
-            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            {revealed ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-          </button>
-        )}
-      </div>
-      {hint && (
-        <div id={hintId} className="mt-1 text-xs text-gray-500">
-          {hint}
+    <Field id={id} label={label} hint={hint} error={error}>
+      {control => (
+        <div className="relative">
+          <input
+            {...control}
+            type={isPassword && revealed ? 'text' : type}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            autoComplete={autoComplete}
+            className={fieldClass(!!error, isPassword ? `${input} pr-10` : input)}
+          />
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setRevealed(r => !r)}
+              aria-pressed={revealed}
+              aria-label={`${revealed ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+              className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              {revealed ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+            </button>
+          )}
         </div>
       )}
-      {errors?.length ? (
-        <p id={errorId} role="alert" className="mt-1 text-xs text-red-600">
-          {errors[0]}
-        </p>
-      ) : null}
-    </div>
+    </Field>
   )
 }
 
