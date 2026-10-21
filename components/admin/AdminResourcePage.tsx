@@ -21,7 +21,7 @@ import {
   listAdmin,
   reactivateAdmin,
 } from '@/lib/admin'
-import { AdminResource, RowContext } from '@/lib/adminResources'
+import { AdminResource, AdminResourceKey, RowContext, getAdminResource } from '@/lib/adminResources'
 import { btnDanger, btnPrimary, btnSecondary, btnSm, btnSuccess, input } from '@/lib/styles'
 
 const SEARCH_DEBOUNCE_MS = 300
@@ -46,10 +46,23 @@ function errorMessage(err: unknown): string {
   return getErrorMessage(err, "Couldn't load the list.")
 }
 
+// What the list's ErrorState says: always names the resource, then the reason.
+// A 401 never gets here for long: api.ts clears the session and redirects.
+function listErrorMessage(title: string, err: unknown): string {
+  const what = `Couldn't load ${title.toLowerCase()}.`
+  if (isApiError(err)) {
+    if (err.status === 404) return `${what} This admin endpoint isn't available yet.`
+    if (err.status === 403) return `${what} You don't have access to this resource.`
+    if (err.status === 401) return `${what} Your session has expired.`
+  }
+  return `${what} ${getErrorMessage(err, 'Try again.')}`
+}
+
 // Generic admin list + create/edit/deactivate screen driven by an
 // AdminResource config. Must render inside a <Suspense> boundary
 // (useSearchParams for the URL-backed list state).
-export default function AdminResourcePage({ resource }: { resource: AdminResource }) {
+export default function AdminResourcePage({ resource: resourceKey }: { resource: AdminResourceKey }) {
+  const resource = getAdminResource(resourceKey)
   const filters = resource.filters ?? []
   const { params, update } = useAdminListParams(filters.map(f => f.param))
 
@@ -94,7 +107,7 @@ export default function AdminResourcePage({ resource }: { resource: AdminResourc
       .catch(err => {
         if (isAbortError(err)) return
         console.error(err)
-        setResult({ key, error: errorMessage(err) })
+        setResult({ key, error: listErrorMessage(resource.title, err) })
       })
     return () => controller.abort()
   }, [key, resource, params])
@@ -110,7 +123,9 @@ export default function AdminResourcePage({ resource }: { resource: AdminResourc
         setDepartments(map)
       })
       .catch(err => {
-        if (!isAbortError(err)) console.error(err)
+        if (isAbortError(err)) return
+        console.error(err)
+        toast("Couldn't load department names.", 'error')
       })
     return () => controller.abort()
   }, [resource])
@@ -402,7 +417,7 @@ function FilterSelect({
   value: string
   onChange: (value: string) => void
 }) {
-  const { options, loading } = useOptions(filter.options, {})
+  const { options, loading, error } = useOptions(filter.options, {})
   return (
     <label className="flex flex-col gap-1 text-xs font-medium text-gray-500">
       {filter.label}
@@ -419,6 +434,11 @@ function FilterSelect({
           </option>
         ))}
       </select>
+      {error && (
+        <span role="alert" className="text-xs font-normal text-red-600">
+          Couldn&apos;t load {filter.label.toLowerCase()} options.
+        </span>
+      )}
     </label>
   )
 }

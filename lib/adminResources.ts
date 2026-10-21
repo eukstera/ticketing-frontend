@@ -52,8 +52,21 @@ export interface RowLock {
   deactivate?: string
 }
 
+// Server pages hand a client component only this string key: the config below
+// holds functions, which can't cross the server → client boundary.
+export const ADMIN_RESOURCE_KEYS = [
+  'users',
+  'roles',
+  'departments',
+  'designations',
+  'priorities',
+  'concern-types',
+  'nature-of-work',
+] as const
+export type AdminResourceKey = (typeof ADMIN_RESOURCE_KEYS)[number]
+
 export interface AdminResource {
-  slug: string
+  slug: AdminResourceKey
   title: string
   singular: string
   description: string
@@ -260,7 +273,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
   },
 ]
 
-export function getAdminResource(slug: string): AdminResource {
+export function getAdminResource(slug: AdminResourceKey): AdminResource {
   const resource = ADMIN_RESOURCES.find(r => r.slug === slug)
   if (!resource) throw new Error(`Unknown admin resource: ${slug}`)
   return resource
