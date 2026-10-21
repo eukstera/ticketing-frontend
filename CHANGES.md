@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-10-21 — Fix: admin pages crashed (functions passed across the RSC boundary)
+
+**Symptom.** Every `/admin/<resource>` page threw "Functions cannot be passed directly to Client Components…".
+
+**Cause.** The `app/admin/*/page.tsx` Server Components passed the `lib/adminResources.ts` config object as a prop to the client `AdminResourcePage`. That object holds functions (`options.endpoint`, `columns[].value`, `rowTitle`, `lock`), which cannot be serialized across the server/client boundary.
+
+**Fix (`4989484`):**
+- **Pass a key, not the config:** the pages now pass only a string key (`<AdminResourcePage resource="designations" />`, typed `AdminResourceKey`), and the client component looks up the config itself. The other server pages pass only primitive props.
+- **Graceful failures:** the backend `/admin/*` endpoints don't exist yet, so a failing list now shows ErrorState "Couldn't load …" with Retry (a 404 explains that the endpoint isn't available yet), and a 401 still redirects to `/`. Failing filter-option loads show an inline note instead of failing silently.
+- **Regression tests:** `components/admin/adminPages.test.tsx` (9 tests) checks that every admin page passes `structuredClone`-able props.
+
+**Status at `4989484`** (checked in a clean worktree): tsc 0, lint 0, `npm test` 21/21 passing. No dev-server restart is needed; a hard refresh clears a stale error overlay.
+
 ## 2026-10-21 — Security fix: credentials in the URL on LAN login
 
 **Symptom.** Logging in from `http://192.168.117.86:3000` reloaded the page as `/?email=…&password=…`, so the credentials ended up in the address bar and browser history, and the user was not logged in.
