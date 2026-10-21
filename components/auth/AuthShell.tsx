@@ -65,7 +65,7 @@ export default function AuthShell({
         </div>
 
         {/* RIGHT — form card */}
-        <div className="bg-white px-8 py-10 sm:px-11 sm:py-12 flex flex-col">{children}</div>
+        <main id="main" className="bg-white px-8 py-10 sm:px-11 sm:py-12 flex flex-col">{children}</main>
       </div>
     </div>
   )
