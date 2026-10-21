@@ -1,3 +1,5 @@
+import { Check, Flag, User, type LucideIcon } from 'lucide-react'
+
 // Single source of truth for status/priority colors used across the app.
 // Each status/priority is defined ONCE here with every variant (pill, badge,
 // ring, solid bar) it needs. Add a new status/priority by adding one entry;
@@ -143,13 +145,13 @@ export interface TimelineStep {
   match: string
   label: string
   bg: string
-  icon: string
+  icon: LucideIcon
 }
 
 export const fullTimelineSequence: TimelineStep[] = [
-  { match: 'Requested', label: 'Requested Date', bg: 'bg-blue-100 text-blue-600', icon: '🚩' },
-  { match: 'Assigned', label: 'Assigned Date', bg: 'bg-amber-100 text-amber-600', icon: '👤' },
-  { match: 'Completed', label: 'Completed Date', bg: 'bg-green-100 text-green-600', icon: '✓' },
+  { match: 'Requested', label: 'Requested Date', bg: 'bg-blue-100 text-blue-600', icon: Flag },
+  { match: 'Assigned', label: 'Assigned Date', bg: 'bg-amber-100 text-amber-600', icon: User },
+  { match: 'Completed', label: 'Completed Date', bg: 'bg-green-100 text-green-600', icon: Check },
 ]
 
 

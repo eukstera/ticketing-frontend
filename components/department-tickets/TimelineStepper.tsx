@@ -34,7 +34,7 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
                   reached ? step.bg : 'bg-gray-100 text-gray-500'
                 }`}
               >
-                {step.icon}
+                <step.icon size={12} aria-hidden="true" />
               </div>
               <div className="flex flex-col min-w-0 text-left sm:items-center sm:text-center sm:w-full">
                 {reached ? (
