@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Monitor, HardDrive, Wifi, User, MapPin, MessageSquare, UserCheck, Clock, Ticket, Tag, X, Circle, CircleDot } from 'lucide-react'
 import Navbar from '@/components/NavBar'
@@ -9,13 +9,15 @@ import { useUser } from '@/hooks/useUser'
 import { createTicket, CreateTicketDevice } from '@/lib/tickets'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import { slaLabel } from '@/lib/format'
+import { mapCreateTicketErrors } from '@/lib/createTicketErrors'
 import { getEmployees, Employee } from '@/lib/employees'
 import { getPriorities, getConcernTypes, Priority, LookupItem } from '@/lib/lookups'
 import { getErrorMessage, isAbortError, isApiError, FieldErrors } from '@/lib/api'
 import ErrorState from '@/components/ui/ErrorState'
+import Field, { FieldGroup, fieldClass } from '@/components/ui/Field'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
-import { PRIORITY_STYLES, PRIORITY_FALLBACK, input, inputError, btnPrimary, btnSecondary } from '@/lib/styles'
+import { PRIORITY_STYLES, PRIORITY_FALLBACK, btnPrimary, btnSecondary } from '@/lib/styles'
 
 // service_department is fixed to IT for now - Engineering isn't selectable from
 // this form yet.
@@ -48,30 +50,12 @@ const HOSPITAL_AREAS = [
   'Laboratory',
 ]
 
-function FieldLabel({
-  icon: Icon,
-  htmlFor,
-  children,
-}: {
-  icon: typeof Monitor
-  htmlFor: string
-  children: React.ReactNode
-}) {
-  return (
-    <label htmlFor={htmlFor} className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
-      <Icon size={14} className="text-gray-400" aria-hidden="true" />
-      {children} <span className="text-red-500" aria-hidden="true">*</span>
-    </label>
-  )
-}
-
-function FieldError({ id, messages }: { id: string; messages?: string[] }) {
-  if (!messages?.length) return null
-  return (
-    <p id={id} role="alert" className="mt-1 text-xs text-red-600">
-      {messages[0]}
-    </p>
-  )
+// Group fields (cards, device rows) are focused through their first control.
+function focusField(elementId: string) {
+  const el = document.getElementById(elementId)
+  if (!el) return
+  const target = el.matches('input, select, textarea, button') ? el : el.querySelector<HTMLElement>('button, input')
+  target?.focus()
 }
 
 function PreviewRow({ label, value }: { label: string; value: string }) {
@@ -89,6 +73,11 @@ export default function CreateTicketPage() {
   const user = useUser()
   const [submitting, setSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  // Errors the API reports for something with no control (e.g. an inactive service department).
+  const [banner, setBanner] = useState('')
+  const bannerRef = useRef<HTMLDivElement>(null)
+  // Set after a failed submit; the effect below focuses the first problem once it is rendered.
+  const [focusRequest, setFocusRequest] = useState<{ seq: number; id: string | null } | null>(null)
 
   const [lookups, setLookups] = useState<{
     priorities: Priority[]
@@ -131,6 +120,12 @@ export default function CreateTicketPage() {
       })
     return () => controller.abort()
   }, [authed, reloadToken])
+
+  useEffect(() => {
+    if (!focusRequest) return
+    if (focusRequest.id) focusField(focusRequest.id)
+    else bannerRef.current?.focus()
+  }, [focusRequest])
 
   function clearFieldError(...names: string[]) {
     setFieldErrors(prev => {
@@ -191,15 +186,9 @@ export default function CreateTicketPage() {
     return { errors, firstId: order[0]?.[1] ?? null }
   }
 
-  function focusField(elementId: string) {
-    const el = document.getElementById(elementId)
-    if (!el) return
-    const target = el.matches('input, select, textarea, button') ? el : el.querySelector<HTMLElement>('button, input')
-    target?.focus()
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setBanner('')
 
     const { errors, firstId } = validate()
     if (firstId) {
@@ -226,21 +215,22 @@ export default function CreateTicketPage() {
       router.push('/my-tickets')
     } catch (err) {
       console.error(err)
-      if (isApiError(err) && err.status === 422 && err.errors) {
-        setFieldErrors(err.errors)
-        const firstField = ['type_of_concern', 'name_of_area', 'area_supervisor', 'remarks', 'assigned_user', 'priority']
-          .find(name => err.errors?.[name])
-        if (firstField) focusField(`f-${firstField}`)
+      if (isApiError(err) && err.status === 422) {
+        // Shown inline (role="alert") or in the banner; a toast would announce it twice.
+        const mapped = mapCreateTicketErrors(err.errors, getErrorMessage(err, 'Failed to create ticket'))
+        setFieldErrors(mapped.fieldErrors)
+        setBanner(mapped.banner)
+        setFocusRequest(prev => ({ seq: (prev?.seq ?? 0) + 1, id: mapped.firstElementId }))
+      } else {
+        toast(getErrorMessage(err, 'Failed to create ticket'), 'error')
       }
-      toast(getErrorMessage(err, 'Failed to create ticket'), 'error')
     } finally {
       setSubmitting(false)
     }
   }
 
   const fe = (name: string) => fieldErrors[name]
-  const cls = (name: string, base = input) => (fe(name) ? `${base} ${inputError}` : base)
-  const describedBy = (name: string) => (fe(name) ? `err-${name}` : undefined)
+  const hasDeviceError = Object.keys(fieldErrors).some(k => k === 'devices' || k.startsWith('devices.'))
 
   // --- Derived preview data ---
   const now = new Date()
@@ -275,245 +265,244 @@ export default function CreateTicketPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            {banner && (
+              <div
+                ref={bannerRef}
+                tabIndex={-1}
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              >
+                {banner}
+              </div>
+            )}
 
             {/* Type of Concern */}
-            <div>
-              <span id="lbl-type_of_concern" className="block text-sm font-medium text-gray-700 mb-2">
-                Type of Concern <span className="text-red-500" aria-hidden="true">*</span>
-              </span>
-              {!lookups && !lookupError ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
-                </div>
-              ) : (
-                <div
-                  id="f-type_of_concern"
-                  role="group"
-                  aria-labelledby="lbl-type_of_concern"
-                  aria-describedby={describedBy('type_of_concern')}
-                  className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-                >
-                  {(lookups?.concernTypes ?? []).map(({ id, label }) => {
-                    const meta = CONCERN_META[label]
-                    const Icon = meta?.icon ?? Tag
-                    const isActive = typeOfConcern === label
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => handleConcernChange(label)}
-                        aria-pressed={isActive}
-                        className={`flex flex-col items-start gap-1 py-2.5 px-3.5 rounded-lg border-2 text-left transition ${
-                          isActive
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 text-sm font-medium">
-                          <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-500'} aria-hidden="true" />
-                          {label}
-                        </span>
-                        {meta && (
-                          <span className={`text-xs ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
-                            {meta.description}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
+            <FieldGroup
+              id="f-type_of_concern"
+              label="Type of Concern"
+              required
+              error={fe('type_of_concern')?.[0]}
+              labelClassName="block text-sm font-medium text-gray-700 mb-2"
+            >
+              {group => (
+                <>
+                  {!lookups && !lookupError ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[0, 1, 2].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}
+                    </div>
+                  ) : (
+                    <div {...group} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {(lookups?.concernTypes ?? []).map(({ id, label }) => {
+                        const meta = CONCERN_META[label]
+                        const Icon = meta?.icon ?? Tag
+                        const isActive = typeOfConcern === label
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => handleConcernChange(label)}
+                            aria-pressed={isActive}
+                            className={`flex flex-col items-start gap-1 py-2.5 px-3.5 rounded-lg border-2 text-left transition ${
+                              isActive
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 text-sm font-medium">
+                              <Icon size={16} className={isActive ? 'text-blue-600' : 'text-gray-500'} aria-hidden="true" />
+                              {label}
+                            </span>
+                            {meta && (
+                              <span className={`text-xs ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
+                                {meta.description}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {lookups && lookups.concernTypes.length === 0 && (
+                    <p className="text-sm text-gray-500">No concern types are configured yet. Ask an administrator to add them.</p>
+                  )}
+                </>
               )}
-              {lookups && lookups.concernTypes.length === 0 && (
-                <p className="text-sm text-gray-500">No concern types are configured yet. Ask an administrator to add them.</p>
-              )}
-              <FieldError id="err-type_of_concern" messages={fe('type_of_concern')} />
-            </div>
+            </FieldGroup>
 
             {/* Devices - only visible when Hardware is selected */}
             {typeOfConcern === HARDWARE_CONCERN && (
-              <div>
-                <span id="lbl-devices" className="block text-sm font-medium text-gray-700 mb-2">
-                  Devices <span className="text-red-500" aria-hidden="true">*</span>
-                </span>
-                <div role="group" aria-labelledby="lbl-devices" aria-describedby={describedBy('devices')} className="space-y-2">
-                  {devices.map((device, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        id={`f-devices.${i}.type`}
-                        type="text"
-                        aria-label={`Device ${i + 1} name`}
-                        value={device.type}
-                        onChange={e => updateDevice(i, 'type', e.target.value)}
-                        placeholder="e.g. Monitor, Printer, Scanner"
-                        className={`flex-1 ${cls(`devices.${i}.type`)}`}
-                        aria-invalid={!!fe(`devices.${i}.type`) || !!fe('devices')}
-                        aria-describedby={describedBy(`devices.${i}.type`) ?? describedBy('devices')}
-                      />
-                      <input
-                        type="number"
-                        aria-label={`Device ${i + 1} quantity`}
-                        min={1}
-                        value={device.quantity}
-                        onChange={e => updateDevice(i, 'quantity', e.target.value)}
-                        className={`!w-20 ${cls(`devices.${i}.quantity`)}`}
-                        aria-invalid={!!fe(`devices.${i}.quantity`)}
-                      />
-                      {devices.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeDeviceRow(i)}
-                          className="px-3 text-gray-500 hover:text-red-600 transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                          aria-label={`Remove device ${i + 1}`}
-                        >
-                          <X size={16} aria-hidden="true" />
-                        </button>
-                      )}
+              <FieldGroup
+                id="f-devices"
+                label="Devices"
+                required
+                error={fe('devices')?.[0]}
+                labelClassName="block text-sm font-medium text-gray-700 mb-2"
+              >
+                {group => (
+                  <>
+                    <div {...group} className="space-y-2">
+                      {devices.map((device, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            id={`f-devices.${i}.type`}
+                            type="text"
+                            aria-label={`Device ${i + 1} name`}
+                            value={device.type}
+                            onChange={e => updateDevice(i, 'type', e.target.value)}
+                            placeholder="e.g. Monitor, Printer, Scanner"
+                            className={`flex-1 ${fieldClass(!!fe(`devices.${i}.type`) || !!fe('devices'))}`}
+                            aria-invalid={!!fe(`devices.${i}.type`) || !!fe('devices')}
+                            aria-describedby={hasDeviceError ? 'f-devices-error' : undefined}
+                          />
+                          <input
+                            id={`f-devices.${i}.quantity`}
+                            type="number"
+                            aria-label={`Device ${i + 1} quantity`}
+                            min={1}
+                            value={device.quantity}
+                            onChange={e => updateDevice(i, 'quantity', e.target.value)}
+                            className={`!w-20 ${fieldClass(!!fe(`devices.${i}.quantity`))}`}
+                            aria-invalid={!!fe(`devices.${i}.quantity`)}
+                            aria-describedby={fe(`devices.${i}.quantity`) ? 'f-devices-error' : undefined}
+                          />
+                          {devices.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeDeviceRow(i)}
+                              className="px-3 text-gray-500 hover:text-red-600 transition rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                              aria-label={`Remove device ${i + 1}`}
+                            >
+                              <X size={16} aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <FieldError id="err-devices" messages={fe('devices')} />
-                <button
-                  type="button"
-                  onClick={addDeviceRow}
-                  className="mt-2 rounded text-sm text-blue-700 hover:text-blue-800 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                >
-                  + Add another device
-                </button>
-              </div>
+                    <button
+                      type="button"
+                      onClick={addDeviceRow}
+                      className="mt-2 rounded text-sm text-blue-700 hover:text-blue-800 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    >
+                      + Add another device
+                    </button>
+                  </>
+                )}
+              </FieldGroup>
             )}
 
             {/* Area Supervisor + Area Concerned */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-              <div>
-                <FieldLabel icon={MapPin} htmlFor="f-name_of_area">Area Concerned</FieldLabel>
-                <select
-                  id="f-name_of_area"
-                  value={areaConcerned}
-                  onChange={e => { setAreaConcerned(e.target.value); clearFieldError('name_of_area') }}
-                  className={cls('name_of_area')}
-                  aria-invalid={!!fe('name_of_area')}
-                  aria-describedby={describedBy('name_of_area')}
-                  required
-                >
-                  <option value="">-- Select Hospital Area --</option>
-                  {HOSPITAL_AREAS.map(area => (
-                    <option key={area} value={area}>{area}</option>
-                  ))}
-                </select>
-                <FieldError id="err-name_of_area" messages={fe('name_of_area')} />
-              </div>
+              <Field id="f-name_of_area" icon={MapPin} label="Area Concerned" required error={fe('name_of_area')?.[0]}>
+                {control => (
+                  <select
+                    {...control}
+                    value={areaConcerned}
+                    onChange={e => { setAreaConcerned(e.target.value); clearFieldError('name_of_area') }}
+                    className={fieldClass(control['aria-invalid'])}
+                  >
+                    <option value="">-- Select Hospital Area --</option>
+                    {HOSPITAL_AREAS.map(area => (
+                      <option key={area} value={area}>{area}</option>
+                    ))}
+                  </select>
+                )}
+              </Field>
 
-              <div>
-                <FieldLabel icon={User} htmlFor="f-area_supervisor">Area Supervisor</FieldLabel>
-                <input
-                  id="f-area_supervisor"
-                  type="text"
-                  value={areaSupervisor}
-                  onChange={e => { setAreaSupervisor(e.target.value); clearFieldError('area_supervisor') }}
-                  placeholder="e.g. Jane Doe"
-                  className={cls('area_supervisor')}
-                  aria-invalid={!!fe('area_supervisor')}
-                  aria-describedby={describedBy('area_supervisor')}
-                  required
-                />
-                <FieldError id="err-area_supervisor" messages={fe('area_supervisor')} />
-              </div>
-              
+              <Field id="f-area_supervisor" icon={User} label="Area Supervisor" required error={fe('area_supervisor')?.[0]}>
+                {control => (
+                  <input
+                    {...control}
+                    type="text"
+                    value={areaSupervisor}
+                    onChange={e => { setAreaSupervisor(e.target.value); clearFieldError('area_supervisor') }}
+                    placeholder="e.g. Jane Doe"
+                    className={fieldClass(control['aria-invalid'])}
+                  />
+                )}
+              </Field>
+
             </div>
 
             {/* Remarks */}
-            <div>
-              <FieldLabel icon={MessageSquare} htmlFor="f-remarks">Remarks</FieldLabel>
-              <textarea
-                id="f-remarks"
-                value={remarks}
-                onChange={e => { setRemarks(e.target.value); clearFieldError('remarks') }}
-                placeholder="Describe the issue in detail — what happened, when it started, and any error messages."
-                rows={4}
-                className={`${cls('remarks')} resize-none`}
-                aria-invalid={!!fe('remarks')}
-                aria-describedby={describedBy('remarks')}
-                required
-              />
-              <FieldError id="err-remarks" messages={fe('remarks')} />
-            </div>
+            <Field id="f-remarks" icon={MessageSquare} label="Remarks" required error={fe('remarks')?.[0]}>
+              {control => (
+                <textarea
+                  {...control}
+                  value={remarks}
+                  onChange={e => { setRemarks(e.target.value); clearFieldError('remarks') }}
+                  placeholder="Describe the issue in detail — what happened, when it started, and any error messages."
+                  rows={4}
+                  className={`${fieldClass(control['aria-invalid'])} resize-none`}
+                />
+              )}
+            </Field>
 
             {/* Assign User */}
-            <div>
-              <FieldLabel icon={UserCheck} htmlFor="f-assigned_user">Personnel Assigned</FieldLabel>
-              <select
-                id="f-assigned_user"
-                disabled={!lookups}
-                value={assignedUser}
-                onChange={e => { setAssignedUser(e.target.value); clearFieldError('assigned_user') }}
-                className={cls('assigned_user')}
-                aria-invalid={!!fe('assigned_user')}
-                aria-describedby={describedBy('assigned_user')}
-                required
-              >
-                <option value="">
-                  {!lookups ? 'Loading…' : employees.length === 0 ? 'No personnel available' : '-- Select Personnel --'}
-                </option>
-                {employees.map(person => (
-                  <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
-                ))}
-              </select>
-              <FieldError id="err-assigned_user" messages={fe('assigned_user')} />
-            </div>
+            <Field id="f-assigned_user" icon={UserCheck} label="Personnel Assigned" required error={fe('assigned_user')?.[0]}>
+              {control => (
+                <select
+                  {...control}
+                  disabled={!lookups}
+                  value={assignedUser}
+                  onChange={e => { setAssignedUser(e.target.value); clearFieldError('assigned_user') }}
+                  className={fieldClass(control['aria-invalid'])}
+                >
+                  <option value="">
+                    {!lookups ? 'Loading…' : employees.length === 0 ? 'No personnel available' : '-- Select Personnel --'}
+                  </option>
+                  {employees.map(person => (
+                    <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
+                  ))}
+                </select>
+              )}
+            </Field>
 
             {/* Priority */}
-            <div>
-              <span id="lbl-priority" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
-                <Clock size={14} className="text-gray-400" aria-hidden="true" />
-                Priority <span className="text-red-500" aria-hidden="true">*</span>
-              </span>
-              {!lookups && !lookupError ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                  {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
-                </div>
-              ) : (
-                <div
-                  id="f-priority"
-                  role="group"
-                  aria-labelledby="lbl-priority"
-                  aria-describedby={describedBy('priority')}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1"
-                >
-                  {(lookups?.priorities ?? []).map(p => {
-                    const style = PRIORITY_STYLES[p.level] ?? PRIORITY_FALLBACK
-                    const isActive = priority === p.id
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => { setPriority(p.id); clearFieldError('priority') }}
-                        aria-pressed={isActive}
-                        className={`flex items-start gap-2.5 py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition text-left ${
-                          isActive ? style.highlight : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {isActive ? (
-                          <CircleDot size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-                        ) : (
-                          <Circle size={16} className="mt-0.5 shrink-0 text-gray-400" aria-hidden="true" />
-                        )}
-                        <div>
-                          <div>{p.level}</div>
-                          <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-500">
-                            {slaLabel(p.sla_days)}
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
+            <FieldGroup id="f-priority" icon={Clock} label="Priority" required error={fe('priority')?.[0]}>
+              {group => (
+                <>
+                  {!lookups && !lookupError ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}
+                    </div>
+                  ) : (
+                    <div {...group} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      {(lookups?.priorities ?? []).map(p => {
+                        const style = PRIORITY_STYLES[p.level] ?? PRIORITY_FALLBACK
+                        const isActive = priority === p.id
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => { setPriority(p.id); clearFieldError('priority') }}
+                            aria-pressed={isActive}
+                            className={`flex items-start gap-2.5 py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition text-left ${
+                              isActive ? style.highlight : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            {isActive ? (
+                              <CircleDot size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                            ) : (
+                              <Circle size={16} className="mt-0.5 shrink-0 text-gray-400" aria-hidden="true" />
+                            )}
+                            <div>
+                              <div>{p.level}</div>
+                              <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-500">
+                                {slaLabel(p.sla_days)}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {lookups && lookups.priorities.length === 0 && (
+                    <p className="text-sm text-gray-500">No priorities are configured for this department yet. Ask an administrator to add them.</p>
+                  )}
+                </>
               )}
-              {lookups && lookups.priorities.length === 0 && (
-                <p className="text-sm text-gray-500">No priorities are configured for this department yet. Ask an administrator to add them.</p>
-              )}
-              <FieldError id="err-priority" messages={fe('priority')} />
-            </div>
+            </FieldGroup>
 
             {/* Actions */}
             <div className="flex justify-between gap-3 pt-2">
