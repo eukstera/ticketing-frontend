@@ -151,3 +151,9 @@ describe('column values', () => {
     expect(byKey('priorities').rowTitle({ id: 1, level: 'High' })).toBe('High')
   })
 })
+
+describe('createWorksWithoutList', () => {
+  it('is set for users only (POST /admin/users shipped before the list)', () => {
+    expect(ADMIN_RESOURCES.filter(r => r.createWorksWithoutList).map(r => r.slug)).toEqual(['users'])
+  })
+})

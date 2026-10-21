@@ -12,7 +12,8 @@ import { TableSkeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
 import { AdminStatus, useAdminListParams } from '@/hooks/useAdminListParams'
 import { useOptions } from '@/hooks/useOptions'
-import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
+import { isAbortError, isApiError } from '@/lib/api'
+import { isUnavailable, safeErrorMessage } from '@/lib/adminErrors'
 import {
   ADMIN_PER_PAGE,
   AdminRow,
@@ -53,24 +54,10 @@ interface ListResult {
 const ACTIVE_BADGE = STATUS_STYLES.Completed.badge
 const INACTIVE_BADGE = STATUS_FALLBACK.badge
 
-function errorMessage(err: unknown): string {
-  if (isApiError(err)) {
-    if (err.status === 404) return "This admin endpoint isn't available yet."
-    if (err.status === 403) return "You don't have access to this resource."
-  }
-  return getErrorMessage(err, "Couldn't load the list.")
-}
-
-// What the list's ErrorState says: always names the resource, then the reason.
-// A 401 never gets here for long: api.ts clears the session and redirects.
+// What the list's ErrorState says: always names the resource, then a safe reason
+// (never raw server text). 404/405 and 403 are handled as blocked states instead.
 function listErrorMessage(title: string, err: unknown): string {
-  const what = `Couldn't load ${title.toLowerCase()}.`
-  if (isApiError(err)) {
-    if (err.status === 404) return `${what} This admin endpoint isn't available yet.`
-    if (err.status === 403) return `${what} You don't have access to this resource.`
-    if (err.status === 401) return `${what} Your session has expired.`
-  }
-  return `${what} ${getErrorMessage(err, 'Try again.')}`
+  return `Couldn't load ${title.toLowerCase()}. ${safeErrorMessage(err, 'Try again.')}`
 }
 
 // Generic admin list + create/edit/deactivate screen driven by an
@@ -132,7 +119,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
         if (isAbortError(err)) return
         // 403 must not log the user out and must not refetch: only a 401 ends the
         // session (api.ts), and a blocked list has no controls left to re-trigger it.
-        if (isApiError(err) && err.status === 404) return setResult({ key, blocked: 'unavailable' })
+        if (isUnavailable(err)) return setResult({ key, blocked: 'unavailable' })
         if (isApiError(err) && err.status === 403) return setResult({ key, blocked: 'forbidden' })
         console.error(err)
         setResult({ key, error: listErrorMessage(resource.title, err) })
@@ -191,7 +178,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
     } catch (err) {
       // e.g. 409 { errors: { role: ["3 active users hold this role"] } }
       const first = isApiError(err) ? Object.values(err.errors ?? {}).find(v => v?.[0])?.[0] : undefined
-      setDeactivateError(first ?? errorMessage(err))
+      setDeactivateError(first ?? safeErrorMessage(err))
     } finally {
       setDeactivating(false)
     }
@@ -205,7 +192,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
       setRefresh(n => n + 1)
     } catch (err) {
       const first = isApiError(err) ? Object.values(err.errors ?? {}).find(v => v?.[0])?.[0] : undefined
-      toast(first ?? errorMessage(err), 'error')
+      toast(first ?? safeErrorMessage(err), 'error')
     } finally {
       setBusyId(null)
     }
@@ -217,7 +204,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
       subtitle={resource.description}
       back
       actions={
-        blocked ? undefined : (
+        blocked === 'forbidden' || (blocked === 'unavailable' && !resource.createWorksWithoutList) ? undefined : (
           <button type="button" onClick={() => setForm({ row: null })} className={btnPrimary}>
             <Plus size={14} aria-hidden="true" />
             Add {resource.singular}
@@ -291,7 +278,11 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
               <EmptyState
                 icon={Construction}
                 title="Not available yet"
-                description="This section isn't enabled on the server."
+                description={
+                  resource.createWorksWithoutList
+                    ? `The list isn't enabled on the server yet, but you can still add a ${resource.singular}.`
+                    : "This section isn't enabled on the server."
+                }
               />
             </div>
           ) : blocked === 'forbidden' ? (

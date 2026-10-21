@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { api, getErrorMessage, isAbortError } from '@/lib/api'
+import { api, isAbortError } from '@/lib/api'
 import { toPaginator } from '@/lib/admin'
 import type { OptionsSource } from '@/lib/adminResources'
 
@@ -36,7 +36,7 @@ export function useOptions(source: OptionsSource | undefined, values: Record<str
       })
       .catch(err => {
         if (isAbortError(err)) return
-        setLoaded({ url, options: [], error: getErrorMessage(err, "Couldn't load options.") })
+        setLoaded({ url, options: [], error: "Couldn't load options." })
       })
     return () => controller.abort()
     // `source` is a module-level config object, so `url` is the real dependency.

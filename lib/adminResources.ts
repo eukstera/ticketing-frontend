@@ -80,6 +80,12 @@ export interface AdminResource {
   fields: AdminField[]
   filters?: AdminFilter[]
   needsDepartments?: boolean
+  /**
+   * Creating works even when the list route is missing (404/405). The page then
+   * keeps its Add button in the "Not available yet" state. Only users today:
+   * POST /admin/users shipped before GET /admin/users.
+   */
+  createWorksWithoutList?: boolean
   rowTitle: (row: AdminRow) => string
   deactivateNote?: string
   lock?: (row: AdminRow, me: AuthUser | null) => RowLock | null
@@ -118,6 +124,7 @@ const nested = (row: AdminRow, key: string) => str((row[key] as { name?: unknown
 export const ADMIN_RESOURCES: AdminResource[] = [
   {
     slug: 'users',
+    createWorksWithoutList: true,
     title: 'Users',
     singular: 'user',
     description: 'Create accounts and manage who can sign in.',

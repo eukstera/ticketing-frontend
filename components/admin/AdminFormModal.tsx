@@ -5,7 +5,8 @@ import Field, { FieldControlProps, fieldClass } from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import { useHydrated } from '@/hooks/useHydrated'
 import { useOptions } from '@/hooks/useOptions'
-import { getErrorMessage, isApiError } from '@/lib/api'
+import { isApiError } from '@/lib/api'
+import { safeErrorMessage } from '@/lib/adminErrors'
 import { AdminRow, createAdmin, updateAdmin } from '@/lib/admin'
 import { AdminField, AdminResource } from '@/lib/adminResources'
 import { btnPrimary, btnSecondary } from '@/lib/styles'
@@ -148,8 +149,7 @@ export default function AdminFormModal({
         // would otherwise vanish, so surface them in the banner.
         const orphan = Object.entries(fieldErrors).find(([k, v]) => !fieldNames.has(k) && v?.[0])
         if (orphan) setBanner(orphan[1][0])
-        else if (err.status === 404) setBanner("This admin endpoint isn't available yet.")
-        else if (err.status !== 422) setBanner(getErrorMessage(err))
+        else if (err.status !== 422) setBanner(safeErrorMessage(err))
       } else {
         setBanner('Something went wrong. Try again.')
       }
