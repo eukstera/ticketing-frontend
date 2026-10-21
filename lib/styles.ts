@@ -78,7 +78,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-red-500',
     dot: 'bg-red-600',
     ring: 'ring-red-400',
-    highlight: 'bg-red-100 border-red-200 text-red-700'
+    highlight: 'bg-red-100 border-red-200 text-red-700',
   },
   Urgent: {
     text: 'text-orange-700',
@@ -87,7 +87,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-orange-500',
     dot: 'bg-orange-600',
     ring: 'ring-orange-400',
-    highlight: 'bg-orange-100 border-orange-200'
+    highlight: 'bg-orange-100 border-orange-200 text-orange-700',
   },
   'Important but not urgent': {
     text: 'text-amber-700',
@@ -96,7 +96,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-amber-400',
     dot: 'bg-amber-500',
     ring: 'ring-amber-400',
-    highlight: 'bg-amber-100 border-amber-200'
+    highlight: 'bg-amber-100 border-amber-200 text-amber-700',
   },
   'Long Term': {
     text: 'text-purple-700',
@@ -105,7 +105,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-purple-400',
     dot: 'bg-purple-500',
     ring: 'ring-purple-400',
-    highlight: 'bg-purple-100 border-purple-200'
+    highlight: 'bg-purple-100 border-purple-200 text-purple-700',
   },
   Complex: {
     text: 'text-fuchsia-700',
@@ -114,7 +114,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-fuchsia-500',
     dot: 'bg-fuchsia-500',
     ring: 'ring-fuchsia-400',
-    highlight: 'bg-fuchsia-100 border-fuchsia-200'
+    highlight: 'bg-fuchsia-100 border-fuchsia-200 text-fuchsia-700',
   },
   Simple: {
     text: 'text-emerald-700',
@@ -123,7 +123,7 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     solid: 'bg-emerald-400',
     dot: 'bg-emerald-500',
     ring: 'ring-emerald-400',
-    highlight: 'bg-emerald-100 border-emerald-200'
+    highlight: 'bg-emerald-100 border-emerald-200 text-emerald-700',
   },
 }
 
@@ -134,7 +134,7 @@ export const PRIORITY_FALLBACK: PriorityStyle = {
   solid: 'bg-gray-400',
   dot: 'bg-gray-400',
   ring: 'ring-gray-400',
-  highlight: 'bg-fuchsia-100 border-fuchsia-200'
+  highlight: 'bg-gray-100 border-gray-200 text-gray-700',
 }
 
 /** Bars for priority levels that have no PRIORITY_STYLES entry, cycled by index. */
