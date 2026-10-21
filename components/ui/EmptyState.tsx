@@ -1,4 +1,5 @@
 // components/ui/EmptyState.tsx
+import Link from 'next/link'
 import { Inbox, type LucideIcon } from 'lucide-react'
 import { btnSecondary, btnSm } from '@/lib/styles'
 
@@ -6,8 +7,13 @@ interface EmptyStateProps {
   icon?: LucideIcon
   title: string
   description?: string
-  /** Optional call to action, e.g. { label: 'Clear filters', onClick: clearAll } */
-  action?: { label: string; onClick: () => void }
+  /**
+   * Optional call to action: a button ({ label, onClick }, e.g. "Clear filters")
+   * or a link styled as a button ({ label, href }, e.g. "Create a ticket").
+   */
+  action?:
+    | { label: string; onClick: () => void; href?: undefined }
+    | { label: string; href: string; onClick?: undefined }
   className?: string
 }
 
@@ -25,11 +31,16 @@ export default function EmptyState({
       </div>
       <p className="text-sm font-semibold text-gray-800">{title}</p>
       {description && <p className="text-sm text-gray-500 mt-1 max-w-sm">{description}</p>}
-      {action && (
-        <button type="button" onClick={action.onClick} className={`${btnSecondary} ${btnSm} mt-4`}>
-          {action.label}
-        </button>
-      )}
+      {action &&
+        (action.href !== undefined ? (
+          <Link href={action.href} className={`${btnSecondary} ${btnSm} mt-4`}>
+            {action.label}
+          </Link>
+        ) : (
+          <button type="button" onClick={action.onClick} className={`${btnSecondary} ${btnSm} mt-4`}>
+            {action.label}
+          </button>
+        ))}
     </div>
   )
 }
