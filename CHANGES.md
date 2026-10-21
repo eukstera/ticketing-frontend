@@ -1,5 +1,72 @@
 # Changelog
 
+## 2026-10-21 — Phase 2 (features)
+
+Built to the backend Phase 2 contract (`../TicketingSystem-API/CHANGES.md`, Phase 2 + addenda + "List conventions" + "My profile" + "Validation details"). Work by fe-coder1 (admin, tests), fe-coder2 (lists, detail, profile) and fe-designer (shared UI, a11y reviews and fixes).
+
+**Status at `5379516`** (checked in a clean worktree):
+- tsc 0, lint 0, `npm test` 123/123 passing across 10 files.
+- No `next build`.
+
+**Live API status:**
+- Unauthenticated checks against the live API passed: the 401 envelope, CORS for localhost:3000 and 192.168.117.86:3000, and the login 422.
+- The logged-in smoke test of lists, detail, profile and admin is still pending. It needs the user, and for admin the backend's admin Gate.
+
+### (a) Ticket lists with search & filters
+- **One shared list (`f142dff`):** `components/tickets/TicketListPage.tsx` drives both `/tickets` and `/my-tickets`.
+- **Everything in the URL (`hooks/useTicketListParams`):** keyword, status, priority, date range, page size, sort, direction and page are all URL parameters. Back and forward restore them.
+- **Filter params and counts (`lib/ticketList.ts`):** requests send `status_id`/`priority_id`. The count normalizers accept both the old Record shape and the new `[{id,label,count}]` arrays.
+- **Dashboard links:** dashboard cards link to `/tickets?status=…` and `/tickets?priority=…`. The list resolves those labels to ids.
+- **"Take ticket" wired:** it self-assigns the ticket, with a pending state.
+- **Loading and empty states:**
+  - The table stays mounted during a refetch, so focus is kept.
+  - With no tickets the page shows "No tickets yet" with a Create link; filters with no results show "No matches" with a Clear button.
+  - A mobile card layout followed in Phase 3 (`f6a9052`).
+
+### (b) Ticket detail — `app/tickets/[id]`
+- **What the page shows (`d6714b3`):** status, priority and SLA ("No SLA" when it's 0), Overdue from `is_overdue`, `due_at`, IT or Engineering details, requester and assignee, the TimelineStepper and the actions (Take/Assign/Complete).
+- **Shared comments:** `components/comments/CommentThread` handles add, author edit, and delete by the author or an admin. `CommentsModal` reuses it.
+- **Errors:** a 404 shows "Ticket not found" and a 403 "You don't have access to this ticket", both as EmptyState, not an error with Retry (`897f1af`).
+- **Tab title:** `document.title` is set to "Ticket <number>".
+
+### (c) Admin pages (Department Head only)
+- **One shared page:** a generic `components/admin/AdminResourcePage`, driven by the `lib/adminResources.ts` config (`c33b9ed`, `caa3ad4`). It covers users, roles, departments, designations, priorities+SLA, concern types and nature of work.
+- **Lists:** search, Active/Inactive/All, a department filter and page, all in the URL. Department dropdowns use `/lookups/departments`.
+- **Create and edit:** forms open in `ui/Modal`, with 422 errors shown per field and focus moved to the first invalid field.
+- **Deactivate and Reactivate:** shown in a ConfirmModal, with any 409 message shown inside it. The "Department Head" role is locked, and you can't deactivate yourself.
+- **Server/client boundary fix:** RSC boundary fix `4989484`.
+- **Unavailable sections (`5379516`):** a 404 shows "Not available yet" and a 403 "You don't have access", neither with Retry, and both hide the controls. A 403 never logs the user out.
+
+### My profile (`72ea29b`, `8271315`)
+- **Name and account details:** edit your name with `PATCH /me`, which refreshes the stored user so the NavBar updates. Email, role, department and designation are shown read-only.
+- **Change password:** `PATCH /me/password` validates the current password on the field, shows the four rules as a live checklist, has show/hide toggles, and includes a hidden username field for password managers.
+- **Navigation:** reached from the NavBar user menu.
+
+### Quality, a11y & security
+- **Tests:** Vitest 3.2.7 and jsdom 29.1.1, pinned exactly (`daccb98`), with 123 tests:
+  - `api`: error envelope, 401, non-JSON bodies, base URL.
+  - `ticketList`, `adminList`, `admin` and `adminResources`.
+  - `auth`: `isAdmin` by name, corrupt-safe `getUser`.
+  - `format` and `profile`.
+  - Admin page props are serializable.
+  - LoginForm's pre-hydration HTML is safe.
+- **a11y:** fixes from fe-designer's reviews, all applied:
+  - field labels and errors linked to their inputs;
+  - `role=alert` on errors;
+  - keyboard-operable table expand, FilterPills listbox and NavBar menus;
+  - accessible Pagination;
+  - `aria-disabled` locks with reasons;
+  - a skip link with one `<main id="main">` per page.
+- **Empty-database states:** no NaN, clear empty-state copy, and the dashboard says "No tickets for <Month> yet".
+- **Security:** see the 2026-10-21 credential-in-URL entry below.
+
+### Open
+- **Live smoke test:** run it with the user's account. For `/admin/*`, wait until be-apicoder registers the admin Gate.
+- **Phase 3 polish (in progress):**
+  - auth theme tokens, the lucide swap and `ui/Field` (fe-designer);
+  - the mobile card layout is done (`f6a9052`);
+  - still to do: `styles.ts` legacy-map consolidation and CommentButton sizing and labels.
+
 ## 2026-10-21 — Fix: admin pages crashed (functions passed across the RSC boundary)
 
 **Symptom.** Every `/admin/<resource>` page threw "Functions cannot be passed directly to Client Components…".
