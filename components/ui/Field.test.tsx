@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderToString } from 'react-dom/server'
-import Field, { fieldClass } from '@/components/ui/Field'
+import Field, { FieldGroup, fieldClass } from '@/components/ui/Field'
 import { input, inputError } from '@/lib/styles'
 
 function attr(html: string, tag: string, name: string) {
@@ -70,6 +70,22 @@ describe('Field', () => {
     )
     expect(attr(html, 'label', 'class')).toBe('lbl-x')
     expect(attr(html, 'p', 'class')).toBe('err-x')
+  })
+})
+
+describe('FieldGroup', () => {
+  it('names the group with the label span and links the error to it', () => {
+    const html = renderToString(
+      <FieldGroup id="f-priority" label="Priority" required error="Select a priority.">
+        {g => <div {...g}>options</div>}
+      </FieldGroup>
+    )
+    expect(html).toMatch(/<span[^>]*id="f-priority-label"/)
+    expect(html).toMatch(/<div[^>]*role="group"/)
+    expect(attr(html, 'div', 'aria-labelledby')).toBeUndefined() // the wrapper div, not the group
+    expect(html).toMatch(/<div[^>]*aria-labelledby="f-priority-label"/)
+    expect(html).toMatch(/aria-describedby="f-priority-error"/)
+    expect(html).toMatch(/<p[^>]*id="f-priority-error"[^>]*role="alert"[^>]*>Select a priority\.<\/p>/)
   })
 })
 

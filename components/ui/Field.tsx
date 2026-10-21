@@ -87,3 +87,67 @@ export default function Field({
     </div>
   )
 }
+
+/** Props FieldGroup hands to its group element (a set of buttons/inputs with one label). */
+export interface FieldGroupControlProps {
+  id: string
+  role: 'group'
+  'aria-labelledby': string
+  'aria-describedby'?: string
+}
+
+/**
+ * Field for a control made of several parts (toggle-button cards, a list of
+ * inputs): the label is a <span> that names a role="group" element instead of
+ * a <label for>. The error and hint are linked to the group the same way.
+ */
+export function FieldGroup({
+  id,
+  label,
+  icon: Icon,
+  required,
+  hint,
+  error,
+  className,
+  labelClassName = LABEL_CLASS,
+  markerClassName = 'text-red-500',
+  hintClassName = 'mt-1 text-xs text-gray-500',
+  errorClassName = 'mt-1 text-xs text-red-600',
+  children,
+}: Omit<FieldProps, 'children'> & {
+  /** Required: the group's id, also the prefix of the label/error/hint ids. */
+  id: string
+  children: (group: FieldGroupControlProps) => ReactNode
+}) {
+  const labelId = `${id}-label`
+  const hintId = `${id}-hint`
+  const errorId = `${id}-error`
+  const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
+
+  return (
+    <div className={className}>
+      <span id={labelId} className={labelClassName}>
+        {Icon && <Icon size={14} className="text-gray-400" aria-hidden="true" />}
+        <span>
+          {label}
+          {required && (
+            <span className={markerClassName} aria-hidden="true">
+              {' *'}
+            </span>
+          )}
+        </span>
+      </span>
+      {children({ id, role: 'group', 'aria-labelledby': labelId, 'aria-describedby': describedBy })}
+      {hint && (
+        <div id={hintId} className={hintClassName}>
+          {hint}
+        </div>
+      )}
+      {error && (
+        <p id={errorId} role="alert" className={errorClassName}>
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
