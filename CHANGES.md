@@ -1,5 +1,13 @@
 # Changelog
 
+## Deploy notes
+
+- **API URL:** production reads `NEXT_PUBLIC_API_URL` from `.env.production` (`https://backend_ticketing.apps.gbtrghsc.local/api`). `NEXT_PUBLIC_*` values are inlined at build time, so changing it requires a rebuild. If it is missing in production, every API call fails loudly instead of silently falling back.
+- **Dev-only settings:** `NEXT_DEV_ALLOWED_ORIGINS` (LAN hosts allowed to load dev resources) and the `localhost:8000` API fallback have no effect in production. See README "LAN / dev setup" and `.env.local.example`. `.env.local` is git-ignored.
+- **Process manager:** pm2 runs the app via `ecosystem.config.js` (`npm run start` in `C:\nginx\www\TicketingSystem-Frontend`).
+- **A `next build` is required at deploy time.** By user decision, no `next build` was run during this cycle. Verification was `tsc`, `eslint` and Vitest (175 tests), plus live API smoke tests. **The first build on the server is the first full Next compile of these changes**, so check its output before restarting pm2.
+- **Backend:** the backend must allow the production frontend origin in `CORS_ALLOWED_ORIGINS`.
+
 ## 2026-10-21 — Final live smoke test (admin users, profile, BE fixes)
 
 **Result: 29/29 passed** against `http://localhost:8000/api` with the QA account. Together with the earlier 68/68 run, every frontend endpoint has now been exercised live.
