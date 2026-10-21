@@ -1,28 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { StatusPill, PriorityPill } from '@/lib/departmentTickets'
-import { STATUS_PILL_DEFS, PRIORITY_PALETTE, PRIORITY_BADGE, PRIORITY_RING, STATUS_RING, FALLBACK_COLOR, FALLBACK_BADGE, FALLBACK_RING } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_ALL, STATUS_STYLES } from '@/lib/styles'
 
-
-export function buildStatusPills(counts: Record<string, number>): StatusPill[] {
-  return STATUS_PILL_DEFS.map(def => ({ ...def, count: counts[def.label] || 0 }))
-}
-
-export function buildPriorityPills(
-  priorityStats: Record<string, number> | undefined,
-  slaByLevel?: Record<string, number>
-): PriorityPill[] {
-  if (!priorityStats || typeof priorityStats !== 'object') return []
-
-  return Object.entries(priorityStats).map(([level, count], i) => ({
-    priority_id: i,
-    label: level,
-    value: level,
-    count,
-    color: PRIORITY_PALETTE[level] ?? FALLBACK_COLOR,
-    sla: slaByLevel?.[level],
-  }))
-}
 
 const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1'
 
@@ -95,10 +75,11 @@ export default function FilterPills({
   }
 
   const activePill = priorityPills.find(p => p.value === priorityFilter)
-  const triggerColor = activePill ? activePill.color : FALLBACK_COLOR
+  const activeStyle = activePill ? (PRIORITY_STYLES[activePill.label] ?? PRIORITY_FALLBACK) : PRIORITY_FALLBACK
+  const triggerColor = activePill ? activePill.color : PRIORITY_FALLBACK.pill
   const triggerLabel = activePill ? activePill.label : 'All Priorities'
-  const triggerBadge = activePill ? (PRIORITY_BADGE[activePill.label] ?? FALLBACK_BADGE) : FALLBACK_BADGE
-  const priorityRing = activePill ? (PRIORITY_RING[activePill.label] ?? FALLBACK_RING) : FALLBACK_RING
+  const triggerBadge = activeStyle.badge
+  const priorityRing = activeStyle.ring
   const totalCount = priorityPills.reduce((sum, p) => sum + p.count, 0)
 
   return (
@@ -112,7 +93,7 @@ export default function FilterPills({
             aria-pressed={statusFilter === pill.value}
             className={`px-3.5 py-1.5 rounded-full border text-sm font-medium transition ${FOCUS_RING} ${pill.color} ${
               statusFilter === pill.value
-                ? `ring-2 ring-offset-1 ${STATUS_RING[pill.label] ?? 'ring-gray-400'}`
+                ? `ring-2 ring-offset-1 ${(STATUS_STYLES[pill.label] ?? STATUS_ALL).ring}`
                 : 'opacity-90 hover:opacity-100'
             }`}
           >
@@ -174,7 +155,7 @@ export default function FilterPills({
 
             {priorityPills.map(pill => {
               const isActive = priorityFilter === pill.value
-              const badge = PRIORITY_BADGE[pill.label] ?? FALLBACK_BADGE
+              const badge = (PRIORITY_STYLES[pill.label] ?? PRIORITY_FALLBACK).badge
               return (
                 <button
                   key={pill.priority_id}

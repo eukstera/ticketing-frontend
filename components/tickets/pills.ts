@@ -1,17 +1,16 @@
 import { PriorityPill, StatusPill } from '@/lib/departmentTickets'
-import { FALLBACK_COLOR, PRIORITY_PALETTE, STATUS_PILL_DEFS } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_ALL, STATUS_STYLES } from '@/lib/styles'
 import { PriorityCount, StatusCount } from '@/lib/ticketList'
 
 // Pill `value` is the id as a string (null for "All"), which is what the URL
 // params and FilterPills' selected-state comparison both use.
 export function buildStatusPills(counts: StatusCount[]): StatusPill[] {
   return counts.map(c => {
-    const def = STATUS_PILL_DEFS.find(d => d.label === c.label)
     return {
       label: c.label,
       value: c.id === null ? null : String(c.id),
       count: c.count,
-      color: def?.color ?? FALLBACK_COLOR,
+      color: (c.id === null ? STATUS_ALL : (STATUS_STYLES[c.label] ?? STATUS_ALL)).pill,
     }
   })
 }
@@ -22,7 +21,7 @@ export function buildPriorityPills(counts: PriorityCount[]): PriorityPill[] {
     label: c.level,
     value: String(c.id),
     count: c.count,
-    color: PRIORITY_PALETTE[c.level] ?? FALLBACK_COLOR,
+    color: (PRIORITY_STYLES[c.level] ?? PRIORITY_FALLBACK).pill,
     sla: c.sla_days,
   }))
 }

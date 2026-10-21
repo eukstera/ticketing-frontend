@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ChevronDown, ChevronRight, Timer } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
-import { PRIORITY_FALLBACK, PRIORITY_STYLES, priorityStyles } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES } from '@/lib/styles'
 import { optionalSlaLabel } from '@/lib/format'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import StatusCell from './StatusCell'
@@ -233,7 +233,7 @@ function TicketRow({
         </td>
         <td className="px-4 py-3 text-gray-600">{ticket.name_of_area}</td>
         <td className="px-4 py-3">
-          <span className={priorityStyles[ticket.priority] || 'text-gray-600'}>
+          <span className={(PRIORITY_STYLES[ticket.priority] ?? PRIORITY_FALLBACK).text}>
             {ticket.priority}
           </span>
         </td>

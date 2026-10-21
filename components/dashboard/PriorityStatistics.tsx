@@ -1,6 +1,5 @@
 import { DashboardStats } from '@/lib/dashboard'
-import { PRIORITY_COLOR_MAP } from '@/lib/styles'
-import { PRIORITY_COLOR_MAP_FALLBACK_COLORS } from '@/lib/styles'
+import { PRIORITY_SOLID_FALLBACKS, PRIORITY_STYLES } from '@/lib/styles'
 import { barWidth, safeCount } from '@/lib/format'
 
 
@@ -19,7 +18,7 @@ export default function PriorityStatistics({ stats }: { stats: DashboardStats['p
           <p className="text-sm text-gray-500">No tickets in this period yet.</p>
         ) : (
           stats.map((row, i) => {
-            const color = PRIORITY_COLOR_MAP[row.level] ?? PRIORITY_COLOR_MAP_FALLBACK_COLORS[i % PRIORITY_COLOR_MAP_FALLBACK_COLORS.length]
+            const color = PRIORITY_STYLES[row.level]?.solid ?? PRIORITY_SOLID_FALLBACKS[i % PRIORITY_SOLID_FALLBACKS.length]
             return (
               <div key={row.priority_id} className="flex items-center gap-2 sm:gap-4">
                 <span className="w-20 shrink-0 truncate text-sm text-gray-600 sm:w-40">{row.level}</span>
