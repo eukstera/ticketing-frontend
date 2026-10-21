@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-10-21 — Final live smoke test (admin users, profile, BE fixes)
+
+**Result: 29/29 passed** against `http://localhost:8000/api` with the QA account. Together with the earlier 68/68 run, every frontend endpoint has now been exercised live.
+
+**Backend fixes re-checked:**
+- List `priority_sla` is now an int.
+- List `priority_counts` and dashboard `priority_stats` include active priorities only.
+
+**Admin users:**
+- **Reads:** `GET /admin/users` works with search, status and department filters. Its rows have role, department and designation, and no password. `GET /admin/users/{id}` works, and an unknown id returns a 404 envelope.
+- **Create and edit:**
+  - Create returns 422 (empty body), 201 (success) and 422 (duplicate email).
+  - PATCH works for names, role, department and designation, and for status false/true.
+- **Permissions and deactivation:**
+  - A non-admin gets 403 on `/admin/*` with "Only Department Heads can manage this.".
+  - DELETE deactivates the user and revokes their token (401 afterwards). A deactivated user's login gets 403 with "This account has been deactivated.".
+  - Deactivating yourself gets 409 with "You cannot deactivate your own account.".
+- **Test data:** the "QA smoke User" account is left deactivated.
+
+**Profile:**
+- `PATCH /me` changed the names and then restored them to QA / Admin. An empty body gets 422.
+- `PATCH /me/password` returns 422 on `current_password` for a wrong current password, and 422 on `password` listing all four rules. The QA password was **not** changed.
+
+**Not exercised on purpose:**
+- **Throttles (429):** these would have locked out the QA account. The frontend's 429 copy is unit-tested.
+- **The user's own account (id 1):** untouched.
+
 ## 2026-10-21 — Never show raw server/framework errors to users
 
 **Trigger.** A user saw "The GET method is not supported for route api/admin/users. Supported methods: POST." on `/admin/users`. That was a 405, because `GET /admin/users` isn't built yet.
