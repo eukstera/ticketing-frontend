@@ -68,6 +68,14 @@ describe('error helpers', () => {
     )
   })
 
+  it('catches namespaced class paths and vendor paths in 4xx messages', async () => {
+    const { getErrorMessage, ApiError } = await load()
+    const fallback = "We couldn't find what you were looking for."
+    expect(getErrorMessage(new ApiError(404, String.raw`Call to App\Models\Ticket failed`))).toBe(fallback)
+    expect(getErrorMessage(new ApiError(404, String.raw`in vendor/laravel/framework`))).toBe(fallback)
+    expect(getErrorMessage(new ApiError(422, 'The email has already been taken.'))).toBe('The email has already been taken.')
+  })
+
   it('turns a rejected fetch into a status-0 ApiError', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch') }))
     const { api, getErrorMessage, NETWORK_MESSAGE } = await load()

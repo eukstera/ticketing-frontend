@@ -57,7 +57,7 @@ const STATUS_MESSAGES: Record<number, string> = {
 
 // Laravel/PHP internals that must never reach a user, even inside a 4xx.
 const FRAMEWORK_MESSAGE =
-  /method is not supported|could not be found|no query results|sqlstate|app\|illuminate|vendor[\/]|stack trace|class "/i
+  /method is not supported|could not be found|no query results|sqlstate|app\\|illuminate|vendor[\\/]|stack trace|class "/i
 
 /**
  * Friendly text for any thrown value. 405, 5xx, network failures and non-JSON
