@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime } from './format'
+import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime, formatDateTimeText } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -84,5 +84,15 @@ describe('formatDateTime', () => {
     const { date, time } = formatDateTime('2026-10-20T15:05:00')
     expect(date).toBe('20 October 2026')
     expect(time).toMatch(/^0?3:05 pm$/)
+  })
+})
+
+describe('formatDateTimeText', () => {
+  it('joins the date and time with a single space', () => {
+    expect(formatDateTimeText('2026-10-20T15:05:00')).toMatch(/^20 October 2026 0?3:05 pm$/)
+  })
+  it('matches formatDateTime piece by piece', () => {
+    const { date, time } = formatDateTime('2026-01-02T08:30:00')
+    expect(formatDateTimeText('2026-01-02T08:30:00')).toBe(`${date} ${time}`)
   })
 })

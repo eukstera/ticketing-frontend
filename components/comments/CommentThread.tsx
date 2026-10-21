@@ -17,13 +17,7 @@ import Avatar from '@/components/ui/Avatar'
 import ErrorState from '@/components/ui/ErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { btnPrimary, btnSecondary, btnSm, input } from '@/lib/styles'
-
-function formatDateTime(dateStr: string) {
-  const d = new Date(dateStr)
-  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
-  return `${date} ${time}`
-}
+import { formatDateTimeText } from '@/lib/format'
 
 /**
  * Comments ("actions taken") for one ticket: list, add, edit (author) and
@@ -185,7 +179,7 @@ export default function CommentThread({
                     <p className="text-sm font-medium text-gray-800">
                       {c.user.first_name} {c.user.last_name}
                     </p>
-                    <p className="text-xs text-gray-500">{formatDateTime(c.created_at)}</p>
+                    <p className="text-xs text-gray-500">{formatDateTimeText(c.created_at)}</p>
                     {isEdited && !isEditing && <p className="text-xs italic text-gray-500">(edited)</p>}
                     {!isEditing && (isOwn || canDelete) && (
                       <span className="ml-auto flex gap-3 transition sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover:opacity-100">

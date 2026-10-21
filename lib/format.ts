@@ -53,3 +53,9 @@ export function formatDateTime(dateStr: string) {
     .toLowerCase()
   return { date, time }
 }
+
+/** formatDateTime as one string: "20 October 2026 3:05 pm". */
+export function formatDateTimeText(dateStr: string): string {
+  const { date, time } = formatDateTime(dateStr)
+  return `${date} ${time}`
+}

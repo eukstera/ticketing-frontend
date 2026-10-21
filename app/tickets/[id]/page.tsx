@@ -19,7 +19,7 @@ import { useUser } from '@/hooks/useUser'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { assignTicket, getTicket, markTicketComplete, takeTicket } from '@/lib/tickets'
 import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
-import { slaLabel } from '@/lib/format'
+import { formatDateTimeText, slaLabel } from '@/lib/format'
 import { DateActivity, DepartmentTicket, TicketDetail } from '@/types'
 
 interface DetailState {
@@ -27,13 +27,6 @@ interface DetailState {
   ticket: TicketDetail | null
   status: number | null // HTTP status of a failed load
   error: string
-}
-
-function formatDateTime(iso: string) {
-  const d = new Date(iso)
-  const date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase()
-  return `${date} ${time}`
 }
 
 function personName(p: { first_name: string; last_name: string } | { name: string } | null) {
@@ -292,7 +285,7 @@ function TicketBody({
           <div>
             <h2 className="text-xl font-semibold text-gray-800">{ticket.ticket_number}</h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              {ticket.department.name} &middot; requested {formatDateTime(ticket.created_at)}
+              {ticket.department.name} &middot; requested {formatDateTimeText(ticket.created_at)}
             </p>
           </div>
           <ActionCell
@@ -323,7 +316,7 @@ function TicketBody({
           )}
           <span className="text-xs text-gray-500">
             {slaLabel(ticket.priority.sla_days)}
-            {ticket.due_at ? ` · due ${formatDateTime(ticket.due_at)}` : ''}
+            {ticket.due_at ? ` · due ${formatDateTimeText(ticket.due_at)}` : ''}
           </span>
         </div>
       </section>
