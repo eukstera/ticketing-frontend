@@ -31,8 +31,8 @@ export default function AuthField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-xs font-semibold text-[#0F2B32]">
-        {label} {required && <span className="text-[#D9522E]" aria-hidden="true">*</span>}
+      <label htmlFor={id} className="text-xs font-semibold text-auth-ink">
+        {label} {required && <span className="text-auth-accent" aria-hidden="true">*</span>}
       </label>
       <div className="relative">
         <input
@@ -47,15 +47,15 @@ export default function AuthField({
           aria-describedby={error ? errorId : undefined}
           className={`w-full text-sm px-3.5 py-2.5 rounded-lg border bg-white outline-none focus:ring-4 transition ${
             error
-              ? 'border-[#D9522E] focus:border-[#D9522E] focus:ring-[#D9522E]/10'
-              : 'border-black/10 focus:border-[#1F5C57] focus:ring-[#1F5C57]/10'
+              ? 'border-auth-accent focus:border-auth-accent focus:ring-auth-accent/10'
+              : 'border-black/10 focus:border-auth-brand focus:ring-auth-brand/10'
           } ${isPassword ? 'pr-10' : ''}`}
         />
         {isPassword && (
           <button
             type="button"
             onClick={() => setShowPassword(s => !s)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded text-[#7C8B87] hover:text-[#0F2B32] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1F5C57]/40"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded text-auth-muted hover:text-auth-ink transition focus:outline-none focus-visible:ring-2 focus-visible:ring-auth-brand/40"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             aria-pressed={showPassword}
           >
@@ -68,7 +68,7 @@ export default function AuthField({
         )}
       </div>
       {error && (
-        <p id={errorId} role="alert" className="text-[#D9522E] text-xs mt-0.5">
+        <p id={errorId} role="alert" className="text-auth-accent text-xs mt-0.5">
           {error}
         </p>
       )}

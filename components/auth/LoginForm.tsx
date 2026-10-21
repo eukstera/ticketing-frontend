@@ -50,13 +50,13 @@ export default function LoginForm() {
 
   return (
     <>
-      <h2 className="font-serif text-[25px] font-medium text-[#0F2B32] mb-1.5">Welcome back</h2>
-      <p className="text-[13.5px] text-[#7C8B87] leading-relaxed mb-7">
+      <h2 className="font-serif text-[25px] font-medium text-auth-ink mb-1.5">Welcome back</h2>
+      <p className="text-[13.5px] text-auth-muted leading-relaxed mb-7">
         Log in with your staff credentials to view and manage your department&apos;s tickets.
       </p>
 
       {error && (
-        <div role="alert" className="bg-[#FAECE7] border border-[#F0997B] text-[#993C1D] rounded-lg px-4 py-3 mb-4 text-sm">
+        <div role="alert" className="bg-auth-err-bg border border-auth-err-border text-auth-err-text rounded-lg px-4 py-3 mb-4 text-sm">
           {error}
         </div>
       )}
@@ -84,7 +84,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={loading || !hydrated}
-          className="w-full mt-1 bg-[#0F2B32] hover:bg-[#123B3E] text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60 flex items-center justify-center gap-2"
+          className="w-full mt-1 bg-auth-ink hover:bg-auth-ink-hover text-white text-sm font-semibold rounded-lg py-2.5 transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading ? 'Logging in…' : 'Log in'}
           {!loading && <ArrowRight size={16} aria-hidden="true" />}

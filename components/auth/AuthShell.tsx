@@ -9,7 +9,7 @@ export default function AuthShell({
   children: ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-[#f9fafb] flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-auth-page flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[0.85fr_1fr] rounded-[20px] overflow-hidden shadow-2xl border border-black/5">
         {/* LEFT — institutional panel */}
         <div
