@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, monthLabel, slaLabel, percentOf, safeCount } from './format'
+import { barWidth, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -35,6 +35,17 @@ describe('slaLabel', () => {
     expect(slaLabel(3)).toBe('SLA 3 days')
     expect(slaLabel(0)).toBe('No SLA')
     expect(slaLabel(NaN)).toBe('No SLA')
+  })
+})
+
+describe('optionalSlaLabel', () => {
+  it('returns null when the row has no SLA data', () => {
+    expect(optionalSlaLabel(undefined)).toBeNull()
+    expect(optionalSlaLabel(null)).toBeNull()
+  })
+  it('delegates to slaLabel otherwise', () => {
+    expect(optionalSlaLabel(2)).toBe('SLA 2 days')
+    expect(optionalSlaLabel(0)).toBe('No SLA')
   })
 })
 

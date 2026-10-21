@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { ChevronDown, ChevronRight, Timer } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
-import { priorityStyles } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, priorityStyles } from '@/lib/styles'
+import { optionalSlaLabel } from '@/lib/format'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import StatusCell from './StatusCell'
 import ActionCell from './ActionCell'
@@ -39,7 +40,24 @@ export default function TicketsTable({
   const isIT = user?.department_id === IT_DEPARTMENT_ID
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+    <>
+    {/* Below md: one card per ticket. Same `tickets` data as the table. */}
+    <ul className="md:hidden space-y-3">
+      {tickets.map(ticket => (
+        <TicketCard
+          key={ticket.id}
+          ticket={ticket}
+          isIT={isIT}
+          taking={takingId === ticket.id}
+          onAssign={onAssign}
+          onTake={onTake}
+          onMarkComplete={onMarkComplete}
+          onOpenComments={onOpenComments}
+        />
+      ))}
+    </ul>
+
+    <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
       <table className="w-full min-w-[900px] text-sm">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -77,6 +95,88 @@ export default function TicketsTable({
         </tbody>
       </table>
     </div>
+    </>
+  )
+}
+
+function TicketCard({
+  ticket,
+  isIT,
+  taking,
+  onAssign,
+  onTake,
+  onMarkComplete,
+  onOpenComments,
+}: {
+  ticket: DepartmentTicket
+  isIT: boolean
+  taking: boolean
+  onAssign: (id: number) => void
+  onTake?: (id: number) => void
+  onMarkComplete: (id: number) => void
+  onOpenComments: (id: number) => void
+}) {
+  const timerStartDate = getTimerStartDate(ticket)
+  const priorityBadge = (PRIORITY_STYLES[ticket.priority] ?? PRIORITY_FALLBACK).badge
+  const sla = optionalSlaLabel(ticket.priority_sla)
+
+  return (
+    <li className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold text-gray-800">{ticket.ticket_number}</p>
+        <StatusCell ticket={ticket} />
+      </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <div>
+          <dt className="text-xs text-gray-500">{isIT ? 'Concern' : 'Nature of work'}</dt>
+          <dd className="text-gray-700">{(isIT ? ticket.type_of_concern : ticket.nature_of_work) || '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-gray-500">Area</dt>
+          <dd className="text-gray-700">{ticket.name_of_area || '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-gray-500">Priority</dt>
+          <dd>
+            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityBadge}`}>
+              {ticket.priority}
+            </span>
+            {sla && <span className="ml-1.5 text-xs text-gray-500">{sla}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-gray-500">Elapsed</dt>
+          <dd className="text-gray-700">
+            {timerStartDate ? <LiveTimer startDate={timerStartDate} /> : '—'}
+          </dd>
+        </div>
+        <div className="col-span-2">
+          <ActionInfo ticket={ticket} />
+        </div>
+      </dl>
+
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <ActionCell
+          ticket={ticket}
+          ticketNumber={ticket.ticket_number}
+          taking={taking}
+          onAssign={onAssign}
+          onTake={onTake}
+          onMarkComplete={onMarkComplete}
+        />
+        <CommentButton count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
+      </div>
+
+      <Link
+        href={`/tickets/${ticket.id}`}
+        aria-label={`Details for ${ticket.ticket_number}`}
+        className="mt-3 inline-flex items-center gap-1 rounded text-xs font-medium text-blue-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      >
+        Details
+        <ChevronRight size={12} aria-hidden="true" />
+      </Link>
+    </li>
   )
 }
 

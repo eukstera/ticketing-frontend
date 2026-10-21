@@ -18,6 +18,11 @@ export function slaLabel(days: number): string {
   return `SLA ${days} ${days === 1 ? 'day' : 'days'}`
 }
 
+/** slaLabel for data that may not carry an SLA at all (undefined/null -> null, so callers can skip the row). */
+export function optionalSlaLabel(days: number | null | undefined): string | null {
+  return typeof days === 'number' ? slaLabel(days) : null
+}
+
 /** 'YYYY-MM' -> 'October 2026'; falls back to the raw value when it isn't a valid month. */
 export function monthLabel(yearMonth: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(yearMonth)
