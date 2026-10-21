@@ -3,13 +3,14 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, FileQuestion, Lock } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import AssignModal from '@/components/AssignModal'
 import ConfirmModal from '@/components/ConfirmModal'
 import ActionCell from '@/components/department-tickets/ActionCell'
 import TimelineStepper from '@/components/department-tickets/TimelineStepper'
 import CommentThread from '@/components/comments/CommentThread'
+import EmptyState from '@/components/ui/EmptyState'
 import ErrorState from '@/components/ui/ErrorState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
@@ -18,6 +19,7 @@ import { useUser } from '@/hooks/useUser'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { assignTicket, getTicket, markTicketComplete, takeTicket } from '@/lib/tickets'
 import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
+import { slaLabel } from '@/lib/format'
 import { DateActivity, DepartmentTicket, TicketDetail } from '@/types'
 
 interface DetailState {
@@ -91,6 +93,16 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [taking, setTaking] = useState(false)
 
   const validId = Number.isInteger(ticketId) && ticketId > 0
+  const loadedNumber = state?.ticket?.ticket_number
+
+  useEffect(() => {
+    if (!loadedNumber) return
+    const previous = document.title
+    document.title = `Ticket ${loadedNumber}`
+    return () => {
+      document.title = previous
+    }
+  }, [loadedNumber])
   const loading = validId && state?.id !== ticketId
 
   useEffect(() => {
@@ -181,9 +193,20 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         </Link>
 
         {notFound ? (
-          <ErrorState message="This ticket doesn't exist or was removed." />
+          <EmptyState
+            icon={FileQuestion}
+            title="Ticket not found"
+            description="It may have been removed, or the link is wrong."
+            action={{ label: 'Back to tickets', href: '/tickets' }}
+            className="rounded-xl border border-gray-200 bg-white"
+          />
         ) : forbidden ? (
-          <ErrorState message="You don't have access to this ticket." />
+          <EmptyState
+            icon={Lock}
+            title="You don't have access to this ticket"
+            action={{ label: 'Back to tickets', href: '/tickets' }}
+            className="rounded-xl border border-gray-200 bg-white"
+          />
         ) : loading ? (
           <div className="space-y-4" aria-busy="true">
             <CardSkeleton lines={2} />
@@ -299,7 +322,7 @@ function TicketBody({
             </span>
           )}
           <span className="text-xs text-gray-500">
-            SLA {ticket.priority.sla_days} {ticket.priority.sla_days === 1 ? 'day' : 'days'}
+            {slaLabel(ticket.priority.sla_days)}
             {ticket.due_at ? ` · due ${formatDateTime(ticket.due_at)}` : ''}
           </span>
         </div>

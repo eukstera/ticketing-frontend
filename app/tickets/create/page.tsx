@@ -8,6 +8,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { createTicket, CreateTicketDevice } from '@/lib/tickets'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
+import { slaLabel } from '@/lib/format'
 import { getEmployees, Employee } from '@/lib/employees'
 import { getPriorities, getConcernTypes, Priority, LookupItem } from '@/lib/lookups'
 import { getErrorMessage, isAbortError, isApiError, FieldErrors } from '@/lib/api'
@@ -500,7 +501,7 @@ export default function CreateTicketPage() {
                         <div>
                           <div>{p.level}</div>
                           <div className="flex items-center gap-1.5 text-xs font-normal mt-0.5 text-gray-500">
-                            {`SLA ${p.sla_days} ${p.sla_days > 1 ? 'days' : 'day'}`}
+                            {slaLabel(p.sla_days)}
                           </div>
                         </div>
                       </button>
@@ -559,7 +560,10 @@ export default function CreateTicketPage() {
             <div className="pt-7">
                 {selectedPriority ? (
                 <p className="text-sm text-gray-600">
-                    Service Level Agreement target: <span className="font-medium text-gray-800">{selectedPriority.sla_days} days</span>
+                    Service Level Agreement target:{' '}
+                    <span className="font-medium text-gray-800">
+                      {selectedPriority.sla_days > 0 ? `${selectedPriority.sla_days} ${selectedPriority.sla_days === 1 ? 'day' : 'days'}` : 'none'}
+                    </span>
                 </p>
                 ) : (
                 <p className="text-sm text-gray-500">Select a priority to see the SLA target.</p>

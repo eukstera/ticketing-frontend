@@ -10,7 +10,9 @@ import StatCard from '@/components/dashboard/StatCard'
 import PriorityStatistics from '@/components/dashboard/PriorityStatistics'
 import TodaysTicketCard from '@/components/dashboard/TodaysTicketCard'
 import TopPerformerCard from '@/components/dashboard/TopPerformerCard'
+import Link from 'next/link'
 import ErrorState from '@/components/ui/ErrorState'
+import { monthLabel } from '@/lib/format'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 
 // Local-time YYYY-MM (toISOString would use UTC and be off near month ends).
@@ -81,6 +83,14 @@ export default function HomePage() {
           <ErrorState message={error || 'Failed to load dashboard'} onRetry={() => setReloadToken(t => t + 1)} />
         ) : (
           <>
+            {Object.values(stats.overview).every(n => !n) && (
+              <p className="mb-3 text-sm text-gray-600">
+                No tickets for {monthLabel(month)} yet.{' '}
+                <Link href="/tickets/create" className="font-medium text-blue-700 hover:underline">
+                  Create a ticket
+                </Link>
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
               <StatCard value={stats.overview.open} label="Open" status="Open" />
               <StatCard value={stats.overview.in_progress} label="In-progress" status="In-progress" />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, percentOf, safeCount } from './format'
+import { barWidth, monthLabel, slaLabel, percentOf, safeCount } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -26,6 +26,26 @@ describe('barWidth', () => {
   it('scales against the max', () => {
     expect(barWidth(5, 10)).toBe(50)
     expect(barWidth(10, 10)).toBe(100)
+  })
+})
+
+describe('slaLabel', () => {
+  it('pluralizes and handles no SLA', () => {
+    expect(slaLabel(1)).toBe('SLA 1 day')
+    expect(slaLabel(3)).toBe('SLA 3 days')
+    expect(slaLabel(0)).toBe('No SLA')
+    expect(slaLabel(NaN)).toBe('No SLA')
+  })
+})
+
+describe('monthLabel', () => {
+  it('formats a valid month', () => {
+    expect(monthLabel('2026-10')).toBe('October 2026')
+    expect(monthLabel('2026-01')).toBe('January 2026')
+  })
+  it('returns the input when invalid', () => {
+    expect(monthLabel('2026-13')).toBe('2026-13')
+    expect(monthLabel('nope')).toBe('nope')
   })
 })
 
