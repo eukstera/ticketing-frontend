@@ -100,6 +100,8 @@ export interface StatusStyle {
   pill: string
   /** Focus/selected ring color to pair with the pill */
   ring: string
+  /** Dashboard stat card (background, border, text, hover) */
+  card: string
 }
 
 export const STATUS_STYLES: Record<string, StatusStyle> = {
@@ -107,21 +109,25 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     badge: 'bg-blue-100 text-blue-800',
     pill: 'bg-blue-50 text-blue-700 border-blue-300',
     ring: 'ring-blue-400',
+    card: 'bg-blue-100 border-blue-200 text-blue-700 hover:bg-blue-200',
   },
   'In-progress': {
     badge: 'bg-amber-100 text-amber-800',
     pill: 'bg-amber-50 text-amber-700 border-amber-300',
     ring: 'ring-amber-400',
+    card: 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200',
   },
   Completed: {
     badge: 'bg-green-100 text-green-800',
     pill: 'bg-green-50 text-green-700 border-green-300',
     ring: 'ring-green-400',
+    card: 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200',
   },
   Overdue: {
     badge: 'bg-red-100 text-red-800',
     pill: 'bg-red-50 text-red-700 border-red-300',
     ring: 'ring-red-400',
+    card: 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200',
   },
 }
 
@@ -129,7 +135,11 @@ export const STATUS_FALLBACK: StatusStyle = {
   badge: 'bg-gray-100 text-gray-700',
   pill: 'bg-gray-100 text-gray-700 border-gray-300',
   ring: 'ring-gray-400',
+  card: 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200',
 }
+
+/** The "All" entry of the status filter row. */
+export const STATUS_ALL: StatusStyle = { ...STATUS_FALLBACK }
 
 // Kept for any older code still importing the flat lowercase map -
 // derived from STATUS_STYLES so there's only one place to edit a color.
@@ -146,6 +156,10 @@ export interface PriorityStyle {
   badge: string
   /** Solid bar color used in the Priority Statistics chart */
   solid: string
+  /** Small filled dot / swatch */
+  dot: string
+  /** Selected ring color */
+  ring: string
   highlight: string
 }
 
@@ -155,6 +169,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-red-700 border-red-300',
     badge: 'bg-red-600 text-white',
     solid: 'bg-red-500',
+    dot: 'bg-red-600',
+    ring: 'ring-red-400',
     highlight: 'bg-red-100 border-red-200 text-red-700'
   },
   Urgent: {
@@ -162,6 +178,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-orange-700 border-orange-300',
     badge: 'bg-orange-100 text-orange-700',
     solid: 'bg-orange-500',
+    dot: 'bg-orange-600',
+    ring: 'ring-orange-400',
     highlight: 'bg-orange-100 border-orange-200'
   },
   'Important but not urgent': {
@@ -169,6 +187,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-amber-700 border-amber-300',
     badge: 'bg-amber-100 text-amber-700',
     solid: 'bg-amber-400',
+    dot: 'bg-amber-500',
+    ring: 'ring-amber-400',
     highlight: 'bg-amber-100 border-amber-200'
   },
   'Long Term': {
@@ -176,6 +196,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-purple-700 border-purple-300',
     badge: 'bg-purple-100 text-purple-700',
     solid: 'bg-purple-400',
+    dot: 'bg-purple-500',
+    ring: 'ring-purple-400',
     highlight: 'bg-purple-100 border-purple-200'
   },
   Complex: {
@@ -183,6 +205,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-fuchsia-700 border-fuchsia-300',
     badge: 'bg-fuchsia-100 text-fuchsia-700',
     solid: 'bg-fuchsia-500',
+    dot: 'bg-fuchsia-500',
+    ring: 'ring-fuchsia-400',
     highlight: 'bg-fuchsia-100 border-fuchsia-200'
   },
   Simple: {
@@ -190,6 +214,8 @@ export const PRIORITY_STYLES: Record<string, PriorityStyle> = {
     pill: 'bg-white text-emerald-700 border-emerald-300',
     badge: 'bg-emerald-100 text-emerald-700',
     solid: 'bg-emerald-400',
+    dot: 'bg-emerald-500',
+    ring: 'ring-emerald-400',
     highlight: 'bg-emerald-100 border-emerald-200'
   },
 }
@@ -199,8 +225,13 @@ export const PRIORITY_FALLBACK: PriorityStyle = {
   pill: 'bg-white text-gray-700 border-gray-300',
   badge: 'bg-gray-100 text-gray-600',
   solid: 'bg-gray-400',
+  dot: 'bg-gray-400',
+  ring: 'ring-gray-400',
   highlight: 'bg-fuchsia-100 border-fuchsia-200'
 }
+
+/** Bars for priority levels that have no PRIORITY_STYLES entry, cycled by index. */
+export const PRIORITY_SOLID_FALLBACKS = ['bg-blue-500', 'bg-teal-400', 'bg-indigo-400']
 
 // Kept for any older code still importing the flat lowercase map -
 // derived from PRIORITY_STYLES so there's only one place to edit a color.
