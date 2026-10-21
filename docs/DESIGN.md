@@ -81,7 +81,7 @@ Icon-only buttons have `aria-label`; interactive elements show `focus-visible` r
 
 # Polish log (Phases 1-3): done and open
 
-Status after the final polish batch. Everything below is committed on `main`; `npx tsc --noEmit`, eslint and `npm test` were green at each commit. Not covered by any automated check: real-browser behaviour, a screen-reader pass, an axe/Lighthouse run, and `next build` (never run in this effort). Treat the a11y items as "implemented per the ARIA patterns", not "verified with assistive tech".
+Status after the final polish batch. Everything below is committed on `main`; `npx tsc --noEmit`, eslint and `npm test` were green at each commit. Not covered by any automated check: real-browser behaviour, a screen-reader pass, and an axe/Lighthouse run (`next build` is intentionally never run; see "Accepted exceptions"). Treat the a11y items as "implemented per the ARIA patterns", not "verified with assistive tech".
 
 ## Done (with commits)
 
@@ -109,8 +109,11 @@ Status after the final polish batch. Everything below is committed on `main`; `n
 - **Disclosure vs menu**: the account menu and priority dropdown follow the menu/listbox keyboard patterns; if either grows beyond a couple of items, add Home/End/typeahead.
 
 ## Open (none blocks release)
-1. **Auth error text contrast.** The login error/required text uses `#D9522E` on white (about 3.9:1 at 12px), under the 4.5:1 AA target. Fixing it means changing the token value (e.g. a darker `auth.accent`), which is a visual change, so it was left as-is pending a decision.
-2. **Admin tables on phones.** They scroll horizontally (`min-w-[640px]`) rather than stacking into cards like the ticket list. Acceptable for an admin tool; reuse the ticket card pattern if that changes.
-3. **Page titles.** Only the ticket detail page sets `document.title`; the other client pages share the layout title.
-4. **Account menu keys.** It has `role="menu"` with Escape and focus management but no arrow-key navigation (it holds two items). Add arrows if items are added.
-5. **Verification gap.** Run a keyboard-only pass and one screen reader (NVDA/VoiceOver) over login, ticket list, ticket detail, create-ticket, profile and an admin list/form; run axe on the same pages; run `next build` once in CI.
+1. **Admin tables on phones.** They scroll horizontally (`min-w-[640px]`) rather than stacking into cards like the ticket list. Acceptable for an admin tool; reuse the ticket card pattern if that changes.
+2. **Page titles.** Only the ticket detail page sets `document.title`; the other client pages share the layout title.
+3. **Account menu keys.** It has `role="menu"` with Escape and focus management but no arrow-key navigation (it holds two items). Add arrows if items are added.
+4. **Verification gap.** Run a keyboard-only pass and one screen reader (NVDA/VoiceOver) over login, ticket list, ticket detail, create-ticket, profile and an admin list/form, and run axe on the same pages. (`next build` is deliberately not part of this work; see the exception note below.)
+
+## Accepted exceptions
+- **Auth error / required-marker text contrast.** The login screens' error and required-marker text uses `#D9522E` on white, about 3.9:1 at 12px, below the 4.5:1 WCAG AA target for small text. This is a **known exception accepted by the user on 2026-10-21**: the accent colour stays as is, so `auth.accent` keeps `#D9522E` and the auth screens stay pixel-identical. (Decision relayed by the orchestrator session.) Error text is still conveyed with a `role="alert"` message, not by colour alone. Revisit only if the accent is ever redesigned.
+- **No `next build`.** The user's instruction for this effort is that `next build` is never run; verification is `npx tsc --noEmit`, eslint and `npm test` only.
