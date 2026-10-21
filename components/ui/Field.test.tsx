@@ -18,6 +18,18 @@ describe('Field', () => {
     expect(attr(html, 'input', 'id')).toBe(labelFor)
   })
 
+  it('uses a caller-supplied id for the control, label and error', () => {
+    const html = renderToString(
+      <Field id="first_name" label="First name" error="Required">
+        {p => <input {...p} />}
+      </Field>
+    )
+    expect(attr(html, 'label', 'for')).toBe('first_name')
+    expect(attr(html, 'input', 'id')).toBe('first_name')
+    expect(attr(html, 'input', 'aria-describedby')).toBe('first_name-error')
+    expect(attr(html, 'p', 'id')).toBe('first_name-error')
+  })
+
   it('marks required fields (decorative asterisk, required attribute on the control)', () => {
     const html = renderToString(
       <Field label="Name" required>{p => <input {...p} />}</Field>

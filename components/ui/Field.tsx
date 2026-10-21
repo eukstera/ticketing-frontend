@@ -21,6 +21,8 @@ export function fieldClass(hasError?: boolean, base: string = input): string {
 const LABEL_CLASS = 'mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-700'
 
 interface FieldProps {
+  /** Stable id for code that looks the control up (e.g. focusing the first invalid field). Defaults to a generated one. */
+  id?: string
   label: string
   /** Decorative lucide icon before the label text. */
   icon?: LucideIcon
@@ -39,6 +41,7 @@ interface FieldProps {
 }
 
 export default function Field({
+  id: idProp,
   label,
   icon: Icon,
   required,
@@ -51,7 +54,8 @@ export default function Field({
   errorClassName = 'mt-1 text-xs text-red-600',
   children,
 }: FieldProps) {
-  const id = useId()
+  const generatedId = useId()
+  const id = idProp ?? generatedId
   const hintId = `${id}-hint`
   const errorId = `${id}-error`
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
