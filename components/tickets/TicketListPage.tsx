@@ -13,7 +13,7 @@ import Pagination from '@/components/department-tickets/Pagination'
 import TicketToolbar from '@/components/tickets/TicketToolbar'
 import EmptyState from '@/components/ui/EmptyState'
 import ErrorState from '@/components/ui/ErrorState'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+import { Skeleton, TableSkeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
@@ -173,12 +173,19 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   if (!authed) return null
 
   const filtered = hasActiveFilters(params)
+  // Zero tickets and nothing filtered: the page is just the header and an EmptyState.
+  const noTicketsAtAll = !!data && !filtered && !error && data.tickets.total === 0
   const showReport = mode === 'mine' && user?.department_id === IT_DEPARTMENT_ID
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main id="main" className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
+        {!data ? (
+          <div className="mb-6 flex flex-wrap gap-2" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-8 w-24 rounded-full" />)}
+          </div>
+        ) : !noTicketsAtAll && (
         <FilterPills
           statusPills={buildStatusPills(data?.statusCounts ?? [])}
           priorityPills={buildPriorityPills(data?.priorityCounts ?? [])}
@@ -191,6 +198,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
             update({ priority_id: value === null ? null : Number(value), priority: null })
           }
         />
+        )}
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -212,13 +220,15 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
           )}
         </div>
 
-        <TicketToolbar
-          params={params}
-          update={update}
-          dateRangeInvalid={dateRangeInvalid}
-          filtersActive={filtered}
-          onClear={clearFilters}
-        />
+        {!noTicketsAtAll && (
+          <TicketToolbar
+            params={params}
+            update={update}
+            dateRangeInvalid={dateRangeInvalid}
+            filtersActive={filtered}
+            onClear={clearFilters}
+          />
+        )}
 
         {error && <ErrorState message={error} onRetry={retry} className="mb-4" />}
 
@@ -235,7 +245,12 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
                   action={{ label: 'Clear filters', onClick: clearFilters }}
                 />
               ) : (
-                <EmptyState icon={Inbox} title="No tickets" description={copy.empty} />
+                <EmptyState
+                  icon={Inbox}
+                  title="No tickets yet"
+                  description={copy.empty}
+                  action={{ label: 'Create a ticket', href: '/tickets/create' }}
+                />
               )}
             </div>
           ) : (
