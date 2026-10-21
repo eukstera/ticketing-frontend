@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { useHydrated } from '@/hooks/useHydrated'
-import { isApiError } from '@/lib/api'
+import { getErrorMessage, isApiError } from '@/lib/api'
 import { login } from '@/lib/auth'
 import AuthField from './AuthField'
 
@@ -35,9 +35,9 @@ export default function LoginForm() {
         } else if (err.status === 403) {
           setError('Your account is deactivated. Contact your department head.')
         } else if (err.status === 0) {
-          setError(err.message)
+          setError(getErrorMessage(err, 'Could not reach the server. Check your connection and try again.'))
         } else {
-          setError(err.message || 'Login failed')
+          setError(getErrorMessage(err, 'Login failed'))
           if (err.errors) setErrors(err.errors)
         }
       } else {

@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Check, Search } from 'lucide-react'
 import { getEmployees, Employee } from '@/lib/employees'
-import { isAbortError, isApiError } from '@/lib/api'
+import { getErrorMessage, isAbortError } from '@/lib/api'
 import { btnPrimary, btnSecondary } from '@/lib/styles'
 import { toast } from '@/components/Toast'
 import Modal from '@/components/ui/Modal'
@@ -83,7 +83,7 @@ function AssignModalContent({
       onClose()
     } catch (err) {
       console.error(err)
-      toast(isApiError(err) ? err.message : 'Failed to assign ticket', 'error')
+      toast(getErrorMessage(err, 'Failed to assign ticket'), 'error')
     } finally {
       setAssigning(false)
     }
