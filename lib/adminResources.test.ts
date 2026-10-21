@@ -5,6 +5,7 @@ import {
   ADMIN_RESOURCES,
   ADMIN_RESOURCE_KEYS,
   DEPARTMENT_HEAD_ROLE,
+  OTHERS_NATURE_OF_WORK,
   getAdminResource,
 } from '@/lib/adminResources'
 
@@ -82,6 +83,20 @@ describe('row locks', () => {
       deactivate: expect.any(String),
     })
     expect(lock({ id: 1, name: 'Normal User' }, me)).toBeNull()
+  })
+
+  it('locks edit and deactivate for the "Others" nature of work only', () => {
+    const lock = byKey('nature-of-work').lock!
+    expect(lock({ id: 9, label: OTHERS_NATURE_OF_WORK }, me)).toMatchObject({
+      edit: expect.any(String),
+      deactivate: expect.any(String),
+    })
+    expect(lock({ id: 1, label: 'Repair' }, me)).toBeNull()
+  })
+
+  it('leaves concern types and departments unlocked', () => {
+    expect(byKey('concern-types').lock).toBeUndefined()
+    expect(byKey('departments').lock).toBeUndefined()
   })
 
   it('blocks only self-deactivation for users', () => {

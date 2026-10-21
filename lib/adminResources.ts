@@ -86,6 +86,7 @@ export interface AdminResource {
 }
 
 export const DEPARTMENT_HEAD_ROLE = 'Department Head'
+export const OTHERS_NATURE_OF_WORK = 'Others'
 
 const str = (v: unknown) => (v == null ? '' : String(v))
 
@@ -270,6 +271,14 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     columns: [{ header: 'Label', value: r => str(r.label) }],
     fields: [{ name: 'label', label: 'Label', type: 'text', required: true }],
     rowTitle: r => str(r.label),
+    // The catch-all option tickets fall back to; the API answers 409 for it.
+    lock: row =>
+      row.label === OTHERS_NATURE_OF_WORK
+        ? {
+            edit: 'The "Others" option is built in and cannot be renamed.',
+            deactivate: 'The "Others" option is built in and cannot be deactivated.',
+          }
+        : null,
   },
 ]
 
