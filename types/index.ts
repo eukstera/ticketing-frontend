@@ -55,11 +55,16 @@ export interface DepartmentTicket {
   completed_activity: ActivityInfo | null
   /** The rejection (who, when, reason) for a False Alarm row; null otherwise. */
   false_alarm_activity?: FalseAlarmActivity | null
+  /** The latest reopen (who, when, why); null if never reopened. */
+  reopened_activity?: FalseAlarmActivity | null
+  /** Where the confirmation email goes (staff only). null = none on file; undefined = an older server. */
+  requester_email?: string | null
   priority_sla?: number | null
   comments_count?: number
   devices: Device[]
 }
 
+/** A "False Alarm Date" or "Reopened Date" entry as list rows carry it (remarks = the reason). */
 export interface FalseAlarmActivity {
   created_at: string
   user: string | null
@@ -119,6 +124,72 @@ export interface FalseAlarmInfo {
   marked_at: string
 }
 
+export type ConfirmationState =
+  | 'pending'
+  | 'confirmed'
+  | 'disputed'
+  | 'auto_closed'
+  | 'head_closed'
+  | 'superseded'
+
+export type MailStatus = 'none' | 'pending' | 'sent' | 'failed'
+
+export interface ConfirmationMail {
+  status: MailStatus
+  attempts?: number
+  sent_at?: string | null
+  error?: string | null
+}
+
+export type SurveyCategory =
+  | 'service'
+  | 'assurance'
+  | 'reliability'
+  | 'communication'
+  | 'access_facilities'
+  | 'integrity'
+  | 'outcome'
+
+/** Each area is 1-5, or absent/null when the requester skipped it. */
+export type SurveyRatings = Partial<Record<SurveyCategory, number | null>>
+
+/** GET /tickets/{id} `confirmation`: the latest request for the requester to confirm a completion. */
+export interface ConfirmationInfo {
+  state: ConfirmationState
+  completion_notes: string | null
+  completed_by: PersonRef | null
+  completed_at: string
+  auto_close_at: string | null
+  channel: 'email' | 'track' | 'head' | 'auto' | null
+  responded_at: string | null
+  dispute_reason: string | null
+  requester_email: string | null
+  mail: ConfirmationMail
+  survey: {
+    submitted: boolean
+    submitted_at: string | null
+    /** The Customer Satisfaction Survey answers (staff only); absent on older responses. */
+    ratings?: SurveyRatings | null
+    comments?: string | null
+  }
+}
+
+/** What completing a ticket returns (a subset of ConfirmationInfo). */
+export interface CompletionResult {
+  state: ConfirmationState
+  completed_at: string
+  auto_close_at: string | null
+  requester_email: string | null
+  mail: { status: MailStatus }
+}
+
+export interface ReopenInfo {
+  reason: string | null
+  /** null when the user who reopened it no longer exists. */
+  reopened_by: PersonRef | null
+  reopened_at: string
+}
+
 export interface TicketDetailDevice {
   name: string
   qty: number
@@ -163,13 +234,21 @@ export interface TicketDetail {
   due_at: string | null
   timeline: {
     id: number
-    category: 'Requested Date' | 'Assigned Date' | 'Completed Date' | 'False Alarm Date'
+    category: 'Requested Date' | 'Assigned Date' | 'Completed Date' | 'False Alarm Date' | 'Reopened Date' | 'Confirmed Date' | 'Disputed Date' | 'Auto-closed Date'
     user: string | null
     created_at: string
     remarks?: string | null
   }[]
   /** Set once the request was rejected as a false alarm; null otherwise. */
   false_alarm?: FalseAlarmInfo | null
+  /** The latest reopen of a rejected request; null if never reopened. The earlier rejection stays in `timeline`. */
+  reopened?: ReopenInfo | null
+  /** When the elapsed/SLA clock started (the latest reopen, else the request). */
+  clock_started_at?: string
+  /** Where the confirmation email goes (staff only). null = none on file. */
+  requester_email?: string | null
+  /** The latest completion confirmation; null if the ticket was never completed. */
+  confirmation?: ConfirmationInfo | null
   comments: TicketDetailComment[]
   created_at: string
   updated_at: string

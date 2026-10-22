@@ -8,6 +8,8 @@ export interface DashboardOverview {
   overdue: number
   /** Rejected requests; absent from servers that predate the False alarm status. */
   false_alarm?: number
+  /** Completed by staff, waiting for the requester to confirm. */
+  pending_confirmation?: number
 }
 
 export interface DashboardPriorityStats {

@@ -1,6 +1,7 @@
 // lib/tickets.ts
 import { api } from './api'
-import type { FalseAlarmInfo, TicketDetail } from '@/types'
+import type { CompletionResult, ConfirmationInfo, FalseAlarmInfo, ReopenInfo, TicketDetail } from '@/types'
+import { DEFAULT_JOB_ORDER_FORMAT, JOB_ORDER_FORMATS, type JobOrderFormat } from './jobOrderFormat'
 import {
   buildListQuery,
   normalizeListResponse,
@@ -59,8 +60,31 @@ export function getMyTickets(params: TicketListParams, counts?: ListCounts, sign
   return fetchTicketList('/getMyTickets', params, counts, signal)
 }
 
-export function markTicketComplete(ticketId: number) {
-  return api.post(`/tickets/${ticketId}/complete`, {})
+/**
+ * Completes a ticket. Completion notes are required (10..2000, 422 errors.notes):
+ * the ticket then waits for the requester's confirmation as "Pending Confirmation".
+ */
+export function markTicketComplete(ticketId: number, notes: string) {
+  return api.post<{ message: string; result: { confirmation: CompletionResult } }>(
+    `/tickets/${ticketId}/complete`,
+    { notes: notes.trim() }
+  )
+}
+
+/** Department Heads only: close a ticket waiting for confirmation on the requester's behalf (reason 5..500). */
+export function closeTicketOnBehalf(ticketId: number, reason: string) {
+  return api.post<{ message: string; result: { confirmation: ConfirmationInfo } }>(
+    `/tickets/${ticketId}/confirmation/close`,
+    { reason: reason.trim() }
+  )
+}
+
+/** Sends the requester a new confirmation email with a fresh link (the old one stops working). */
+export function resendConfirmation(ticketId: number) {
+  return api.post<{ message: string; result: { confirmation: ConfirmationInfo } }>(
+    `/tickets/${ticketId}/confirmation/resend`,
+    {}
+  )
 }
 
 export function assignTicket(ticketId: number, userId: number) {
@@ -78,6 +102,15 @@ export function markFalseAlarm(ticketId: number, reason: string) {
   return api.post<{ message: string; result: { false_alarm: FalseAlarmInfo } }>(
     `/tickets/${ticketId}/false-alarm`,
     { reason: reason.trim() }
+  )
+}
+
+/** Department Heads only. The reason is optional; 409 = it isn't a false alarm (anymore), 403 = not a head. */
+export function reopenTicket(ticketId: number, reason?: string) {
+  const trimmed = reason?.trim()
+  return api.post<{ message: string; result: { reopened: ReopenInfo } }>(
+    `/tickets/${ticketId}/reopen`,
+    trimmed ? { reason: trimmed } : {}
   )
 }
 
@@ -166,6 +199,32 @@ export async function downloadAccomplishmentReport(
     console.warn('Content-Disposition missing from the report response; using a generic filename.')
   }
   return { blob, filename: filename ?? `accomplishment-report_${dateFrom}_${dateTo}.docx` }
+}
+
+/**
+ * The filled IT Job Order form for a ticket, as Excel or PDF. The format is
+ * always sent explicitly (so the client and API can't disagree about the
+ * default); an unknown one is a 422 errors.format. 409 = a false-alarm or
+ * Engineering ticket has none; 403 = not handling-department staff or a
+ * Department Head. The filename and extension come from Content-Disposition.
+ */
+export async function downloadJobOrder(
+  ticketId: number,
+  signal?: AbortSignal,
+  ticketNumber?: string,
+  format: JobOrderFormat = DEFAULT_JOB_ORDER_FORMAT
+): Promise<AccomplishmentReportResult> {
+  const { mime, ext } = JOB_ORDER_FORMATS[format]
+  const { blob, filename } = await api.getBlob(
+    `/tickets/${ticketId}/job-order?${new URLSearchParams({ format })}`,
+    mime,
+    { signal }
+  )
+  if (!filename) {
+    // A proxy can strip Content-Disposition; the file itself is still good.
+    console.warn('Content-Disposition missing from the job order response; using a generic filename.')
+  }
+  return { blob, filename: filename ?? `JO ${ticketNumber ?? ticketId}.${ext}` }
 }
 
 export interface Designation {

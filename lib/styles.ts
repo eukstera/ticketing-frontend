@@ -41,6 +41,13 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     ring: 'ring-red-400',
     card: 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200',
   },
+  // Completed by staff, waiting for the requester to confirm (teal: between In-progress amber and Completed green).
+  'Pending Confirmation': {
+    badge: 'bg-teal-100 text-teal-800',
+    pill: 'bg-teal-50 text-teal-700 border-teal-300',
+    ring: 'ring-teal-400',
+    card: 'bg-teal-100 border-teal-200 text-teal-700 hover:bg-teal-200',
+  },
   // A rejected request: violet, so it never reads as Overdue (red) or In-progress (amber).
   'False Alarm': {
     badge: 'bg-violet-100 text-violet-800',
@@ -195,6 +202,8 @@ export const btnDanger = `${btnBase} bg-red-600 text-white hover:bg-red-700 focu
 export const btnSuccess = `${btnBase} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`
 /** Blue-tinted secondary, e.g. the accomplishment-report trigger. */
 export const btnTint = `${btnBase} border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-500`
+/** Green outline for "put it back" actions (Reopen): positive but secondary to the filled Take/Complete. */
+export const btnSuccessOutline = `${btnBase} border border-green-500 bg-white text-green-700 hover:bg-green-50 focus-visible:ring-green-500`
 /** Amber outline for "reject / not a real request" actions (False alarm); a warning, not a destructive fill. */
 export const btnWarn = `${btnBase} border border-amber-400 bg-white text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-500`
 /**

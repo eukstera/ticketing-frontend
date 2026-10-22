@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DepartmentTicket } from '@/types'
 import { formatElapsed } from '@/lib/format'
+import { clockStart } from '@/lib/falseAlarm'
 
 /**
  * Returns a live, human-readable "time since" string (e.g. "2h 5m 10s")
@@ -26,10 +27,8 @@ export function useElapsedTime(startDate: string) {
 
 export function getTimerStartDate(ticket: DepartmentTicket): string | null {
   if (['Open', 'In-progress', 'Overdue'].includes(ticket.status)) {
-    const requested = ticket.date_activities?.find(a =>
-      a.date_category.category.includes('Requested')
-    )
-    return requested?.created_at ?? null
+    // Restarts at the latest reopen; the time spent as a false alarm isn't counted.
+    return clockStart(ticket)
   }
 
   // if (ticket.status === 'In-progress' || ticket.status === 'Overdue') {
