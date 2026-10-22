@@ -7,6 +7,7 @@ import { Menu, User as UserIcon, X } from 'lucide-react'
 import { logout, isAdmin } from '@/lib/auth'
 import { useUser } from '@/hooks/useUser'
 import Avatar from '@/components/ui/Avatar'
+import NotificationBell from '@/components/NotificationBell'
 
 const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
 
@@ -112,6 +113,8 @@ export default function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
+            <NotificationBell />
+
             <span className="text-sm text-gray-500 hidden sm:block">
               {user ? `${user.first_name} ${user.last_name}` : ''}
             </span>

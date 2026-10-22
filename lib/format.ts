@@ -54,6 +54,33 @@ export function formatDateTime(dateStr: string) {
   return { date, time }
 }
 
+/** Elapsed whole seconds as "3d 4h 5m", "2h 5m 10s" or "5m 10s" (the tickets table's elapsed-time format). */
+export function formatElapsed(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds))
+  const days = Math.floor(s / 86400)
+  const hours = Math.floor((s % 86400) / 3600)
+  const minutes = Math.floor((s % 3600) / 60)
+  const seconds = s % 60
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
+  return `${minutes}m ${seconds}s`
+}
+
+/** "just now", "2m ago", "3h ago", "5d ago"; older than 30 days falls back to the date. '' for an invalid date. */
+export function relativeTime(dateStr: string, now: number = Date.now()): string {
+  const then = new Date(dateStr).getTime()
+  if (!Number.isFinite(then)) return ''
+  const seconds = Math.max(0, Math.floor((now - then) / 1000))
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return formatDateTime(dateStr).date
+}
+
 /** formatDateTime as one string: "20 October 2026 3:05 pm". */
 export function formatDateTimeText(dateStr: string): string {
   const { date, time } = formatDateTime(dateStr)

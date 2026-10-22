@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime, formatDateTimeText } from './format'
+import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime, formatDateTimeText, formatElapsed, relativeTime } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -94,5 +94,43 @@ describe('formatDateTimeText', () => {
   it('matches formatDateTime piece by piece', () => {
     const { date, time } = formatDateTime('2026-01-02T08:30:00')
     expect(formatDateTimeText('2026-01-02T08:30:00')).toBe(`${date} ${time}`)
+  })
+})
+
+describe('relativeTime', () => {
+  const now = new Date('2026-10-22T12:00:00Z').getTime()
+  const ago = (ms: number) => new Date(now - ms).toISOString()
+  const MIN = 60_000
+
+  it('says "just now" under a minute, including a clock-skewed future time', () => {
+    expect(relativeTime(ago(5_000), now)).toBe('just now')
+    expect(relativeTime(ago(-30_000), now)).toBe('just now')
+  })
+
+  it('counts minutes, hours and days', () => {
+    expect(relativeTime(ago(2 * MIN), now)).toBe('2m ago')
+    expect(relativeTime(ago(59 * MIN), now)).toBe('59m ago')
+    expect(relativeTime(ago(60 * MIN), now)).toBe('1h ago')
+    expect(relativeTime(ago(23 * 60 * MIN), now)).toBe('23h ago')
+    expect(relativeTime(ago(3 * 24 * 60 * MIN), now)).toBe('3d ago')
+  })
+
+  it('falls back to the date after 30 days, and to empty for an invalid date', () => {
+    expect(relativeTime(ago(40 * 24 * 60 * MIN), now)).toMatch(/September 2026$/)
+    expect(relativeTime('not a date', now)).toBe('')
+  })
+})
+
+describe('formatElapsed', () => {
+  it('formats minutes, hours and days like the live timer', () => {
+    expect(formatElapsed(0)).toBe('0m 0s')
+    expect(formatElapsed(75)).toBe('1m 15s')
+    expect(formatElapsed(3600 + 5 * 60 + 10)).toBe('1h 5m 10s')
+    expect(formatElapsed(2 * 86400 + 3 * 3600 + 4 * 60 + 59)).toBe('2d 3h 4m')
+  })
+
+  it('floors fractions and never goes negative (clock skew)', () => {
+    expect(formatElapsed(59.9)).toBe('0m 59s')
+    expect(formatElapsed(-30)).toBe('0m 0s')
   })
 })
