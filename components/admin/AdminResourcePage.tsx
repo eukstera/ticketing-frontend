@@ -21,8 +21,15 @@ import {
   deactivateAdmin,
   listAdmin,
   reactivateAdmin,
+  updateAdmin,
 } from '@/lib/admin'
-import { AdminResource, AdminResourceKey, RowContext, getAdminResource } from '@/lib/adminResources'
+import {
+  AdminResource,
+  AdminResourceKey,
+  RowAction,
+  RowContext,
+  getAdminResource,
+} from '@/lib/adminResources'
 import {
   STATUS_FALLBACK,
   STATUS_STYLES,
@@ -189,6 +196,21 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
     try {
       await reactivateAdmin(resource.endpoint, row.id)
       toast(`${resource.rowTitle(row)} reactivated`)
+      setRefresh(n => n + 1)
+    } catch (err) {
+      const first = isApiError(err) ? Object.values(err.errors ?? {}).find(v => v?.[0])?.[0] : undefined
+      toast(first ?? safeErrorMessage(err), 'error')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleRowAction(row: AdminRow, action: RowAction) {
+    if (busyId !== null) return
+    setBusyId(row.id)
+    try {
+      await updateAdmin(resource.endpoint, row.id, action.body)
+      toast(action.success(resource.rowTitle(row)))
       setRefresh(n => n + 1)
     } catch (err) {
       const first = isApiError(err) ? Object.values(err.errors ?? {}).find(v => v?.[0])?.[0] : undefined
@@ -381,6 +403,20 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                                     </span>
                                   )}
                                 </button>
+                                {resource.rowActions
+                                  ?.filter(a => a.visible(row))
+                                  .map(a => (
+                                    <button
+                                      key={a.key}
+                                      type="button"
+                                      onClick={() => handleRowAction(row, a)}
+                                      disabled={busyId !== null}
+                                      aria-label={`${a.label}: ${resource.singular} ${title}`}
+                                      className={`${btnSecondary} ${btnSm}`}
+                                    >
+                                      {busyId === row.id ? a.busyLabel : a.label}
+                                    </button>
+                                  ))}
                                 {active ? (
                                   <button
                                     type="button"

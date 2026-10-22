@@ -45,6 +45,17 @@ export interface AdminColumn {
   value: (row: AdminRow, ctx: RowContext) => string
 }
 
+/** An extra per-row button that PATCHes `body` onto the row (e.g. "Set as default"). */
+export interface RowAction {
+  key: string
+  label: string
+  /** Shown while the request is in flight. */
+  busyLabel: string
+  visible: (row: AdminRow) => boolean
+  body: Record<string, unknown>
+  success: (title: string) => string
+}
+
 export interface RowLock {
   /** Reason the row can't be edited; disables the Edit button. */
   edit?: string
@@ -62,6 +73,7 @@ export const ADMIN_RESOURCE_KEYS = [
   'priorities',
   'concern-types',
   'nature-of-work',
+  'report-signatories',
 ] as const
 export type AdminResourceKey = (typeof ADMIN_RESOURCE_KEYS)[number]
 
@@ -89,10 +101,13 @@ export interface AdminResource {
   rowTitle: (row: AdminRow) => string
   deactivateNote?: string
   lock?: (row: AdminRow, me: AuthUser | null) => RowLock | null
+  rowActions?: RowAction[]
 }
 
 export const DEPARTMENT_HEAD_ROLE = 'Department Head'
 export const OTHERS_NATURE_OF_WORK = 'Others'
+
+export const SET_ANOTHER_DEFAULT_FIRST = 'Set another signatory as default first.'
 
 const str = (v: unknown) => (v == null ? '' : String(v))
 
@@ -286,6 +301,41 @@ export const ADMIN_RESOURCES: AdminResource[] = [
             deactivate: 'The "Others" option is built in and cannot be deactivated.',
           }
         : null,
+  },
+  {
+    slug: 'report-signatories',
+    title: 'Report signatories',
+    singular: 'signatory',
+    description: 'Who signs the “Approved by” block of the accomplishment report.',
+    endpoint: '/admin/report-signatories',
+    listKey: 'signatories',
+    searchPlaceholder: 'Name or title',
+    columns: [
+      { header: 'Name', value: r => str(r.name) },
+      { header: 'Title', value: r => str(r.title) },
+      { header: 'Default', value: r => (r.is_default === true ? 'Default' : '') },
+    ],
+    fields: [
+      { name: 'name', label: 'Name', type: 'text', required: true },
+      { name: 'title', label: 'Title', type: 'text', required: true },
+    ],
+    rowTitle: r => str(r.name),
+    deactivateNote: 'Reports can still be downloaded; they just stop offering this person.',
+    // The API answers 422 for the default, but there is no point offering the click.
+    lock: row =>
+      row.is_default === true && row.status !== false
+        ? { deactivate: SET_ANOTHER_DEFAULT_FIRST }
+        : null,
+    rowActions: [
+      {
+        key: 'set-default',
+        label: 'Set as default',
+        busyLabel: 'Setting…',
+        visible: row => row.status !== false && row.is_default !== true,
+        body: { is_default: true },
+        success: title => `${title} is now the default signatory`,
+      },
+    ],
   },
 ]
 

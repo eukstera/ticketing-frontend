@@ -6,6 +6,7 @@ import {
   ADMIN_RESOURCE_KEYS,
   DEPARTMENT_HEAD_ROLE,
   OTHERS_NATURE_OF_WORK,
+  SET_ANOTHER_DEFAULT_FIRST,
   getAdminResource,
 } from '@/lib/adminResources'
 
@@ -99,6 +100,16 @@ describe('row locks', () => {
     expect(byKey('departments').lock).toBeUndefined()
   })
 
+  it('blocks deactivating the active default signatory only', () => {
+    const lock = byKey('report-signatories').lock!
+    expect(lock({ id: 1, is_default: true, status: true }, me)).toEqual({
+      deactivate: SET_ANOTHER_DEFAULT_FIRST,
+    })
+    expect(lock({ id: 2, is_default: false, status: true }, me)).toBeNull()
+    // an inactive row can't be deactivated again, so there is nothing to lock
+    expect(lock({ id: 3, is_default: true, status: false }, me)).toBeNull()
+  })
+
   it('blocks only self-deactivation for users', () => {
     const lock = byKey('users').lock!
     expect(lock({ id: 7 }, me)).toEqual({ deactivate: expect.any(String) })
@@ -144,6 +155,22 @@ describe('column values', () => {
     expect(byKey('concern-types').columns[0].value({ id: 1, label: 'Network' }, ctx)).toBe('Network')
     expect(byKey('nature-of-work').columns[0].value({ id: 1, label: 'Repair' }, ctx)).toBe('Repair')
     expect(byKey('departments').columns[0].value({ id: 1, name: 'IT' }, ctx)).toBe('IT')
+  })
+
+  it('shows name, title and a Default marker for report signatories', () => {
+    const cols = byKey('report-signatories').columns
+    const def: AdminRow = { id: 1, name: 'Ana Reyes', title: 'IT Manager', is_default: true }
+    const other: AdminRow = { id: 2, name: 'Ben Cruz', title: 'Director', is_default: false }
+    expect(cols.map(c => c.value(def, ctx))).toEqual(['Ana Reyes', 'IT Manager', 'Default'])
+    expect(cols.map(c => c.value(other, ctx))).toEqual(['Ben Cruz', 'Director', ''])
+  })
+
+  it('offers "Set as default" only for active, non-default signatories, and PATCHes is_default', () => {
+    const [action] = byKey('report-signatories').rowActions!
+    expect(action.body).toEqual({ is_default: true })
+    expect(action.visible({ id: 2, is_default: false, status: true })).toBe(true)
+    expect(action.visible({ id: 1, is_default: true, status: true })).toBe(false)
+    expect(action.visible({ id: 3, is_default: false, status: false })).toBe(false)
   })
 
   it('rowTitle names the row for aria-labels and confirm text', () => {
