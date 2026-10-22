@@ -10,6 +10,7 @@ import {
   type SignatoryChoice,
 } from '@/lib/tickets'
 import { getErrorMessage, isAbortError } from '@/lib/api'
+import { saveBlob } from '@/lib/download'
 import { btnPrimary, btnSecondary, input } from '@/lib/styles'
 import Modal from '@/components/ui/Modal'
 import ErrorState from '@/components/ui/ErrorState'
@@ -182,14 +183,11 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
         signatory
       )
 
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
+      if (!saveBlob(blob, filename)) {
+        setStatus('error')
+        setErrorMsg('Your browser blocked the download. Allow downloads for this site and try again.')
+        return
+      }
 
       setStatus('idle')
       onClose()
