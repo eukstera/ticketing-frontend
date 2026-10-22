@@ -4,6 +4,7 @@ import { DepartmentTicket } from '@/types'
 import { PRIORITY_FALLBACK, PRIORITY_STYLES, badgeBase } from '@/lib/styles'
 import { optionalSlaLabel } from '@/lib/format'
 import { frozenElapsed } from '@/lib/falseAlarm'
+import type { JobOrderFormat } from '@/lib/jobOrderFormat'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import StatusCell from './StatusCell'
 import ActionCell from './ActionCell'
@@ -26,6 +27,12 @@ export default function TicketsTable({
   onTake,
   onMarkComplete,
   onFalseAlarm,
+  onReopen,
+  onDownloadJo,
+  jobOrderBusyId = null,
+  onResend,
+  resendingId = null,
+  onCloseOnBehalf,
   onOpenComments,
 }: {
   tickets: DepartmentTicket[]
@@ -37,6 +44,14 @@ export default function TicketsTable({
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
   onFalseAlarm?: (id: number) => void
+  onReopen?: (id: number) => void
+  onDownloadJo?: (id: number, format: JobOrderFormat) => void
+  /** Ticket whose job order is downloading (disables its button). */
+  jobOrderBusyId?: number | null
+  onResend?: (id: number) => void
+  /** Ticket whose confirmation email is being resent (disables its button). */
+  resendingId?: number | null
+  onCloseOnBehalf?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const user = useUser()
@@ -56,6 +71,12 @@ export default function TicketsTable({
           onTake={onTake}
           onMarkComplete={onMarkComplete}
           onFalseAlarm={onFalseAlarm}
+          onReopen={onReopen}
+          onDownloadJo={onDownloadJo}
+          downloadingJo={jobOrderBusyId === ticket.id}
+          onResend={onResend}
+          resending={resendingId === ticket.id}
+          onCloseOnBehalf={onCloseOnBehalf}
           onOpenComments={onOpenComments}
         />
       ))}
@@ -94,6 +115,12 @@ export default function TicketsTable({
               onTake={onTake}
               onMarkComplete={onMarkComplete}
               onFalseAlarm={onFalseAlarm}
+              onReopen={onReopen}
+              onDownloadJo={onDownloadJo}
+              downloadingJo={jobOrderBusyId === ticket.id}
+          onResend={onResend}
+          resending={resendingId === ticket.id}
+          onCloseOnBehalf={onCloseOnBehalf}
               onOpenComments={onOpenComments}
             />
           ))}
@@ -112,6 +139,12 @@ function TicketCard({
   onTake,
   onMarkComplete,
   onFalseAlarm,
+  onReopen,
+  onDownloadJo,
+  downloadingJo,
+  onResend,
+  resending,
+  onCloseOnBehalf,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -121,6 +154,12 @@ function TicketCard({
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
   onFalseAlarm?: (id: number) => void
+  onReopen?: (id: number) => void
+  onDownloadJo?: (id: number, format: JobOrderFormat) => void
+  downloadingJo: boolean
+  onResend?: (id: number) => void
+  resending: boolean
+  onCloseOnBehalf?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
@@ -173,6 +212,12 @@ function TicketCard({
           onTake={onTake}
           onMarkComplete={onMarkComplete}
           onFalseAlarm={onFalseAlarm}
+          onReopen={onReopen}
+          onDownloadJo={onDownloadJo}
+          downloadingJo={downloadingJo}
+          onResend={onResend}
+          resending={resending}
+          onCloseOnBehalf={onCloseOnBehalf}
         />
         <CommentButton ticketNumber={ticket.ticket_number} count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
       </div>
@@ -199,6 +244,12 @@ function TicketRow({
   onTake,
   onMarkComplete,
   onFalseAlarm,
+  onReopen,
+  onDownloadJo,
+  downloadingJo,
+  onResend,
+  resending,
+  onCloseOnBehalf,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -210,6 +261,12 @@ function TicketRow({
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
   onFalseAlarm?: (id: number) => void
+  onReopen?: (id: number) => void
+  onDownloadJo?: (id: number, format: JobOrderFormat) => void
+  downloadingJo: boolean
+  onResend?: (id: number) => void
+  resending: boolean
+  onCloseOnBehalf?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
@@ -274,6 +331,12 @@ function TicketRow({
             onTake={onTake}
             onMarkComplete={onMarkComplete}
             onFalseAlarm={onFalseAlarm}
+            onReopen={onReopen}
+            onDownloadJo={onDownloadJo}
+            downloadingJo={downloadingJo}
+            onResend={onResend}
+            resending={resending}
+            onCloseOnBehalf={onCloseOnBehalf}
           />
         </td>
         <td className="px-3 py-3 text-center">

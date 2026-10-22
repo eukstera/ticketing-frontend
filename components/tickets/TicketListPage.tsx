@@ -7,6 +7,9 @@ import AssignModal from '@/components/AssignModal'
 import CommentsModal from '@/components/CommentsModal'
 import ConfirmModal from '@/components/ConfirmModal'
 import FalseAlarmModal from '@/components/FalseAlarmModal'
+import CompleteModal from '@/components/CompleteModal'
+import CloseOnBehalfModal from '@/components/CloseOnBehalfModal'
+import ReopenModal from '@/components/ReopenModal'
 import AccomplishmentModal from '@/components/AccomplishmentModal'
 import FilterPills from '@/components/department-tickets/FilterPills'
 import TicketsTable from '@/components/department-tickets/TicketsTable'
@@ -18,6 +21,7 @@ import { Skeleton, TableSkeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/components/Toast'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
+import { useJobOrderDownload } from '@/hooks/useJobOrderDownload'
 import { useTicketListParams } from '@/hooks/useTicketListParams'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
@@ -25,10 +29,17 @@ import {
   getDepartmentTickets,
   getMyTickets,
   markTicketComplete,
+  closeTicketOnBehalf,
+  resendConfirmation,
   assignTicket,
   markFalseAlarm,
+  reopenTicket,
   takeTicket,
 } from '@/lib/tickets'
+import { falseAlarmEntry } from '@/lib/falseAlarm'
+import { completionMessage } from '@/lib/confirmation'
+import { canDownloadJobOrder, takeThenJobOrder } from '@/lib/jobOrder'
+import type { JobOrderFormat } from '@/lib/jobOrderFormat'
 import {
   TicketListResult,
   hasActiveFilters,
@@ -70,11 +81,15 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const [assignTicketId, setAssignTicketId] = useState<number | null>(null)
   const [commentsTicketId, setCommentsTicketId] = useState<number | null>(null)
   const [completeTicketId, setCompleteTicketId] = useState<number | null>(null)
-  const [completing, setCompleting] = useState(false)
-  const [completeError, setCompleteError] = useState('')
+  const [resendTicketId, setResendTicketId] = useState<number | null>(null)
+  const [resending, setResending] = useState(false)
+  const [resendError, setResendError] = useState('')
+  const [closeTicketId, setCloseTicketId] = useState<number | null>(null)
   const [takingId, setTakingId] = useState<number | null>(null)
   const [falseAlarmTicketId, setFalseAlarmTicketId] = useState<number | null>(null)
+  const [reopenTicketId, setReopenTicketId] = useState<number | null>(null)
   const [reportModalOpen, setReportModalOpen] = useState(false)
+  const jobOrder = useJobOrderDownload()
 
   const copy = COPY[mode]
   const dateRangeInvalid = !!(params.date_from && params.date_to && params.date_to < params.date_from)
@@ -131,21 +146,49 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     setExpanded(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]))
   }
 
-  async function handleConfirmComplete() {
-    if (completeTicketId === null) return
-    setCompleting(true)
-    setCompleteError('')
+  // Completing needs notes and leaves the ticket "Pending Confirmation" until the
+  // requester answers. Throws on failure so the dialog stays open with the message.
+  async function handleComplete(ticketId: number, notes: string) {
+    let res: Awaited<ReturnType<typeof markTicketComplete>>
     try {
-      await markTicketComplete(completeTicketId)
-      setCompleteTicketId(null)
-      toast('Ticket marked as complete')
+      res = await markTicketComplete(ticketId, notes)
+    } catch (err) {
+      // 409: it was already completed or is waiting for confirmation; the row is stale.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast(completionMessage(res.result?.confirmation), 'success', 8000)
+    refresh()
+  }
+
+  async function handleConfirmResend() {
+    if (resendTicketId === null || resending) return
+    setResending(true)
+    setResendError('')
+    try {
+      await resendConfirmation(resendTicketId)
+      setResendTicketId(null)
+      toast('A new confirmation email is on its way')
       refresh()
     } catch (err) {
       console.error(err)
-      setCompleteError(getErrorMessage(err, 'Failed to mark ticket as complete'))
+      if (isApiError(err) && err.status === 409) refresh()
+      setResendError(getErrorMessage(err, "Couldn't resend the confirmation email."))
     } finally {
-      setCompleting(false)
+      setResending(false)
     }
+  }
+
+  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  async function handleCloseOnBehalf(ticketId: number, reason: string) {
+    try {
+      await closeTicketOnBehalf(ticketId, reason)
+    } catch (err) {
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast("Ticket closed on the requester's behalf")
+    refresh()
   }
 
   async function handleAssignSubmit(ticketId: number, userId: number) {
@@ -166,24 +209,55 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     refresh()
   }
 
+  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  async function handleReopen(ticketId: number, reason: string) {
+    try {
+      await reopenTicket(ticketId, reason)
+    } catch (err) {
+      // 409: it was already reopened or isn't a false alarm; the row is stale.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast('Ticket reopened')
+    refresh()
+  }
+
   function openComplete(ticketId: number) {
-    setCompleteError('')
     setCompleteTicketId(ticketId)
   }
 
+  function openResend(ticketId: number) {
+    setResendError('')
+    setResendTicketId(ticketId)
+  }
+
+  // Taking a ticket also downloads its job order (IT tickets). The download
+  // starts only after the take succeeded and can never undo or hide it.
   async function handleTake(ticketId: number) {
     if (!user || takingId !== null) return
     setTakingId(ticketId)
-    try {
-      await takeTicket(ticketId, user.id)
-      toast('Ticket assigned to you')
-    } catch (err) {
-      console.error(err)
-      toast(getErrorMessage(err, 'Failed to take ticket'), 'error')
-    } finally {
+    const row = data?.tickets.data.find(t => t.id === ticketId)
+    const result = await takeThenJobOrder(ticketId, user.id, {
+      take: takeTicket,
+      onTaken: () => {
+        toast('Ticket assigned to you')
+        setTakingId(null)
+        refresh()
+      },
+      downloadJobOrder: async id => {
+        if (row && canDownloadJobOrder(row, user)) await jobOrder.download(id, row.ticket_number, { auto: true })
+      },
+    })
+    if (!result.taken) {
+      console.error(result.error)
+      toast(getErrorMessage(result.error, 'Failed to take ticket'), 'error')
       setTakingId(null)
       refresh()
     }
+  }
+
+  function downloadJo(ticketId: number, format: JobOrderFormat) {
+    void jobOrder.download(ticketId, data?.tickets.data.find(t => t.id === ticketId)?.ticket_number, { format })
   }
 
   if (!authed) return null
@@ -191,6 +265,12 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const filtered = hasActiveFilters(params)
   // Zero tickets and nothing filtered: the page is just the header and an EmptyState.
   const noTicketsAtAll = !!data && !filtered && !error && data.tickets.total === 0
+  const rowOf = (id: number | null) => data?.tickets.data.find(t => t.id === id)
+  const completeRow = rowOf(completeTicketId)
+  const resendRow = rowOf(resendTicketId)
+  const closeRow = rowOf(closeTicketId)
+  const reopenRow = data?.tickets.data.find(t => t.id === reopenTicketId)
+  const reopenRejection = reopenRow ? falseAlarmEntry(reopenRow) : null
   const showReport = mode === 'mine' && user?.department_id === IT_DEPARTMENT_ID
 
   return (
@@ -285,6 +365,12 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
                 onTake={handleTake}
                 onMarkComplete={openComplete}
                 onFalseAlarm={setFalseAlarmTicketId}
+                onReopen={setReopenTicketId}
+                onDownloadJo={downloadJo}
+                jobOrderBusyId={jobOrder.busyId}
+                onResend={openResend}
+                resendingId={resending ? resendTicketId : null}
+                onCloseOnBehalf={setCloseTicketId}
                 onOpenComments={setCommentsTicketId}
               />
               <Pagination
@@ -313,6 +399,16 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
         onSubmit={handleFalseAlarm}
       />
 
+      <ReopenModal
+        isOpen={reopenTicketId !== null}
+        ticketId={reopenTicketId}
+        ticketNumber={reopenRow?.ticket_number}
+        rejectionReason={reopenRejection?.remarks}
+        rejectedBy={reopenRejection?.user}
+        onClose={() => setReopenTicketId(null)}
+        onSubmit={handleReopen}
+      />
+
       <CommentsModal
         isOpen={commentsTicketId !== null}
         ticketId={commentsTicketId}
@@ -320,16 +416,33 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
         onCommentAdded={refresh}
       />
 
-      <ConfirmModal
+      <CompleteModal
         isOpen={completeTicketId !== null}
-        title="Mark ticket as complete?"
-        message="This will mark the ticket as complete."
-        confirmLabel="Mark as Complete"
-        variant="success"
-        loading={completing}
-        error={completeError}
-        onConfirm={handleConfirmComplete}
-        onCancel={() => setCompleteTicketId(null)}
+        ticketId={completeTicketId}
+        ticketNumber={completeRow?.ticket_number}
+        requesterEmail={completeRow?.requester_email}
+        onClose={() => setCompleteTicketId(null)}
+        onSubmit={handleComplete}
+      />
+
+      <ConfirmModal
+        isOpen={resendTicketId !== null}
+        title="Resend the confirmation email?"
+        message={`A new email with a fresh link goes to ${resendRow?.requester_email ?? 'the requester'}. The link in the previous email stops working.`}
+        confirmLabel="Resend email"
+        loading={resending}
+        error={resendError}
+        onConfirm={handleConfirmResend}
+        onCancel={() => setResendTicketId(null)}
+      />
+
+      <CloseOnBehalfModal
+        isOpen={closeTicketId !== null}
+        ticketId={closeTicketId}
+        ticketNumber={closeRow?.ticket_number}
+        requesterEmail={closeRow?.requester_email}
+        onClose={() => setCloseTicketId(null)}
+        onSubmit={handleCloseOnBehalf}
       />
 
       {showReport && (

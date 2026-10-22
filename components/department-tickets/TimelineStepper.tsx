@@ -1,15 +1,61 @@
 import { DateActivity } from '@/types'
 import { falseAlarmTimelineSequence, fullTimelineSequence } from '@/lib/styles'
-import { findFalseAlarmActivity } from '@/lib/falseAlarm'
+import { isRejectedNow, latestActivity } from '@/lib/falseAlarm'
+import { currentDispute } from '@/lib/confirmation'
+
+// Rejections, reopens, completions and the requester's replies can repeat, so
+// the steps show the latest entry of each category and the full back-and-forth
+// is listed under the stepper. A completion only appears there when it carries
+// notes (the steps already show when it happened).
+const HISTORY_CATEGORY = /False Alarm|Reopened|Confirmed|Disputed|Auto-closed/
+
+const TONES = {
+  violet: 'bg-violet-50 text-violet-900',
+  green: 'bg-green-50 text-green-900',
+  amber: 'bg-amber-50 text-amber-900',
+  gray: 'bg-gray-100 text-gray-800',
+  teal: 'bg-teal-50 text-teal-900',
+} as const
+
+function describeEntry(entry: DateActivity): { title: string; tone: keyof typeof TONES; remarkLabel: string } {
+  const category = entry.date_category.category
+  const by = entry.user ? ` by ${entry.user}` : ''
+  if (category.includes('Reopened')) return { title: `Reopened${by}`, tone: 'green', remarkLabel: 'Reason' }
+  if (category.includes('False Alarm')) {
+    return { title: `Rejected as false alarm${by}`, tone: 'violet', remarkLabel: 'Reason' }
+  }
+  if (category.includes('Disputed')) return { title: 'Disputed by the requester', tone: 'amber', remarkLabel: 'Reason' }
+  if (category.includes('Confirmed')) {
+    return { title: entry.user ? `Confirmed by ${entry.user}` : 'Confirmed by the requester', tone: 'green', remarkLabel: 'Note' }
+  }
+  if (category.includes('Auto-closed')) return { title: 'Closed automatically', tone: 'gray', remarkLabel: 'Note' }
+  return { title: `Completed${by}`, tone: 'teal', remarkLabel: 'Notes' }
+}
+
+function historyOf(activities: DateActivity[] | undefined): DateActivity[] {
+  return (activities ?? [])
+    .map((a, index) => ({ a, index }))
+    .filter(
+      ({ a }) =>
+        HISTORY_CATEGORY.test(a.date_category.category) ||
+        (a.date_category.category.includes('Completed') && !!a.remarks)
+    )
+    .sort((x, y) => Date.parse(x.a.created_at) - Date.parse(y.a.created_at) || x.index - y.index)
+    .map(({ a }) => a)
+}
 
 export default function TimelineStepper({ activities }: { activities: DateActivity[] }) {
-  // A rejected request ends at the false alarm; it never gets Assigned/Completed steps.
-  const falseAlarm = findFalseAlarmActivity(activities)
-  const sequence = falseAlarm ? falseAlarmTimelineSequence : fullTimelineSequence
+  // A request that is a false alarm right now ends there (no Assigned/Completed
+  // steps); once reopened it follows the normal path again.
+  const rejected = isRejectedNow(activities)
+  const sequence = rejected ? falseAlarmTimelineSequence : fullTimelineSequence
+  // A requester's dispute sends the ticket back to work: it isn't completed again until the next completion.
+  const disputed = !!currentDispute(activities)
   const steps = sequence.map(step => {
-    const activity = activities?.find(a => a.date_category.category.includes(step.match))
+    const activity = step.match === 'Completed' && disputed ? undefined : latestActivity(activities, step.match)
     return activity ? { ...step, activity } : { ...step, activity: null }
   })
+  const history = historyOf(activities)
 
   const hasAnyActivity = steps.some(s => s.activity)
   if (!hasAnyActivity) {
@@ -76,11 +122,31 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
         )
       })}
     </div>
-    {falseAlarm?.remarks && (
-      <p className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900">
-        <span className="font-medium">Reason: </span>
-        <span className="whitespace-pre-wrap">{falseAlarm.remarks}</span>
-      </p>
+    {history.length > 0 && (
+      <ul aria-label="Ticket history" className="mt-3 space-y-2">
+        {history.map(entry => {
+          const { title, tone, remarkLabel } = describeEntry(entry)
+          const when = new Date(entry.created_at)
+          return (
+            <li key={entry.id} className={`rounded-lg px-3 py-2 text-sm ${TONES[tone]}`}>
+              <p className="font-medium">
+                {title}
+                <span className="font-normal opacity-80">
+                  {' · '}
+                  {when.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}{' '}
+                  {when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                </span>
+              </p>
+              {entry.remarks && (
+                <p className="mt-0.5">
+                  <span className="font-medium">{`${remarkLabel}: `}</span>
+                  <span className="whitespace-pre-wrap">{entry.remarks}</span>
+                </p>
+              )}
+            </li>
+          )
+        })}
+      </ul>
     )}
     </>
   )
