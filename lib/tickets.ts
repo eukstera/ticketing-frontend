@@ -112,15 +112,42 @@ export interface AccomplishmentReportResult {
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
+export interface ReportSignatory {
+  id: number
+  name: string
+  title: string
+  is_default: boolean
+  status: boolean
+}
+
+/** A saved signatory by id, or a one-off name + title (the BE needs both). Omit for the default. */
+export type SignatoryChoice = { id: number } | { name: string; title: string }
+
+export const SIGNATORY_MAX_LENGTH = 255
+
+// Active signatories only, default first. Open to any logged-in user.
+export function getReportSignatories(signal?: AbortSignal) {
+  return api.get<{ result: { signatories: ReportSignatory[] } }>('/report-signatories', { signal })
+}
+
 // userId is admin-only on the BE (a non-admin passing another id gets 403).
 export async function downloadAccomplishmentReport(
   dateFrom: string,
   dateTo: string,
   signal?: AbortSignal,
-  userId?: number
+  userId?: number,
+  signatory?: SignatoryChoice
 ): Promise<AccomplishmentReportResult> {
   const query = new URLSearchParams({ date_from: dateFrom, date_to: dateTo })
   if (userId) query.set('user_id', String(userId))
+  if (signatory) {
+    if ('id' in signatory) {
+      query.set('signatory_id', String(signatory.id))
+    } else {
+      query.set('signatory_name', signatory.name)
+      query.set('signatory_title', signatory.title)
+    }
+  }
   const { blob, filename } = await api.getBlob(
     `/reports/accomplishment?${query.toString()}`,
     DOCX_MIME,
