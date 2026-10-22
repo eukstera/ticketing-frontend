@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react'
 import { useHydrated } from '@/hooks/useHydrated'
 import { getErrorMessage, isApiError } from '@/lib/api'
 import { login } from '@/lib/auth'
+import { postLoginPath } from '@/lib/authRedirect'
 import AuthField from './AuthField'
 
 export default function LoginForm() {
@@ -24,7 +25,7 @@ export default function LoginForm() {
     try {
       const res = await login(form)
       if (res.success) {
-        router.push('/dashboard')
+        router.push(postLoginPath(window.location.search))
       } else {
         setError(res.message || 'Login failed')
       }

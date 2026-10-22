@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation'
 import AuthShell from '@/components/auth/AuthShell'
 import LoginForm from '@/components/auth/LoginForm'
 import { getToken, subscribeAuth } from '@/lib/auth'
+import { postLoginPath } from '@/lib/authRedirect'
 
 export default function AuthPage() {
   const router = useRouter()
   const authed = !!useSyncExternalStore(subscribeAuth, getToken, () => null)
 
   useEffect(() => {
-    if (authed) router.replace('/dashboard')
+    // Back to the page that sent them to login (?next=, validated), else the dashboard.
+    if (authed) router.replace(postLoginPath(window.location.search))
   }, [authed, router])
 
   if (authed) return null

@@ -1,4 +1,5 @@
 import { getToken, removeToken } from '@/lib/auth'
+import { currentLocationPath, loginUrl } from '@/lib/authRedirect'
 
 // `php artisan serve` default. For another device on the LAN set
 // NEXT_PUBLIC_API_URL in .env.local (see README).
@@ -126,7 +127,8 @@ function handleUnauthorized(endpoint: string) {
   if (endpoint === '/login') return
   if (typeof window === 'undefined') return
   removeToken()
-  window.location.replace('/')
+  // Keep the page, so signing in again returns to it.
+  window.location.replace(loginUrl(currentLocationPath()))
 }
 
 async function send(endpoint: string, options: RequestInit): Promise<Response> {
