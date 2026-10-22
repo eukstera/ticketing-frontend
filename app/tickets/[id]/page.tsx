@@ -7,6 +7,7 @@ import { ArrowLeft, FileQuestion, Lock } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import AssignModal from '@/components/AssignModal'
 import ConfirmModal from '@/components/ConfirmModal'
+import FalseAlarmModal from '@/components/FalseAlarmModal'
 import ActionCell from '@/components/department-tickets/ActionCell'
 import TimelineStepper from '@/components/department-tickets/TimelineStepper'
 import CommentThread from '@/components/comments/CommentThread'
@@ -17,8 +18,8 @@ import { toast } from '@/components/Toast'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
-import { assignTicket, getTicket, markTicketComplete, takeTicket } from '@/lib/tickets'
-import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
+import { assignTicket, getTicket, markFalseAlarm, markTicketComplete, takeTicket } from '@/lib/tickets'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, badgeBase, statusBadgeClass } from '@/lib/styles'
 import { formatDateTimeText, slaLabel } from '@/lib/format'
 import { DateActivity, DepartmentTicket, TicketDetail } from '@/types'
 
@@ -45,6 +46,7 @@ function toActivities(ticket: TicketDetail): DateActivity[] {
     created_at: t.created_at,
     date_category: { id: 0, category: t.category },
     user: t.user,
+    remarks: t.remarks ?? null,
   }))
 }
 
@@ -84,6 +86,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [completing, setCompleting] = useState(false)
   const [completeError, setCompleteError] = useState('')
   const [taking, setTaking] = useState(false)
+  const [falseAlarmOpen, setFalseAlarmOpen] = useState(false)
 
   const validId = Number.isInteger(ticketId) && ticketId > 0
   const loadedNumber = state?.ticket?.ticket_number
@@ -138,6 +141,19 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
   async function handleAssign(id: number, userId: number) {
     await assignTicket(id, userId)
+    refresh()
+  }
+
+  // Throws on failure so the dialog stays open and shows the message inline.
+  async function handleFalseAlarm(id: number, reason: string) {
+    try {
+      await markFalseAlarm(id, reason)
+    } catch (err) {
+      // 409: it was taken, completed or already rejected; show what it is now.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast('Request rejected as a false alarm')
     refresh()
   }
 
@@ -222,6 +238,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
             taking={taking}
             onTake={handleTake}
             onAssign={() => setAssignOpen(true)}
+            onFalseAlarm={() => setFalseAlarmOpen(true)}
             onComplete={() => {
               setCompleteError('')
               setCompleteOpen(true)
@@ -235,6 +252,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         ticketId={assignOpen ? ticketId : null}
         onClose={() => setAssignOpen(false)}
         onAssign={handleAssign}
+      />
+
+      <FalseAlarmModal
+        isOpen={falseAlarmOpen}
+        ticketId={falseAlarmOpen ? ticketId : null}
+        ticketNumber={ticket?.ticket_number}
+        onClose={() => setFalseAlarmOpen(false)}
+        onSubmit={handleFalseAlarm}
       />
 
       <ConfirmModal
@@ -259,6 +284,7 @@ function TicketBody({
   onRetry,
   onTake,
   onAssign,
+  onFalseAlarm,
   onComplete,
 }: {
   ticket: TicketDetail
@@ -267,6 +293,7 @@ function TicketBody({
   onRetry: () => void
   onTake: () => void
   onAssign: () => void
+  onFalseAlarm: () => void
   onComplete: () => void
 }) {
   const priorityStyle = PRIORITY_STYLES[ticket.priority.level] ?? PRIORITY_FALLBACK
@@ -294,23 +321,18 @@ function TicketBody({
             taking={taking}
             onTake={onTake}
             onAssign={onAssign}
+            onFalseAlarm={onFalseAlarm}
             onMarkComplete={onComplete}
           />
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-              (STATUS_STYLES[ticket.status.label] ?? STATUS_FALLBACK).badge
-            }`}
-          >
-            {ticket.status.label}
-          </span>
-          <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityStyle.badge}`}>
+          <span className={statusBadgeClass(ticket.status.label)}>{ticket.status.label}</span>
+          <span className={`${badgeBase} ${priorityStyle.badge}`}>
             {ticket.priority.level}
           </span>
           {ticket.is_overdue && ticket.status.label !== 'Overdue' && (
-            <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+            <span className={`${badgeBase} bg-red-100 text-red-700`}>
               Overdue
             </span>
           )}
@@ -319,6 +341,21 @@ function TicketBody({
             {ticket.due_at ? ` · due ${formatDateTimeText(ticket.due_at)}` : ''}
           </span>
         </div>
+
+        {ticket.false_alarm && (
+          <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+            <p className="font-medium">
+              Rejected as a false alarm by {personName(ticket.false_alarm.marked_by) ?? 'a former user'}
+              <span className="font-normal text-violet-800">
+                {' '}on {formatDateTimeText(ticket.false_alarm.marked_at)}
+              </span>
+            </p>
+            <p className="mt-1 whitespace-pre-wrap">
+              <span className="font-medium">Reason: </span>
+              {ticket.false_alarm.reason}
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">

@@ -376,7 +376,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                             ))}
                             <td className="px-4 py-3">
                               <span
-                                className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
                                   active ? ACTIVE_BADGE : INACTIVE_BADGE
                                 }`}
                               >

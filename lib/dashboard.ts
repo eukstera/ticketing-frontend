@@ -6,6 +6,8 @@ export interface DashboardOverview {
   in_progress: number
   completed: number
   overdue: number
+  /** Rejected requests; absent from servers that predate the False alarm status. */
+  false_alarm?: number
 }
 
 export interface DashboardPriorityStats {

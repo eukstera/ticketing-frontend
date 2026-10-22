@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DepartmentTicket } from '@/types'
+import { formatElapsed } from '@/lib/format'
 
 /**
  * Returns a live, human-readable "time since" string (e.g. "2h 5m 10s")
@@ -11,22 +12,7 @@ export function useElapsedTime(startDate: string) {
   useEffect(() => {
     function update() {
       const start = new Date(startDate).getTime()
-      const now = Date.now()
-      const diffMs = now - start
-
-      const totalSeconds = Math.floor(diffMs / 1000)
-      const days = Math.floor(totalSeconds / 86400)
-      const hours = Math.floor((totalSeconds % 86400) / 3600)
-      const minutes = Math.floor((totalSeconds % 3600) / 60)
-      const seconds = totalSeconds % 60
-
-      if (days > 0) {
-        setElapsed(`${days}d ${hours}h ${minutes}m`)
-      } else if (hours > 0) {
-        setElapsed(`${hours}h ${minutes}m ${seconds}s`)
-      } else {
-        setElapsed(`${minutes}m ${seconds}s`)
-      }
+      setElapsed(formatElapsed((Date.now() - start) / 1000))
     }
 
     update()

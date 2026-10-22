@@ -91,7 +91,7 @@ export default function FilterPills({
             type="button"
             onClick={() => onStatusChange(pill.value)}
             aria-pressed={statusFilter === pill.value}
-            className={`px-3.5 py-1.5 rounded-full border text-sm font-medium transition ${FOCUS_RING} ${pill.color} ${
+            className={`whitespace-nowrap px-3.5 py-1.5 rounded-full border text-sm font-medium transition ${FOCUS_RING} ${pill.color} ${
               statusFilter === pill.value
                 ? `ring-2 ring-offset-1 ${(STATUS_STYLES[pill.label] ?? STATUS_ALL).ring}`
                 : 'opacity-90 hover:opacity-100'

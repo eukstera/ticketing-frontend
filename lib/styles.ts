@@ -1,4 +1,4 @@
-import { Check, Flag, User, type LucideIcon } from 'lucide-react'
+import { Ban, Check, Flag, User, type LucideIcon } from 'lucide-react'
 
 // Single source of truth for status/priority colors used across the app.
 // Each status/priority is defined ONCE here with every variant (pill, badge,
@@ -41,6 +41,13 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     ring: 'ring-red-400',
     card: 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200',
   },
+  // A rejected request: violet, so it never reads as Overdue (red) or In-progress (amber).
+  'False Alarm': {
+    badge: 'bg-violet-100 text-violet-800',
+    pill: 'bg-violet-50 text-violet-700 border-violet-300',
+    ring: 'ring-violet-400',
+    card: 'bg-violet-100 border-violet-200 text-violet-700 hover:bg-violet-200',
+  },
 }
 
 export const STATUS_FALLBACK: StatusStyle = {
@@ -52,6 +59,19 @@ export const STATUS_FALLBACK: StatusStyle = {
 
 /** The "All" entry of the status filter row. */
 export const STATUS_ALL: StatusStyle = { ...STATUS_FALLBACK }
+
+/**
+ * Size and shape shared by every status/priority badge. One line always
+ * (whitespace-nowrap) and never squeezed by a flex or table cell (shrink-0), so
+ * long labels like "False Alarm" or "In-progress" keep the height of "Open".
+ */
+export const badgeBase =
+  'inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium'
+
+/** badgeBase plus the colours of a status ("Open", "False Alarm", ...); unknown statuses get gray. */
+export function statusBadgeClass(status: string): string {
+  return `${badgeBase} ${(STATUS_STYLES[status] ?? STATUS_FALLBACK).badge}`
+}
 
 
 export interface PriorityStyle {
@@ -154,6 +174,12 @@ export const fullTimelineSequence: TimelineStep[] = [
   { match: 'Completed', label: 'Completed Date', bg: 'bg-green-100 text-green-600', icon: Check },
 ]
 
+/** A rejected request never gets assigned or completed, so its timeline ends at the false alarm. */
+export const falseAlarmTimelineSequence: TimelineStep[] = [
+  fullTimelineSequence[0],
+  { match: 'False Alarm', label: 'False Alarm Date', bg: 'bg-violet-100 text-violet-600', icon: Ban },
+]
+
 
 
 // START SHARED UI (buttons / inputs)
@@ -169,6 +195,8 @@ export const btnDanger = `${btnBase} bg-red-600 text-white hover:bg-red-700 focu
 export const btnSuccess = `${btnBase} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`
 /** Blue-tinted secondary, e.g. the accomplishment-report trigger. */
 export const btnTint = `${btnBase} border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 focus-visible:ring-blue-500`
+/** Amber outline for "reject / not a real request" actions (False alarm); a warning, not a destructive fill. */
+export const btnWarn = `${btnBase} border border-amber-400 bg-white text-amber-700 hover:bg-amber-50 focus-visible:ring-amber-500`
 /**
  * Size modifier for table-row / inline actions; append after a btn* constant.
  * The `!` is required: btnBase already sets px-4 py-2 text-sm, and Tailwind

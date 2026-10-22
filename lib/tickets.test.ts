@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { downloadAccomplishmentReport } from '@/lib/tickets'
+import { downloadAccomplishmentReport, markFalseAlarm } from '@/lib/tickets'
 
 const fetchMock = vi.fn()
 
@@ -74,5 +74,52 @@ describe('downloadAccomplishmentReport signatory params', () => {
     await expect(
       downloadAccomplishmentReport('2026-10-01', '2026-10-15', undefined, undefined, { id: 9 })
     ).rejects.toMatchObject({ status: 422, message: 'The signatory is invalid.' })
+  })
+})
+
+describe('markFalseAlarm', () => {
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
+
+  it('POSTs the trimmed reason to the ticket false-alarm route', async () => {
+    fetchMock.mockResolvedValue(
+      json({
+        success: true,
+        message: 'Ticket marked as false alarm',
+        result: { false_alarm: { reason: 'Duplicate', marked_by: { id: 1, first_name: 'A', last_name: 'B' }, marked_at: '' } },
+      })
+    )
+    const res = await markFalseAlarm(42, '  Duplicate request  ')
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(new URL(url).pathname).toBe('/api/tickets/42/false-alarm')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body as string)).toEqual({ reason: 'Duplicate request' })
+    expect(res.result.false_alarm.reason).toBe('Duplicate')
+  })
+
+  it('surfaces the 422 reason error', async () => {
+    fetchMock.mockImplementation(async () =>
+      json({ success: false, message: 'Invalid', errors: { reason: ['The reason must be at least 3 characters.'] } }, 422)
+    )
+    await expect(markFalseAlarm(42, 'ab')).rejects.toMatchObject({
+      status: 422,
+      errors: { reason: ['The reason must be at least 3 characters.'] },
+    })
+  })
+
+  it('surfaces the 409 message when the ticket was already taken or rejected', async () => {
+    fetchMock.mockImplementation(async () =>
+      json({ success: false, message: 'Only untaken open tickets can be marked as a false alarm.' }, 409)
+    )
+    await expect(markFalseAlarm(42, 'Duplicate')).rejects.toMatchObject({
+      status: 409,
+      message: 'Only untaken open tickets can be marked as a false alarm.',
+    })
+  })
+
+  it('surfaces the 403 message for other departments', async () => {
+    fetchMock.mockImplementation(async () =>
+      json({ success: false, message: 'Only members of the handling department can mark a ticket as a false alarm.' }, 403)
+    )
+    await expect(markFalseAlarm(42, 'Duplicate')).rejects.toMatchObject({ status: 403 })
   })
 })

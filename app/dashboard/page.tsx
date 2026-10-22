@@ -68,8 +68,8 @@ export default function HomePage() {
 
         {loading ? (
           <div aria-busy="true">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
-            {[0, 1, 2, 3].map(i => <CardSkeleton key={i} lines={2} />)}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 md:gap-5">
+            {[0, 1, 2, 3, 4].map(i => <CardSkeleton key={i} lines={2} />)}
           </div>
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div className="space-y-5">
@@ -91,11 +91,14 @@ export default function HomePage() {
                 </Link>
               </p>
             )}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 md:gap-5">
               <StatCard value={stats.overview.open} label="Open" status="Open" />
               <StatCard value={stats.overview.in_progress} label="In-progress" status="In-progress" />
               <StatCard value={stats.overview.completed} label="Completed" status="Completed" />
               <StatCard value={stats.overview.overdue} label="Overdue" status="Overdue" />
+              <div className="col-span-2 md:col-span-1">
+                <StatCard value={stats.overview.false_alarm ?? 0} label="False alarm" status="False Alarm" />
+              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">

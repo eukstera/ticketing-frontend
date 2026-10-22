@@ -1,8 +1,12 @@
 import { DateActivity } from '@/types'
-import { fullTimelineSequence } from '@/lib/styles'
+import { falseAlarmTimelineSequence, fullTimelineSequence } from '@/lib/styles'
+import { findFalseAlarmActivity } from '@/lib/falseAlarm'
 
 export default function TimelineStepper({ activities }: { activities: DateActivity[] }) {
-  const steps = fullTimelineSequence.map(step => {
+  // A rejected request ends at the false alarm; it never gets Assigned/Completed steps.
+  const falseAlarm = findFalseAlarmActivity(activities)
+  const sequence = falseAlarm ? falseAlarmTimelineSequence : fullTimelineSequence
+  const steps = sequence.map(step => {
     const activity = activities?.find(a => a.date_category.category.includes(step.match))
     return activity ? { ...step, activity } : { ...step, activity: null }
   })
@@ -13,7 +17,8 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
   }
 
   return (
-    // Stacked (vertical) below sm, horizontal stepper from sm up
+    <>
+    {/* Stacked (vertical) below sm, horizontal stepper from sm up */}
     <div className="flex flex-col items-start sm:flex-row sm:justify-center">
       {steps.map((step, idx) => {
         const isLast = idx === steps.length - 1
@@ -71,5 +76,12 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
         )
       })}
     </div>
+    {falseAlarm?.remarks && (
+      <p className="mt-3 rounded-lg bg-violet-50 px-3 py-2 text-sm text-violet-900">
+        <span className="font-medium">Reason: </span>
+        <span className="whitespace-pre-wrap">{falseAlarm.remarks}</span>
+      </p>
+    )}
+    </>
   )
 }

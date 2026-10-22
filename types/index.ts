@@ -29,6 +29,8 @@ export interface DateActivity {
   created_at: string
   date_category: { id: number; category: string }
   user: string | null
+  /** Only the "False Alarm Date" entry carries one: the reason it was rejected. */
+  remarks?: string | null
 }
 
 export interface DepartmentTicket {
@@ -51,9 +53,17 @@ export interface DepartmentTicket {
   requested_activity: ActivityInfo | null
   assigned_activity: ActivityInfo | null
   completed_activity: ActivityInfo | null
+  /** The rejection (who, when, reason) for a False Alarm row; null otherwise. */
+  false_alarm_activity?: FalseAlarmActivity | null
   priority_sla?: number | null
   comments_count?: number
   devices: Device[]
+}
+
+export interface FalseAlarmActivity {
+  created_at: string
+  user: string | null
+  remarks: string | null
 }
 
 export interface ActivityInfo {
@@ -102,6 +112,13 @@ export interface PersonRef {
   last_name: string
 }
 
+export interface FalseAlarmInfo {
+  reason: string
+  /** null when the user who rejected it no longer exists. */
+  marked_by: PersonRef | null
+  marked_at: string
+}
+
 export interface TicketDetailDevice {
   name: string
   qty: number
@@ -146,10 +163,13 @@ export interface TicketDetail {
   due_at: string | null
   timeline: {
     id: number
-    category: 'Requested Date' | 'Assigned Date' | 'Completed Date'
+    category: 'Requested Date' | 'Assigned Date' | 'Completed Date' | 'False Alarm Date'
     user: string | null
     created_at: string
+    remarks?: string | null
   }[]
+  /** Set once the request was rejected as a false alarm; null otherwise. */
+  false_alarm?: FalseAlarmInfo | null
   comments: TicketDetailComment[]
   created_at: string
   updated_at: string

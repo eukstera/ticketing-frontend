@@ -6,6 +6,7 @@ import Navbar from '@/components/NavBar'
 import AssignModal from '@/components/AssignModal'
 import CommentsModal from '@/components/CommentsModal'
 import ConfirmModal from '@/components/ConfirmModal'
+import FalseAlarmModal from '@/components/FalseAlarmModal'
 import AccomplishmentModal from '@/components/AccomplishmentModal'
 import FilterPills from '@/components/department-tickets/FilterPills'
 import TicketsTable from '@/components/department-tickets/TicketsTable'
@@ -18,13 +19,14 @@ import { toast } from '@/components/Toast'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { useTicketListParams } from '@/hooks/useTicketListParams'
-import { getErrorMessage, isAbortError } from '@/lib/api'
+import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import {
   getDepartmentTickets,
   getMyTickets,
   markTicketComplete,
   assignTicket,
+  markFalseAlarm,
   takeTicket,
 } from '@/lib/tickets'
 import {
@@ -71,6 +73,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const [completing, setCompleting] = useState(false)
   const [completeError, setCompleteError] = useState('')
   const [takingId, setTakingId] = useState<number | null>(null)
+  const [falseAlarmTicketId, setFalseAlarmTicketId] = useState<number | null>(null)
   const [reportModalOpen, setReportModalOpen] = useState(false)
 
   const copy = COPY[mode]
@@ -147,6 +150,19 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
 
   async function handleAssignSubmit(ticketId: number, userId: number) {
     await assignTicket(ticketId, userId)
+    refresh()
+  }
+
+  // Throws on failure so the dialog stays open and shows the message inline.
+  async function handleFalseAlarm(ticketId: number, reason: string) {
+    try {
+      await markFalseAlarm(ticketId, reason)
+    } catch (err) {
+      // 409: someone took, completed or already rejected it; the row is stale.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast('Request rejected as a false alarm')
     refresh()
   }
 
@@ -268,6 +284,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
                 onAssign={setAssignTicketId}
                 onTake={handleTake}
                 onMarkComplete={openComplete}
+                onFalseAlarm={setFalseAlarmTicketId}
                 onOpenComments={setCommentsTicketId}
               />
               <Pagination
@@ -286,6 +303,14 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
         ticketId={assignTicketId}
         onClose={() => setAssignTicketId(null)}
         onAssign={handleAssignSubmit}
+      />
+
+      <FalseAlarmModal
+        isOpen={falseAlarmTicketId !== null}
+        ticketId={falseAlarmTicketId}
+        ticketNumber={data?.tickets.data.find(t => t.id === falseAlarmTicketId)?.ticket_number}
+        onClose={() => setFalseAlarmTicketId(null)}
+        onSubmit={handleFalseAlarm}
       />
 
       <CommentsModal

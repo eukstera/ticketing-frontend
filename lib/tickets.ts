@@ -1,6 +1,6 @@
 // lib/tickets.ts
 import { api } from './api'
-import type { TicketDetail } from '@/types'
+import type { FalseAlarmInfo, TicketDetail } from '@/types'
 import {
   buildListQuery,
   normalizeListResponse,
@@ -71,6 +71,14 @@ export function assignTicket(ticketId: number, userId: number) {
 // The BE has no dedicated endpoint, so this is assign with the caller's own id.
 export function takeTicket(ticketId: number, userId: number) {
   return assignTicket(ticketId, userId)
+}
+
+/** Rejects an untaken request. 409 = it was taken, completed or already rejected; 422 errors.reason = bad reason. */
+export function markFalseAlarm(ticketId: number, reason: string) {
+  return api.post<{ message: string; result: { false_alarm: FalseAlarmInfo } }>(
+    `/tickets/${ticketId}/false-alarm`,
+    { reason: reason.trim() }
+  )
 }
 
 export function getTicketComments(ticketId: number, signal?: AbortSignal) {

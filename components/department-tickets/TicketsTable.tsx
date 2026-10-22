@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { ChevronDown, ChevronRight, Timer } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
-import { PRIORITY_FALLBACK, PRIORITY_STYLES } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, badgeBase } from '@/lib/styles'
 import { optionalSlaLabel } from '@/lib/format'
+import { frozenElapsed } from '@/lib/falseAlarm'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 import StatusCell from './StatusCell'
 import ActionCell from './ActionCell'
@@ -24,6 +25,7 @@ export default function TicketsTable({
   onAssign,
   onTake,
   onMarkComplete,
+  onFalseAlarm,
   onOpenComments,
 }: {
   tickets: DepartmentTicket[]
@@ -34,6 +36,7 @@ export default function TicketsTable({
   onAssign: (id: number) => void
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
+  onFalseAlarm?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const user = useUser()
@@ -52,6 +55,7 @@ export default function TicketsTable({
           onAssign={onAssign}
           onTake={onTake}
           onMarkComplete={onMarkComplete}
+          onFalseAlarm={onFalseAlarm}
           onOpenComments={onOpenComments}
         />
       ))}
@@ -89,6 +93,7 @@ export default function TicketsTable({
               onAssign={onAssign}
               onTake={onTake}
               onMarkComplete={onMarkComplete}
+              onFalseAlarm={onFalseAlarm}
               onOpenComments={onOpenComments}
             />
           ))}
@@ -106,6 +111,7 @@ function TicketCard({
   onAssign,
   onTake,
   onMarkComplete,
+  onFalseAlarm,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -114,9 +120,11 @@ function TicketCard({
   onAssign: (id: number) => void
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
+  onFalseAlarm?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
+  const frozen = frozenElapsed(ticket)
   const priorityBadge = (PRIORITY_STYLES[ticket.priority] ?? PRIORITY_FALLBACK).badge
   const sla = optionalSlaLabel(ticket.priority_sla)
 
@@ -139,7 +147,7 @@ function TicketCard({
         <div>
           <dt className="text-xs text-gray-500">Priority</dt>
           <dd>
-            <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityBadge}`}>
+            <span className={`${badgeBase} ${priorityBadge}`}>
               {ticket.priority}
             </span>
             {sla && <span className="ml-1.5 text-xs text-gray-500">{sla}</span>}
@@ -148,7 +156,7 @@ function TicketCard({
         <div>
           <dt className="text-xs text-gray-500">Elapsed</dt>
           <dd className="text-gray-700">
-            {timerStartDate ? <LiveTimer startDate={timerStartDate} /> : '—'}
+            {timerStartDate ? <LiveTimer startDate={timerStartDate} /> : frozen ?? '—'}
           </dd>
         </div>
         <div className="col-span-2">
@@ -164,6 +172,7 @@ function TicketCard({
           onAssign={onAssign}
           onTake={onTake}
           onMarkComplete={onMarkComplete}
+          onFalseAlarm={onFalseAlarm}
         />
         <CommentButton ticketNumber={ticket.ticket_number} count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
       </div>
@@ -189,6 +198,7 @@ function TicketRow({
   onAssign,
   onTake,
   onMarkComplete,
+  onFalseAlarm,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -199,9 +209,11 @@ function TicketRow({
   onAssign: (id: number) => void
   onTake?: (id: number) => void
   onMarkComplete: (id: number) => void
+  onFalseAlarm?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
+  const frozen = frozenElapsed(ticket)
   const isIT = user?.department_id === IT_DEPARTMENT_ID
   const detailsId = `ticket-${ticket.id}-details`
 
@@ -249,7 +261,9 @@ function TicketRow({
               <Timer size={12} className="text-gray-500" aria-hidden="true" />
               <LiveTimer startDate={timerStartDate} />
             </div>
-          ) : <span className="text-xs text-gray-500">—</span>}
+          ) : (
+            <span className="text-xs text-gray-500">{frozen ?? '—'}</span>
+          )}
         </td>
         <td className="px-4 py-3">
           <ActionCell
@@ -259,6 +273,7 @@ function TicketRow({
             onAssign={onAssign}
             onTake={onTake}
             onMarkComplete={onMarkComplete}
+            onFalseAlarm={onFalseAlarm}
           />
         </td>
         <td className="px-3 py-3 text-center">
