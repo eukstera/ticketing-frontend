@@ -7,11 +7,46 @@ const DEV_FALLBACK_URL = 'http://localhost:8000/api'
 let warnedMissingUrl = false
 const IS_DEV = process.env.NODE_ENV === 'development'
 
+const LOOPBACK = /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$/i
+
+/**
+ * Lets the app work with or without SSL. A protocol-relative URL
+ * (`//host/api`) takes the page's scheme. An http URL for a non-loopback host
+ * is upgraded when the page itself is https, since browsers block that as
+ * mixed content. Everything else is returned unchanged.
+ */
+export function matchPageScheme(url: string, pageProtocol?: string, pageHostname?: string): string {
+  const protocol = pageProtocol ?? (typeof window !== 'undefined' ? window.location.protocol : undefined)
+  const hostname = pageHostname ?? (typeof window !== 'undefined' ? window.location.hostname : undefined)
+  // A phone or another PC opening the app by LAN address cannot reach the
+  // API at "localhost" (that is the device itself), so follow the page's host.
+  if (hostname && !LOOPBACK.test(hostname)) {
+    try {
+      const parsed = new URL(url, `${protocol ?? 'http:'}//${hostname}`)
+      if (LOOPBACK.test(parsed.hostname)) {
+        parsed.hostname = hostname
+        url = parsed.href
+      }
+    } catch {
+      // not a parseable URL: leave it for fetch to report
+    }
+  }
+  if (url.startsWith('//')) return `${protocol ?? 'http:'}${url}`
+  if (protocol === 'https:' && url.startsWith('http://')) {
+    try {
+      if (!LOOPBACK.test(new URL(url).hostname)) return `https://${url.slice('http://'.length)}`
+    } catch {
+      // not a parseable URL: leave it for fetch to report
+    }
+  }
+  return url
+}
+
 // Resolved per request (not at module load) so a missing prod env var surfaces
 // as a request error instead of breaking the build's prerender step.
 function getBaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL
-  if (url) return url
+  if (url) return matchPageScheme(url)
   if (process.env.NODE_ENV === 'production') {
     console.error('NEXT_PUBLIC_API_URL is not set; refusing to call the API.')
     throw new ApiError(0, 'API URL is not configured.', undefined, false)
