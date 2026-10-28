@@ -557,7 +557,7 @@ function TicketBody({
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Actions taken</h2>
+        <h2 className="mb-3 text-sm font-semibold text-gray-800">Comments</h2>
         <CommentThread ticketId={ticket.id} initialComments={ticket.comments} />
       </section>
     </div>

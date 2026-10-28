@@ -22,7 +22,7 @@ function statusInfo(ticket: DepartmentTicket) {
         )}
         {notes && (
           <p className="mt-1 line-clamp-2 text-gray-600" title={notes}>
-            Notes: {notes}
+            Action taken: {notes}
           </p>
         )}
       </div>

@@ -118,7 +118,7 @@ export default function ConfirmationPanel({
 
       {c.completion_notes && (
         <dl className="mt-3">
-          <Row label="Completion notes">
+          <Row label="Action taken">
             <span className="whitespace-pre-wrap">{c.completion_notes}</span>
           </Row>
         </dl>

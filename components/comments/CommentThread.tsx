@@ -20,7 +20,7 @@ import { btnPrimary, btnSecondary, btnSm, input } from '@/lib/styles'
 import { formatDateTimeText } from '@/lib/format'
 
 /**
- * Comments ("actions taken") for one ticket: list, add, edit (author) and
+ * Comments for one ticket: list, add, edit (author) and
  * delete (author or admin). Pass `initialComments` when the parent already has
  * them (e.g. the ticket detail payload); otherwise they are fetched. Remount
  * with a new `key` to reset when the ticket changes.
@@ -78,11 +78,11 @@ export default function CommentThread({
       const res = await addTicketComment(ticketId, text)
       setComments(prev => [...(prev ?? []), res.result.comment])
       setNewComment('')
-      toast('Action taken added')
+      toast('Comment added')
       onChanged?.()
     } catch (err) {
       console.error(err)
-      toast(getErrorMessage(err, 'Failed to add action taken'), 'error')
+      toast(getErrorMessage(err, 'Failed to add comment'), 'error')
     } finally {
       setSubmitting(false)
     }
@@ -162,7 +162,7 @@ export default function CommentThread({
           </div>
         ) : comments.length === 0 ? (
           <p className="py-4 text-center text-sm text-gray-500">
-            No actions taken yet. Be the first to take action.
+            No comments yet.
           </p>
         ) : (
           comments.map(c => {

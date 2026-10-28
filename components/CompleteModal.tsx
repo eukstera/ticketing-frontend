@@ -19,7 +19,7 @@ interface Props {
 
 /**
  * "Complete ticket": the work is done, and the requester is asked to confirm.
- * Completion notes are required (the API rejects a completion without them).
+ * The action taken (the completion notes) is required (the API rejects a completion without them).
  */
 export default function CompleteModal({ isOpen, ticketId, ticketNumber, requesterEmail, onClose, onSubmit }: Props) {
   if (!isOpen || ticketId == null) return null
@@ -32,6 +32,9 @@ export default function CompleteModal({ isOpen, ticketId, ticketNumber, requeste
           <p>
             Mark <strong className="font-semibold text-gray-800">{ticketNumber ?? 'this ticket'}</strong> as done. It is
             not closed yet: the requester is asked to confirm the work first.
+          </p>
+          <p className="mt-2">
+            Describe the action you took. This text appears on the accomplishment report.
           </p>
           {requesterEmail !== undefined && (
             <p className="mt-2">
@@ -49,7 +52,7 @@ export default function CompleteModal({ isOpen, ticketId, ticketNumber, requeste
           )}
         </>
       }
-      label="Completion notes"
+      label="Action taken"
       apiField="notes"
       min={NOTES_MIN}
       max={NOTES_MAX}

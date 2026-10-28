@@ -29,7 +29,7 @@ function describeEntry(entry: DateActivity): { title: string; tone: keyof typeof
     return { title: entry.user ? `Confirmed by ${entry.user}` : 'Confirmed by the requester', tone: 'green', remarkLabel: 'Note' }
   }
   if (category.includes('Auto-closed')) return { title: 'Closed automatically', tone: 'gray', remarkLabel: 'Note' }
-  return { title: `Completed${by}`, tone: 'teal', remarkLabel: 'Notes' }
+  return { title: `Completed${by}`, tone: 'teal', remarkLabel: 'Action taken' }
 }
 
 function historyOf(activities: DateActivity[] | undefined): DateActivity[] {

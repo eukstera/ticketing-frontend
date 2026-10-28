@@ -99,7 +99,7 @@ export default function TicketsTable({
             <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-gray-500">Info</th>
             <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-gray-500">Elapsed Time</th>
             <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-gray-500 min-w-[140px]">Action</th>
-            <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-gray-500">Actions Taken</th>
+            <th scope="col" className="text-left px-4 py-3 text-xs font-medium text-gray-500">Comments</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">

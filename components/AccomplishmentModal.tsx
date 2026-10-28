@@ -233,7 +233,7 @@ function AccomplishmentReportContent({ onClose }: { onClose: () => void }) {
         </>
       }
     >
-      <p className="text-sm text-gray-500 mb-4">Choose a date range and who signs the report</p>
+      <p className="text-sm text-gray-500 mb-4">Choose a date range and who signs the report. Each ticket&apos;s action taken is the note entered when it was completed.</p>
 
       <form id={formId} onSubmit={handleDownload}>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-3.5">

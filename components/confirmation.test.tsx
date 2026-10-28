@@ -181,7 +181,7 @@ describe('Info column', () => {
     const out = info('Pending Confirmation', [requested, completed])
     expect(out).toContain('Awaiting requester confirmation')
     expect(out).toContain('Ana Tech')
-    expect(out).toContain('Notes: ')
+    expect(out).toContain('Action taken: ')
     expect(out).toContain('Replaced the faulty switch')
   })
 
@@ -235,7 +235,7 @@ describe('timeline history for completion and confirmation', () => {
     const html = out([requested, assigned, completed1])
     expect(html).toContain('Ticket history')
     expect(html).toContain('Completed by Ana Tech')
-    expect(html).toContain('Notes: ')
+    expect(html).toContain('Action taken: ')
     expect(html).toContain('Replaced the faulty switch')
   })
 
@@ -394,7 +394,7 @@ describe('Complete and Close dialogs', () => {
 
   it('requires completion notes: a required, labelled textarea capped at 2000, with a counter', () => {
     const out = complete()
-    expect(out).toContain('Completion notes')
+    expect(out).toContain('Action taken')
     expect(out).toMatch(/<textarea[^>]*maxLength="2000"/i)
     expect(out).toMatch(/<textarea[^>]*required/i)
     expect(out).toMatch(/>0(<!-- -->)?\/(<!-- -->)?2000</)
