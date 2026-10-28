@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Menu, User as UserIcon, X } from 'lucide-react'
-import { logout, isAdmin } from '@/lib/auth'
+import { logout, isAdmin, isEncoder } from '@/lib/auth'
 import { useUser } from '@/hooks/useUser'
 import Avatar from '@/components/ui/Avatar'
 import NotificationBell from '@/components/NotificationBell'
@@ -30,6 +30,7 @@ export default function Navbar() {
     { href: '/tickets/create', label: 'Create Ticket' },
     { href: '/my-tickets', label: 'My Tickets' },
     // Admin pages are built in Phase 2; role comes from /me (Department Head).
+    ...(isAdmin(user) || isEncoder(user) ? [{ href: '/reports/consolidated', label: 'Consolidation' }] : []),
     ...(isAdmin(user) ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
 

@@ -86,3 +86,20 @@ export function formatDateTimeText(dateStr: string): string {
   const { date, time } = formatDateTime(dateStr)
   return `${date} ${time}`
 }
+
+/**
+ * A duration given in minutes as "2d 4h", "5h 30m", "45m" or "<1m"; "—" when
+ * unknown (null/undefined/negative/not finite). Used by the Consolidation page.
+ */
+export function formatDuration(minutes: number | null | undefined): string {
+  if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes < 0) return '—'
+  if (minutes < 1) return '<1m'
+  const total = Math.round(minutes)
+  if (total < 60) return `${total}m`
+  const hours = Math.floor(total / 60)
+  const mins = total % 60
+  if (hours < 24) return mins ? `${hours}h ${mins}m` : `${hours}h`
+  const days = Math.floor(hours / 24)
+  const rest = hours % 24
+  return rest ? `${days}d ${rest}h` : `${days}d`
+}

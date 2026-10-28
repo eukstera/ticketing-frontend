@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime, formatDateTimeText, formatElapsed, relativeTime } from './format'
+import { barWidth, commentsLabel, monthLabel, optionalSlaLabel, slaLabel, percentOf, safeCount, formatDateTime, formatDateTimeText, formatElapsed, relativeTime, formatDuration } from './format'
 
 describe('percentOf', () => {
   it('returns 0 when the total is zero (no NaN/Infinity)', () => {
@@ -132,5 +132,27 @@ describe('formatElapsed', () => {
   it('floors fractions and never goes negative (clock skew)', () => {
     expect(formatElapsed(59.9)).toBe('0m 59s')
     expect(formatElapsed(-30)).toBe('0m 0s')
+  })
+})
+
+describe('formatDuration', () => {
+  it.each([
+    [0, '<1m'],
+    [0.4, '<1m'],
+    [1, '1m'],
+    [45, '45m'],
+    [60, '1h'],
+    [330, '5h 30m'],
+    [1440, '1d'],
+    [3120, '2d 4h'],
+  ])('%s minutes gives %s', (minutes, text) => {
+    expect(formatDuration(minutes)).toBe(text)
+  })
+
+  it('is a dash when unknown', () => {
+    expect(formatDuration(null)).toBe('—')
+    expect(formatDuration(undefined)).toBe('—')
+    expect(formatDuration(-5)).toBe('—')
+    expect(formatDuration(Number.NaN)).toBe('—')
   })
 })
