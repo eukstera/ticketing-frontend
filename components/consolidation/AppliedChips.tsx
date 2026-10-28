@@ -21,12 +21,16 @@ export function buildChips(
   f: ConsolidationFilters,
   lists: Partial<Record<'statuses' | 'priorities' | 'concern_types' | 'staff', ConsolidationOption[]>>
 ): Chip[] {
+  // Area chips are names already; the others are ids, so wait for the options
+  // (a missing list) instead of showing raw ids.
+  const named = (key: ListKey, values: number[], list: ConsolidationOption[] | undefined): Chip[] =>
+    list ? values.map(v => ({ key, value: v, name: nameOf(list, v) })) : []
   return [
     ...f.area.map(v => ({ key: 'area' as const, value: v, name: v })),
-    ...f.status.map(v => ({ key: 'status' as const, value: v, name: nameOf(lists.statuses, v) })),
-    ...f.priority.map(v => ({ key: 'priority' as const, value: v, name: nameOf(lists.priorities, v) })),
-    ...f.type.map(v => ({ key: 'type' as const, value: v, name: nameOf(lists.concern_types, v) })),
-    ...f.staff.map(v => ({ key: 'staff' as const, value: v, name: nameOf(lists.staff, v) })),
+    ...named('status', f.status, lists.statuses),
+    ...named('priority', f.priority, lists.priorities),
+    ...named('type', f.type, lists.concern_types),
+    ...named('staff', f.staff, lists.staff),
   ]
 }
 

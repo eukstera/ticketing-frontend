@@ -146,6 +146,7 @@ describe('export button', () => {
   it('exporting: busy, disabled, then "Still working…"', () => {
     const html = btn({ busy: true, disabled: true })
     expect(html).toContain('Exporting…')
+    expect(html).toContain('role="status"')
     expect(html).toContain('aria-busy="true"')
     expect(html).toContain('disabled=""')
     expect(btn({ busy: true, slow: true, disabled: true })).toContain('Still working…')
@@ -164,6 +165,12 @@ describe('applied chips and selection summary', () => {
     const chips = buildChips(f, { statuses: [{ id: 1, name: 'Open' }, { id: 2, name: 'Completed' }] })
     expect(chips.map(c => c.name)).toEqual(['ER', 'Open', 'Completed'])
     expect(withoutChip(f, chips[1]).status).toEqual([2])
+  })
+
+  it('omits id-based chips until the options are ready, keeping area names', () => {
+    const f = { ...defaultFilters(), status: [1], staff: [2], area: ['ER'] }
+    expect(buildChips(f, {}).map(c => c.name)).toEqual(['ER'])
+    expect(buildChips(f, { statuses: [{ id: 1, name: 'Open' }] }).map(c => c.name)).toEqual(['ER', 'Open'])
   })
 
   it('summarizes: All / the name / N selected', () => {

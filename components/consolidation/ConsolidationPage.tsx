@@ -222,6 +222,9 @@ export function ExportButton({
         )}
         {busy ? (slow ? 'Still working…' : 'Exporting…') : 'Export to Excel'}
       </button>
+      <span role="status" className="sr-only">
+        {busy ? (slow ? 'Still working…' : 'Exporting…') : ''}
+      </span>
       {noMatches && (
         <span id="consolidation-export-note" className="sr-only">
           {NO_MATCHES}
@@ -269,10 +272,15 @@ export function ReportBody({
   return (
     <>
       {error && <ErrorState message={`Couldn't load the report. ${error}`} onRetry={onRetry} />}
-      <KpiTiles summary={data.summary} />
-      {data.breakdowns && (
-        <Breakdowns byStatus={data.breakdowns.by_status ?? []} byPriority={data.breakdowns.by_priority ?? []} />
-      )}
+      <div
+        aria-busy={refreshing || undefined}
+        className={`space-y-6 transition-opacity ${refreshing ? 'opacity-60' : ''}`}
+      >
+        <KpiTiles summary={data.summary} />
+        {data.breakdowns && (
+          <Breakdowns byStatus={data.breakdowns.by_status ?? []} byPriority={data.breakdowns.by_priority ?? []} />
+        )}
+      </div>
       <section aria-labelledby="consolidation-preview">
         <h2 id="consolidation-preview" className="text-base font-semibold text-gray-900">Preview</h2>
         <p className="mb-3 text-sm text-gray-500">

@@ -1,18 +1,8 @@
 // "By status" and "By priority" as div bars (no chart library).
 import { barWidth } from '@/lib/format'
 import { formatCount } from '@/lib/consolidation'
-import { PRIORITY_FALLBACK, PRIORITY_STYLES } from '@/lib/styles'
+import { PRIORITY_FALLBACK, PRIORITY_STYLES, STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
 import type { LabelCount } from '@/types/consolidation'
-
-// Full class names so Tailwind sees them.
-const STATUS_BARS: Record<string, string> = {
-  Open: 'bg-blue-500',
-  'In-progress': 'bg-amber-500',
-  Completed: 'bg-green-500',
-  Overdue: 'bg-red-500',
-  'Pending Confirmation': 'bg-teal-500',
-  'False Alarm': 'bg-gray-400',
-}
 
 function BreakdownCard({
   title,
@@ -52,7 +42,7 @@ function BreakdownCard({
 export default function Breakdowns({ byStatus, byPriority }: { byStatus: LabelCount[]; byPriority: LabelCount[] }) {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
-      <BreakdownCard title="By status" rows={byStatus} barClass={l => STATUS_BARS[l] ?? 'bg-gray-400'} />
+      <BreakdownCard title="By status" rows={byStatus} barClass={l => (STATUS_STYLES[l] ?? STATUS_FALLBACK).solid} />
       <BreakdownCard title="By priority" rows={byPriority} barClass={l => (PRIORITY_STYLES[l] ?? PRIORITY_FALLBACK).solid} />
     </div>
   )

@@ -56,8 +56,10 @@ export default function KpiTiles({ summary }: { summary: ConsolidationSummary })
   return (
     <dl className={GRID}>
       {buildTiles(summary).map(t => (
-        <div key={t.label} className={`rounded-xl border px-4 py-4 sm:px-6 sm:py-5 ${t.className}`}>
-          <dd className="text-2xl font-semibold sm:text-3xl">
+        // DOM order is dt, dd, dd (valid); `order-*` shows value, label, caption.
+        <div key={t.label} className={`flex flex-col rounded-xl border px-4 py-4 sm:px-6 sm:py-5 ${t.className}`}>
+          <dt className="order-2 mt-1 text-xs text-gray-700 sm:text-sm">{t.label}</dt>
+          <dd className="order-1 text-2xl font-semibold sm:text-3xl">
             {t.value ?? (
               <>
                 <span aria-hidden="true">—</span>
@@ -65,8 +67,7 @@ export default function KpiTiles({ summary }: { summary: ConsolidationSummary })
               </>
             )}
           </dd>
-          <dt className="mt-1 text-xs text-gray-700 sm:text-sm">{t.label}</dt>
-          {t.caption && <p className="mt-0.5 text-xs text-gray-600">{t.caption}</p>}
+          {t.caption && <dd className="order-3 mt-0.5 text-xs text-gray-600">{t.caption}</dd>}
         </div>
       ))}
     </dl>

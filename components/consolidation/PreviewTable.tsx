@@ -46,7 +46,7 @@ export default function PreviewTable({
         <caption className="sr-only">Consolidated tickets</caption>
         <thead className="border-b border-gray-200 bg-gray-50">
           <tr>
-            <th scope="col" className={`${TH} sticky left-0 bg-gray-50`}>Ticket no.</th>
+            <th scope="col" className={`${TH} sticky left-0 border-r border-gray-100 bg-gray-50`}>Ticket no.</th>
             <th scope="col" className={TH}>Requested</th>
             <th scope="col" className={TH}>Requester</th>
             <th scope="col" className={TH}>Concern type</th>
@@ -64,8 +64,8 @@ export default function PreviewTable({
             const handler = nameParts(t.handled_by)
             const priority = t.priority ? (PRIORITY_STYLES[t.priority] ?? PRIORITY_FALLBACK) : null
             return (
-              <tr key={t.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="sticky left-0 bg-white px-4 py-3">
+              <tr key={t.id} className="group border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <td className="sticky left-0 border-r border-gray-100 bg-white px-4 py-3 group-hover:bg-gray-50">
                   <Link href={`/tickets/${t.id}`} className="font-medium text-blue-700 hover:underline">
                     {t.ticket_number}
                   </Link>
