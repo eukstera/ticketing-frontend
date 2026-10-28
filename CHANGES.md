@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-28 — Ticket workflow rules (Assign, False alarm, Complete, Action taken)
+
+**Ship with the matching API changes; the FE and API must deploy together.**
+
+- **Assign** (e8a5b5d): only a Department Head of the handling department sees Assign (`canAssign` in `lib/assign.ts`). Staff keep "Take ticket", which is a self-assign. The API returns 403 to non-heads assigning anyone else.
+- **False alarm** (3f1fab2): available on Open, In-progress and Overdue tickets, taken or untaken, for the assignee, the handling department and heads (`canMarkFalseAlarm`). A head's Reopen returns the ticket to Open, untaken.
+- **Complete** (3f1fab2): only the member who took the ticket sees Complete (`canCompleteTicket` in `lib/complete.ts`). Heads keep "Close for requester" on Pending Confirmation tickets.
+- **Action taken** (0aa4507): the Complete dialog's text is labelled "Action taken" and is what the accomplishment report shows (latest completion only). Comments are plain "Comments" everywhere.
+- **Repo rules:** `AGENTS.md` now covers session roles, back-end coordination, graphify-first code exploration, the "Commit and Push" steps and the styling rules (Tailwind, no redesign).
+
 ## Deploy notes
 
 - **API URL:** production reads `NEXT_PUBLIC_API_URL` from `.env.production` (`https://backend_ticketing.apps.gbtrghsc.local/api`). `NEXT_PUBLIC_*` values are inlined at build time, so changing it requires a rebuild. If it is missing in production, every API call fails loudly instead of silently falling back.
