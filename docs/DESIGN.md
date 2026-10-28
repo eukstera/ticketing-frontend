@@ -108,9 +108,20 @@ Status after the final polish batch. Everything below is committed on `main`; `n
 - **Tailwind class conflicts are resolved by stylesheet order, not class order.** Never combine two same-property utilities in one string (`px-4` + `px-3`, `w-full` + `w-auto`, `text-sm` + `text-xs`) and expect the later one to win. Use `!` modifiers (`btnSm`) or a dedicated constant (`inputAuto`, `btnTint`).
 - **Disclosure vs menu**: the account menu and priority dropdown follow the menu/listbox keyboard patterns; if either grows beyond a couple of items, add Home/End/typeahead.
 
+### Consolidation page (`/reports/consolidated`, Encoder + Department Head, own department only)
+Built from existing pieces; no new look and no chart library. Commits e1101cc, e69994a, 60e3c39.
+- **Filters** edit a *draft* and only Apply writes the URL (`basis, from, to, area, status, priority, type, staff, page`; comma lists, ids except `area`). The panel remounts (`key`) when the applied filters change, so the draft never drifts. Phone: a "Filters (n)" toggle with `aria-expanded`. Exports and chips always use the *applied* filters; an amber hint shows when the draft differs.
+- **`ui/MultiSelect`** (generic): FilterPills' dropdown pattern as a multi-choice listbox (`aria-multiselectable`, arrow/Home/End, Escape returns focus to the trigger, Tab closes). Trigger reads "All" / the name / "N selected"; a search box appears above 8 options (`SEARCH_THRESHOLD`). Status and priority options carry their `STATUS_STYLES`/`PRIORITY_STYLES` colours via `chipClass`. Reuse it for any new multi-filter.
+- **KPI tiles** are a `<dl>` of static tiles with StatCard's shell (hover classes stripped). Valid markup needs `dt`, then `dd`: the DOM order is label, value, caption, and `order-1/2/3` on a `flex flex-col` tile shows value, label, caption. Don't use `flex-col-reverse` (it would put the caption on top). `null` renders "—" plus sr-only "No data".
+- **Breakdown bars** are plain divs (`role="img"` + a label that lists the numbers). Colours come from `STATUS_STYLES[x].solid` / `PRIORITY_STYLES[x].solid`; add a new status once in `lib/styles.ts`.
+- **Preview table** follows the admin table: `overflow-x-auto`, `min-w-[960px]`, sr-only caption, no card layout on phones. The **Ticket no. column is sticky** (`sticky left-0`, `border-r`); because a sticky cell needs its own background, the row is a `group` and the cell uses `group-hover:bg-gray-50` so hover stays uniform. A page change dims rows, tiles and breakdowns (`opacity-60`, `aria-busy`) rather than swapping in skeletons.
+- **Export** (`useConsolidatedExport`): one at a time (ref guard), aborts on unmount, "Exporting…" then "Still working…" after 5 s, announced through an sr-only `role="status"`; disabled with a stated reason when nothing matches.
+- Durations use `formatDuration` (`lib/format.ts`): "2d 4h", "5h 30m", "<1m", "—".
+- Not yet checked visually at phone width (Filters toggle, sticky column, dropdown near the bottom of the panel).
+
 ## Open (none blocks release)
 1. **Admin tables on phones.** They scroll horizontally (`min-w-[640px]`) rather than stacking into cards like the ticket list. Acceptable for an admin tool; reuse the ticket card pattern if that changes.
-2. **Page titles.** Only the ticket detail page sets `document.title`; the other client pages share the layout title.
+2. **Page titles.** Only the ticket detail and Consolidation pages set `document.title`; the other client pages share the layout title.
 3. **Account menu keys.** It has `role="menu"` with Escape and focus management but no arrow-key navigation (it holds two items). Add arrows if items are added.
 4. **Verification gap.** Run a keyboard-only pass and one screen reader (NVDA/VoiceOver) over login, ticket list, ticket detail, create-ticket, profile and an admin list/form, and run axe on the same pages. (`next build` is deliberately not part of this work; see the exception note below.)
 
