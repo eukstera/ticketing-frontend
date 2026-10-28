@@ -77,15 +77,22 @@ describe('ActionCell: False alarm button', () => {
     expect(actions(null)).toBe('')
   })
 
-  it('is hidden once the ticket is taken', () => {
+  it('is offered after the ticket is taken (In-progress), to staff, the assignee and heads', () => {
     const taken = row({ status: 'In-progress', assigned_activity: { id: 1, created_at: '', user: 'Ana', user_id: 3 } })
-    expect(actions(staff, taken)).not.toContain('False alarm')
+    expect(actions(staff, taken)).toContain('False alarm')
+    expect(actions({ ...staff, id: 3, department_id: 2 } as AuthUser, taken)).toContain('False alarm')
+    expect(actions(otherHead, taken)).toContain('False alarm')
+    expect(actions({ ...staff, id: 4, department_id: 2 } as AuthUser, taken)).toBe('')
   })
 
-  it('is offered on an untaken overdue ticket, but not a taken one', () => {
+  it('is offered on an overdue ticket, taken or not', () => {
     expect(actions(staff, row({ status: 'Overdue' }))).toContain('False alarm')
     const taken = row({ status: 'Overdue', assigned_activity: { id: 1, created_at: '', user: 'Ana', user_id: 3 } })
-    expect(actions(staff, taken)).not.toContain('False alarm')
+    expect(actions(staff, taken)).toContain('False alarm')
+  })
+
+  it('is not offered once the ticket is completed or pending confirmation', () => {
+    for (const status of ['Completed', 'Pending Confirmation']) expect(actions(staff, row({ status }))).not.toContain('False alarm')
   })
 
   it('clears the Action column once rejected', () => {

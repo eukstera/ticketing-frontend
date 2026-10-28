@@ -4,6 +4,7 @@ import { Ban, Mail, RotateCcw, UserCheck } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
 import { useUser } from '@/hooks/useUser'
 import { canAssign } from '@/lib/assign'
+import { canCompleteTicket } from '@/lib/complete'
 import { FALSE_ALARM_STATUS, canMarkFalseAlarm, canReopen } from '@/lib/falseAlarm'
 import { canCloseOnBehalf, canResendConfirmation, isPendingConfirmation } from '@/lib/confirmation'
 import { canDownloadJobOrder } from '@/lib/jobOrder'
@@ -58,9 +59,8 @@ export default function ActionCell({
   const isMember = !!user && user.department_id === ticket.department_id
   // Assigning is for the handling department's Department Head only; staff just take.
   const showAssign = canAssign(ticket, user)
-  const isAssignee = !!user && ticket.assigned_activity?.user_id === user.id
 
-  // Staff of the handling department and Department Heads may reject an untaken request.
+  // The assignee, the handling department's staff and Department Heads may reject a request.
   const canReject = !!onFalseAlarm && canMarkFalseAlarm(ticket, user)
   const falseAlarmButton = canReject && (
     <button
@@ -133,7 +133,7 @@ export default function ActionCell({
     )
   }
 
-  // An untaken overdue request can still be rejected.
+  // An overdue request can still be rejected, taken or not.
   if (ticket.status === 'Overdue' && (canReject || canJo)) {
     return (
       <div className={row}>
@@ -144,8 +144,8 @@ export default function ActionCell({
   }
 
   if (ticket.status === 'In-progress') {
-    const canComplete = isMember || isAssignee
-    if (!canComplete && !canJo) return null
+    const canComplete = canCompleteTicket(ticket, user)
+    if (!canComplete && !canJo && !canReject) return null
     return (
       <div className={row}>
         {canComplete && (
@@ -158,6 +158,7 @@ export default function ActionCell({
             Complete
           </button>
         )}
+        {falseAlarmButton}
         {jobOrderButton}
       </div>
     )

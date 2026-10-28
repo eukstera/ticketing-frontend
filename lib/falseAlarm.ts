@@ -20,15 +20,19 @@ export function validateReason(reason: string): string | null {
 type RejectableTicket = Pick<DepartmentTicket, 'status' | 'department_id' | 'assigned_activity'>
 
 /**
- * Who sees the "False alarm" button: staff of the ticket's handling department
- * and Department Heads, on an untaken Open or Overdue ticket. (The API decides;
- * this only avoids offering a button that would 403/409.)
+ * Who sees the "False alarm" button: the assignee, staff of the ticket's
+ * handling department and Department Heads, on an Open, In-progress or Overdue
+ * ticket, taken or not. (The API decides; this only avoids offering a button
+ * that would 403/409.)
  */
 export function canMarkFalseAlarm(ticket: RejectableTicket, user: AuthUser | null | undefined): boolean {
   if (!user) return false
-  if (ticket.status !== 'Open' && ticket.status !== 'Overdue') return false
-  if (ticket.assigned_activity) return false
-  return user.department_id === ticket.department_id || isAdmin(user)
+  if (ticket.status !== 'Open' && ticket.status !== 'In-progress' && ticket.status !== 'Overdue') return false
+  return (
+    user.department_id === ticket.department_id ||
+    isAdmin(user) ||
+    ticket.assigned_activity?.user_id === user.id
+  )
 }
 
 /**

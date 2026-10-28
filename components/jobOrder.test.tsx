@@ -61,7 +61,7 @@ describe('Download JO button visibility', () => {
     expect(html).not.toContain('Assign')
   })
 
-  it('sits next to Complete on an in-progress ticket', () => {
+  it('sits next to Complete on an in-progress ticket the user took', () => {
     const html = render(staff, ticket('In-progress', 1, true))
     expect(html).toContain('Complete')
     expect(html).toContain('Download JO')

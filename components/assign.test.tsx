@@ -54,3 +54,29 @@ describe('ActionCell: Assign button', () => {
     expect(actions(null)).not.toContain('Assign')
   })
 })
+
+describe('ActionCell: Complete button', () => {
+  const taken = { id: 5, status: 'In-progress', department_id: 1, assigned_activity: { id: 1, created_at: '', user: 'Ana', user_id: 7 } }
+  const render = (user: AuthUser | null, t: typeof taken | ReturnType<typeof ticket> = taken) => {
+    state.user = user
+    return renderToString(<ActionCell ticket={t} ticketNumber="10-005-2026" onMarkComplete={noop} />)
+  }
+
+  it('is shown to the assignee only', () => {
+    expect(render(staff)).toContain('Complete ticket 10-005-2026')
+  })
+
+  it('is hidden from other staff of the department, heads who did not take it and other departments', () => {
+    expect(render({ ...staff, id: 8 } as AuthUser)).not.toContain('Complete ticket')
+    expect(render(head)).not.toContain('Complete ticket')
+    expect(render(otherHead)).not.toContain('Complete ticket')
+  })
+
+  it('is shown to a head who took the ticket', () => {
+    expect(render({ ...head, id: 7 } as AuthUser)).toContain('Complete ticket')
+  })
+
+  it('is hidden on an unassigned ticket', () => {
+    expect(render(staff, ticket('In-progress'))).not.toContain('Complete ticket')
+  })
+})

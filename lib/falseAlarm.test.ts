@@ -67,12 +67,19 @@ describe('canMarkFalseAlarm', () => {
     expect(canMarkFalseAlarm(ticket({ department_id: 1 }), user({ department_id: 2 }))).toBe(false)
   })
 
-  it('is not offered once the ticket is taken, in any status', () => {
-    expect(canMarkFalseAlarm(ticket({ assigned_activity: assigned }), user())).toBe(false)
-    expect(canMarkFalseAlarm(ticket({ status: 'Overdue', assigned_activity: assigned }), user())).toBe(false)
+  it.each(['Open', 'In-progress', 'Overdue'])('is still offered once a %s ticket is taken', status => {
+    const taken = ticket({ status, assigned_activity: assigned })
+    expect(canMarkFalseAlarm(taken, user())).toBe(true)
+    expect(canMarkFalseAlarm(taken, head())).toBe(true)
   })
 
-  it.each(['In-progress', 'Completed', FALSE_ALARM_STATUS])('is not offered for a %s ticket', status => {
+  it('is offered to the assignee even from another department', () => {
+    const taken = ticket({ status: 'In-progress', assigned_activity: assigned })
+    expect(canMarkFalseAlarm(taken, user({ id: 3, department_id: 2 }))).toBe(true)
+    expect(canMarkFalseAlarm(taken, user({ id: 4, department_id: 2 }))).toBe(false)
+  })
+
+  it.each(['Completed', 'Pending Confirmation', FALSE_ALARM_STATUS])('is not offered for a %s ticket', status => {
     expect(canMarkFalseAlarm(ticket({ status }), user())).toBe(false)
     expect(canMarkFalseAlarm(ticket({ status }), head())).toBe(false)
   })
