@@ -14,6 +14,8 @@ export interface StatusStyle {
   ring: string
   /** Dashboard stat card (background, border, text, hover) */
   card: string
+  /** Solid fill for bars/dots (Consolidation breakdown bars) */
+  solid: string
 }
 
 export const STATUS_STYLES: Record<string, StatusStyle> = {
@@ -22,24 +24,28 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     pill: 'bg-blue-50 text-blue-700 border-blue-300',
     ring: 'ring-blue-400',
     card: 'bg-blue-100 border-blue-200 text-blue-700 hover:bg-blue-200',
+    solid: 'bg-blue-500',
   },
   'In-progress': {
     badge: 'bg-amber-100 text-amber-800',
     pill: 'bg-amber-50 text-amber-700 border-amber-300',
     ring: 'ring-amber-400',
     card: 'bg-amber-100 border-amber-200 text-amber-700 hover:bg-amber-200',
+    solid: 'bg-amber-500',
   },
   Completed: {
     badge: 'bg-green-100 text-green-800',
     pill: 'bg-green-50 text-green-700 border-green-300',
     ring: 'ring-green-400',
     card: 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200',
+    solid: 'bg-green-500',
   },
   Overdue: {
     badge: 'bg-red-100 text-red-800',
     pill: 'bg-red-50 text-red-700 border-red-300',
     ring: 'ring-red-400',
     card: 'bg-red-100 border-red-200 text-red-700 hover:bg-red-200',
+    solid: 'bg-red-500',
   },
   // Completed by staff, waiting for the requester to confirm (teal: between In-progress amber and Completed green).
   'Pending Confirmation': {
@@ -47,6 +53,7 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     pill: 'bg-teal-50 text-teal-700 border-teal-300',
     ring: 'ring-teal-400',
     card: 'bg-teal-100 border-teal-200 text-teal-700 hover:bg-teal-200',
+    solid: 'bg-teal-500',
   },
   // A rejected request: violet, so it never reads as Overdue (red) or In-progress (amber).
   'False Alarm': {
@@ -54,6 +61,7 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     pill: 'bg-violet-50 text-violet-700 border-violet-300',
     ring: 'ring-violet-400',
     card: 'bg-violet-100 border-violet-200 text-violet-700 hover:bg-violet-200',
+    solid: 'bg-violet-500',
   },
 }
 
@@ -62,6 +70,7 @@ export const STATUS_FALLBACK: StatusStyle = {
   pill: 'bg-gray-100 text-gray-700 border-gray-300',
   ring: 'ring-gray-400',
   card: 'bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200',
+  solid: 'bg-gray-400',
 }
 
 /** The "All" entry of the status filter row. */
