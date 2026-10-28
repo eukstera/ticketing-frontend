@@ -1,4 +1,4 @@
-import type { AuthUser } from '@/lib/auth'
+import { isEncoder, type AuthUser } from '@/lib/auth'
 import type { DepartmentTicket } from '@/types'
 
 /**
@@ -9,5 +9,5 @@ export function canCompleteTicket(
   ticket: Pick<DepartmentTicket, 'status' | 'assigned_activity'>,
   user: AuthUser | null | undefined
 ): boolean {
-  return !!user && ticket.status === 'In-progress' && ticket.assigned_activity?.user_id === user.id
+  return !!user && !isEncoder(user) && ticket.status === 'In-progress' && ticket.assigned_activity?.user_id === user.id
 }

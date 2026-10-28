@@ -17,6 +17,8 @@ interface LoginResult {
 
 // Roles are compared by NAME, never id.
 export const ADMIN_ROLE_NAME = 'Department Head'
+/** Read-only on its own department's tickets: no ticket actions, no commenting. */
+export const ENCODER_ROLE_NAME = 'Encoder'
 
 // localStorage has no same-tab change event, so writes here notify subscribers
 // (useSyncExternalStore) through a custom event; the native 'storage' event
@@ -80,6 +82,10 @@ export function isAuthenticated(): boolean {
 
 export function isAdmin(user: AuthUser | null | undefined): boolean {
   return user?.role?.name === ADMIN_ROLE_NAME
+}
+
+export function isEncoder(user: AuthUser | null | undefined): boolean {
+  return user?.role?.name === ENCODER_ROLE_NAME
 }
 
 // Refreshes the stored user with role/department/designation from GET /me.

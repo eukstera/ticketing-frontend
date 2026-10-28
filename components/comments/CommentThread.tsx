@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useUser } from '@/hooks/useUser'
-import { isAdmin } from '@/lib/auth'
+import { isAdmin, isEncoder } from '@/lib/auth'
 import { getErrorMessage, isAbortError } from '@/lib/api'
 import {
   TicketComment,
@@ -39,6 +39,7 @@ export default function CommentThread({
 }) {
   const currentUser = useUser()
   const admin = isAdmin(currentUser)
+  const readOnly = isEncoder(currentUser)
 
   const [comments, setComments] = useState<TicketComment[] | null>(initialComments ?? null)
   const [loadError, setLoadError] = useState('')
@@ -167,7 +168,7 @@ export default function CommentThread({
         ) : (
           comments.map(c => {
             const isOwn = currentUser?.id === c.user.id
-            const canDelete = isOwn || admin
+            const canDelete = !readOnly && (isOwn || admin)
             const isEdited = c.updated_at && c.updated_at !== c.created_at
             const isEditing = editingId === c.id
 
@@ -181,9 +182,9 @@ export default function CommentThread({
                     </p>
                     <p className="text-xs text-gray-500">{formatDateTimeText(c.created_at)}</p>
                     {isEdited && !isEditing && <p className="text-xs italic text-gray-500">(edited)</p>}
-                    {!isEditing && (isOwn || canDelete) && (
+                    {!isEditing && ((isOwn && !readOnly) || canDelete) && (
                       <span className="ml-auto flex gap-3 transition sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover:opacity-100">
-                        {isOwn && (
+                        {isOwn && !readOnly && (
                           <button
                             type="button"
                             onClick={() => startEdit(c)}
@@ -247,6 +248,7 @@ export default function CommentThread({
         )}
       </div>
 
+      {!readOnly && (
       <div className="mt-4 flex gap-2 border-t border-gray-200 pt-4">
         <Avatar firstName={currentUser?.first_name} lastName={currentUser?.last_name} />
         <div className="flex-1">
@@ -271,6 +273,7 @@ export default function CommentThread({
           </div>
         </div>
       </div>
+      )}
 
       <ConfirmModal
         isOpen={deleteTarget !== null}

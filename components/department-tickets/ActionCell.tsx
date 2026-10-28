@@ -3,6 +3,7 @@
 import { Ban, Mail, RotateCcw, UserCheck } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
 import { useUser } from '@/hooks/useUser'
+import { isEncoder } from '@/lib/auth'
 import { canAssign } from '@/lib/assign'
 import { canCompleteTicket } from '@/lib/complete'
 import { FALSE_ALARM_STATUS, canMarkFalseAlarm, canReopen } from '@/lib/falseAlarm'
@@ -56,7 +57,8 @@ export default function ActionCell({
   const user = useUser()
   const suffix = ticketNumber ? ` ${ticketNumber}` : ''
 
-  const isMember = !!user && user.department_id === ticket.department_id
+  // Encoders are department members but read-only, so they can't take.
+  const isMember = !!user && !isEncoder(user) && user.department_id === ticket.department_id
   // Assigning is for the handling department's Department Head only; staff just take.
   const showAssign = canAssign(ticket, user)
 

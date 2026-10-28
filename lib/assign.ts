@@ -1,4 +1,4 @@
-import { isAdmin, type AuthUser } from '@/lib/auth'
+import { isAdmin, isEncoder, type AuthUser } from '@/lib/auth'
 import type { DepartmentTicket } from '@/types'
 
 /**
@@ -10,5 +10,5 @@ export function canAssign(
   ticket: Pick<DepartmentTicket, 'department_id'>,
   user: AuthUser | null | undefined
 ): boolean {
-  return !!user && isAdmin(user) && user.department_id === ticket.department_id
+  return !!user && !isEncoder(user) && isAdmin(user) && user.department_id === ticket.department_id
 }

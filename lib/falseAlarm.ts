@@ -1,4 +1,4 @@
-import { isAdmin, type AuthUser } from '@/lib/auth'
+import { isAdmin, isEncoder, type AuthUser } from '@/lib/auth'
 import { formatElapsed } from '@/lib/format'
 import type { DateActivity, DepartmentTicket, FalseAlarmActivity } from '@/types'
 
@@ -23,10 +23,10 @@ type RejectableTicket = Pick<DepartmentTicket, 'status' | 'department_id' | 'ass
  * Who sees the "False alarm" button: the assignee, staff of the ticket's
  * handling department and Department Heads, on an Open, In-progress or Overdue
  * ticket, taken or not. (The API decides; this only avoids offering a button
- * that would 403/409.)
+ * that would 403/409.) Encoders are read-only and never see it.
  */
 export function canMarkFalseAlarm(ticket: RejectableTicket, user: AuthUser | null | undefined): boolean {
-  if (!user) return false
+  if (!user || isEncoder(user)) return false
   if (ticket.status !== 'Open' && ticket.status !== 'In-progress' && ticket.status !== 'Overdue') return false
   return (
     user.department_id === ticket.department_id ||
@@ -93,7 +93,7 @@ export function isRejectedNow(activities: DateActivity[] | undefined): boolean {
 
 /** Only Department Heads reopen, and only a rejected ticket (the API enforces both). */
 export function canReopen(ticket: Pick<DepartmentTicket, 'status'>, user: AuthUser | null | undefined): boolean {
-  return ticket.status === FALSE_ALARM_STATUS && isAdmin(user)
+  return ticket.status === FALSE_ALARM_STATUS && isAdmin(user) && !isEncoder(user)
 }
 
 /** The reopen reason is optional; when given it follows the same 3..500 rule as a rejection. */

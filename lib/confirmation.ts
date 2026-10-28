@@ -1,4 +1,4 @@
-import { isAdmin, type AuthUser } from '@/lib/auth'
+import { isAdmin, isEncoder, type AuthUser } from '@/lib/auth'
 import { latestActivity } from '@/lib/falseAlarm'
 import type { CompletionResult, ConfirmationInfo, ConfirmationMail, ConfirmationState, DateActivity, DepartmentTicket } from '@/types'
 
@@ -45,13 +45,13 @@ type PendingTicket = Pick<DepartmentTicket, 'status' | 'department_id'> & { requ
  * confirmation is pending and there is an address to send it to.
  */
 export function canResendConfirmation(ticket: PendingTicket, user: AuthUser | null | undefined): boolean {
-  if (!user || !isPendingConfirmation(ticket.status) || !ticket.requester_email) return false
+  if (!user || isEncoder(user) || !isPendingConfirmation(ticket.status) || !ticket.requester_email) return false
   return user.department_id === ticket.department_id || isAdmin(user)
 }
 
 /** "Close on behalf of the requester": Department Heads only, while a confirmation is pending. */
 export function canCloseOnBehalf(ticket: Pick<DepartmentTicket, 'status'>, user: AuthUser | null | undefined): boolean {
-  return isPendingConfirmation(ticket.status) && isAdmin(user)
+  return isPendingConfirmation(ticket.status) && isAdmin(user) && !isEncoder(user)
 }
 
 export const NO_EMAIL_TEXT = 'No email provided'
