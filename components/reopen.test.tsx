@@ -77,10 +77,10 @@ describe('Reopen button visibility', () => {
     expect(html).toContain('<svg')
   })
 
-  it('leaves a reopened (Open, untaken) ticket with its normal Take / Assign / False alarm buttons', () => {
+  it('leaves a reopened (Open, untaken) ticket with its normal Take / False alarm buttons', () => {
     const html = actions(staff, 'Open')
     expect(html).toContain('Take ticket')
-    expect(html).toContain('Assign')
+    expect(html).not.toContain('Assign')
     expect(html).toContain('False alarm')
     expect(html).not.toContain('Reopen')
   })

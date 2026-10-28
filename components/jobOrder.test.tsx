@@ -55,9 +55,10 @@ describe('Download JO button visibility', () => {
     expect(html).toContain('Download job order 10-005-2026')
   })
 
-  it('sits next to Take ticket / Assign / False alarm on an open ticket', () => {
+  it('sits next to Take ticket / False alarm on an open ticket (Assign is for heads)', () => {
     const html = render(staff, ticket('Open'))
-    for (const label of ['Take ticket', 'Assign', 'False alarm', 'Download JO']) expect(html).toContain(label)
+    for (const label of ['Take ticket', 'False alarm', 'Download JO']) expect(html).toContain(label)
+    expect(html).not.toContain('Assign')
   })
 
   it('sits next to Complete on an in-progress ticket', () => {

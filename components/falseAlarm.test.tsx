@@ -46,10 +46,10 @@ beforeEach(() => {
 })
 
 describe('ActionCell: False alarm button', () => {
-  it('sits next to Take ticket and Assign on an untaken open ticket', () => {
+  it('sits next to Take ticket on an untaken open ticket, without Assign for staff', () => {
     const html = actions(staff)
     expect(html).toContain('Take ticket')
-    expect(html).toContain('Assign')
+    expect(html).not.toContain('Assign')
     expect(html).toContain('False alarm')
     expect(html).toContain('Mark ticket 10-005-2026 as false alarm')
   })

@@ -3,6 +3,7 @@
 import { Ban, Mail, RotateCcw, UserCheck } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
 import { useUser } from '@/hooks/useUser'
+import { canAssign } from '@/lib/assign'
 import { FALSE_ALARM_STATUS, canMarkFalseAlarm, canReopen } from '@/lib/falseAlarm'
 import { canCloseOnBehalf, canResendConfirmation, isPendingConfirmation } from '@/lib/confirmation'
 import { canDownloadJobOrder } from '@/lib/jobOrder'
@@ -54,9 +55,9 @@ export default function ActionCell({
   const user = useUser()
   const suffix = ticketNumber ? ` ${ticketNumber}` : ''
 
-  // The API only lets members of the ticket's handling department assign it
-  // (403 otherwise), so everyone else gets no button.
   const isMember = !!user && user.department_id === ticket.department_id
+  // Assigning is for the handling department's Department Head only; staff just take.
+  const showAssign = canAssign(ticket, user)
   const isAssignee = !!user && ticket.assigned_activity?.user_id === user.id
 
   // Staff of the handling department and Department Heads may reject an untaken request.
@@ -100,7 +101,7 @@ export default function ActionCell({
             {taking ? 'Taking…' : 'Take ticket'}
           </button>
         )}
-        {isMember && (
+        {showAssign && (
           <button
             type="button"
             onClick={() => onAssign?.(ticket.id)}
