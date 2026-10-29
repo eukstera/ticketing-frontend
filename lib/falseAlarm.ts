@@ -21,13 +21,13 @@ type RejectableTicket = Pick<DepartmentTicket, 'status' | 'department_id' | 'ass
 
 /**
  * Who sees the "False alarm" button: the assignee, staff of the ticket's
- * handling department and Department Heads, on an Open, In-progress or Overdue
+ * handling department and Department Heads, on an Open, Blank, In-progress or Overdue
  * ticket, taken or not. (The API decides; this only avoids offering a button
  * that would 403/409.) Encoders are read-only and never see it.
  */
 export function canMarkFalseAlarm(ticket: RejectableTicket, user: AuthUser | null | undefined): boolean {
   if (!user || isEncoder(user)) return false
-  if (ticket.status !== 'Open' && ticket.status !== 'In-progress' && ticket.status !== 'Overdue') return false
+  if (ticket.status !== 'Open' && ticket.status !== 'Blank' && ticket.status !== 'In-progress' && ticket.status !== 'Overdue') return false
   return (
     user.department_id === ticket.department_id ||
     isAdmin(user) ||

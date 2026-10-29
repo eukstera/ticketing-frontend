@@ -13,6 +13,7 @@ import CloseOnBehalfModal from '@/components/CloseOnBehalfModal'
 import ConfirmationPanel from '@/components/ConfirmationPanel'
 import RequesterEmail from '@/components/ui/RequesterEmail'
 import ReopenModal from '@/components/ReopenModal'
+import VoidModal from '@/components/VoidModal'
 import ActionCell from '@/components/department-tickets/ActionCell'
 import TimelineStepper from '@/components/department-tickets/TimelineStepper'
 import CommentThread from '@/components/comments/CommentThread'
@@ -31,9 +32,11 @@ import {
   markFalseAlarm,
   markTicketComplete,
   reopenTicket,
+  voidTicket,
   resendConfirmation,
   takeTicket,
 } from '@/lib/tickets'
+import { BLANK_STATUS, VOID_STATUS } from '@/lib/blankJobOrder'
 import { canCloseOnBehalf, canResendConfirmation, completionMessage } from '@/lib/confirmation'
 import { PRIORITY_FALLBACK, PRIORITY_STYLES, badgeBase, statusBadgeClass } from '@/lib/styles'
 import { formatDateTimeText, slaLabel } from '@/lib/format'
@@ -111,6 +114,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   const [taking, setTaking] = useState(false)
   const [falseAlarmOpen, setFalseAlarmOpen] = useState(false)
   const [reopenOpen, setReopenOpen] = useState(false)
+  const [voidOpen, setVoidOpen] = useState(false)
   const jobOrder = useJobOrderDownload()
 
   const validId = Number.isInteger(ticketId) && ticketId > 0
@@ -204,6 +208,19 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       throw err
     }
     toast('Ticket reopened')
+    refresh()
+  }
+
+  // Throws on failure so the dialog stays open and shows the message inline.
+  async function handleVoid(id: number, reason: string) {
+    try {
+      await voidTicket(id, reason)
+    } catch (err) {
+      // 409: it isn't Blank anymore (filled in or rejected); show what it is now.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast(`Ticket ${state?.ticket?.ticket_number ?? ''} voided`.replace('  ', ' '))
     refresh()
   }
 
@@ -328,6 +345,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
               setResendOpen(true)
             }}
             onCloseOnBehalf={() => setCloseOpen(true)}
+            onVoid={() => setVoidOpen(true)}
           />
         )}
       </main>
@@ -355,6 +373,14 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
         rejectedBy={personName(ticket?.false_alarm?.marked_by ?? null)}
         onClose={() => setReopenOpen(false)}
         onSubmit={handleReopen}
+      />
+
+      <VoidModal
+        isOpen={voidOpen}
+        ticketId={voidOpen ? ticketId : null}
+        ticketNumber={ticket?.ticket_number}
+        onClose={() => setVoidOpen(false)}
+        onSubmit={handleVoid}
       />
 
       <CompleteModal
@@ -404,6 +430,7 @@ function TicketBody({
   resending,
   onResend,
   onCloseOnBehalf,
+  onVoid,
 }: {
   ticket: TicketDetail
   refreshError: string
@@ -419,6 +446,7 @@ function TicketBody({
   resending: boolean
   onResend: () => void
   onCloseOnBehalf: () => void
+  onVoid: () => void
 }) {
   const user = useUser()
   const priorityStyle = PRIORITY_STYLES[ticket.priority.level] ?? PRIORITY_FALLBACK
@@ -451,6 +479,7 @@ function TicketBody({
             onDownloadJo={(_id, format) => onDownloadJo(format)}
             downloadingJo={downloadingJo}
             onMarkComplete={onComplete}
+            onVoid={onVoid}
           />
         </div>
 
@@ -469,6 +498,27 @@ function TicketBody({
             {ticket.due_at ? ` · due ${formatDateTimeText(ticket.due_at)}` : ''}
           </span>
         </div>
+
+        {ticket.status.label === BLANK_STATUS && (
+          <p role="status" className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            This ticket number is reserved. It has no details yet.
+            {ticket.blank_job_order?.printed_at && (
+              <span className="text-gray-500"> Blank job order printed {formatDateTimeText(ticket.blank_job_order.printed_at)}.</span>
+            )}
+          </p>
+        )}
+
+        {ticket.status.label === VOID_STATUS && (
+          <p role="status" className="mt-4 whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <span className="font-medium">Voided: </span>
+            {ticket.void?.reason ?? 'no reason on file'}
+            {ticket.void && (
+              <span className="block text-xs text-gray-500">
+                by {personName(ticket.void.voided_by) ?? 'a former user'} on {formatDateTimeText(ticket.void.voided_at)}
+              </span>
+            )}
+          </p>
+        )}
 
         {ticket.reopened && (
           <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
@@ -556,10 +606,12 @@ function TicketBody({
         <TimelineStepper activities={toActivities(ticket)} />
       </section>
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-sm font-semibold text-gray-800">Comments</h2>
-        <CommentThread ticketId={ticket.id} initialComments={ticket.comments} />
-      </section>
+      {ticket.status.label !== BLANK_STATUS && (
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="mb-3 text-sm font-semibold text-gray-800">Comments</h2>
+          <CommentThread ticketId={ticket.id} initialComments={ticket.comments} />
+        </section>
+      )}
     </div>
   )
 }

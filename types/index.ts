@@ -61,6 +61,8 @@ export interface DepartmentTicket {
   requester_email?: string | null
   priority_sla?: number | null
   comments_count?: number
+  /** Why a Void row was cancelled, when the list sends it. */
+  void?: VoidInfo | null
   devices: Device[]
 }
 
@@ -219,6 +221,18 @@ export interface TicketDetailComment {
   updated_at: string
 }
 
+export interface VoidInfo {
+  reason: string
+  voided_by: { id: number; first_name: string; last_name: string }
+  voided_at: string
+}
+
+export interface BlankJobOrderInfo {
+  printed_by: string | { id: number; first_name: string; last_name: string } | null
+  printed_at: string | null
+  filled_in_at: string | null
+}
+
 export interface TicketDetail {
   id: number
   ticket_number: string
@@ -234,11 +248,15 @@ export interface TicketDetail {
   due_at: string | null
   timeline: {
     id: number
-    category: 'Requested Date' | 'Assigned Date' | 'Completed Date' | 'False Alarm Date' | 'Reopened Date' | 'Confirmed Date' | 'Disputed Date' | 'Auto-closed Date'
+    category: 'Requested Date' | 'Assigned Date' | 'Completed Date' | 'False Alarm Date' | 'Reopened Date' | 'Confirmed Date' | 'Disputed Date' | 'Auto-closed Date' | 'Blank JO Printed Date' | 'Filled In Date' | 'Void Date'
     user: string | null
     created_at: string
     remarks?: string | null
   }[]
+  /** Why and by whom a Blank ticket was voided; null unless the status is Void. */
+  void?: VoidInfo | null
+  /** Print and fill-in dates of a blank job order; absent or null on ordinary tickets. */
+  blank_job_order?: BlankJobOrderInfo | null
   /** Set once the request was rejected as a false alarm; null otherwise. */
   false_alarm?: FalseAlarmInfo | null
   /** The latest reopen of a rejected request; null if never reopened. The earlier rejection stays in `timeline`. */

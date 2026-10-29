@@ -2,6 +2,7 @@ import { DepartmentTicket } from '@/types'
 import { formatDateTime } from '@/lib/format'
 import { FALSE_ALARM_STATUS, falseAlarmEntry, latestActivity, reopenedEntry } from '@/lib/falseAlarm'
 import { currentDispute, isPendingConfirmation } from '@/lib/confirmation'
+import { BLANK_STATUS, NOT_FILLED_IN_TEXT } from '@/lib/blankJobOrder'
 import RequesterEmail from '@/components/ui/RequesterEmail'
 
 function statusInfo(ticket: DepartmentTicket) {
@@ -47,6 +48,10 @@ function statusInfo(ticket: DepartmentTicket) {
         </div>
       )
     }
+  }
+
+  if (ticket.status === BLANK_STATUS) {
+    return <p className="text-xs italic text-gray-500">{NOT_FILLED_IN_TEXT}</p>
   }
 
   if (ticket.status === 'Open' && ticket.requested_activity) {

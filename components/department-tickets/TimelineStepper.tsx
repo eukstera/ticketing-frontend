@@ -1,5 +1,6 @@
+import { Pencil, Printer, XCircle } from 'lucide-react'
 import { DateActivity } from '@/types'
-import { falseAlarmTimelineSequence, fullTimelineSequence } from '@/lib/styles'
+import { falseAlarmTimelineSequence, fullTimelineSequence, type TimelineStep } from '@/lib/styles'
 import { isRejectedNow, latestActivity } from '@/lib/falseAlarm'
 import { currentDispute } from '@/lib/confirmation'
 
@@ -8,6 +9,23 @@ import { currentDispute } from '@/lib/confirmation'
 // is listed under the stepper. A completion only appears there when it carries
 // notes (the steps already show when it happened).
 const HISTORY_CATEGORY = /False Alarm|Reopened|Confirmed|Disputed|Auto-closed/
+
+// Blank job orders: printed first, then either filled in (and a normal ticket
+// from there) or voided.
+const PRINTED_STEP: TimelineStep = { match: 'Blank JO Printed', label: 'Blank JO Printed', bg: 'bg-slate-100 text-slate-600', icon: Printer }
+const FILLED_IN_STEP: TimelineStep = { match: 'Filled In', label: 'Filled In Date', bg: 'bg-blue-100 text-blue-600', icon: Pencil }
+const VOID_STEP: TimelineStep = { match: 'Void', label: 'Void Date', bg: 'bg-gray-200 text-gray-600', icon: XCircle }
+
+function timelineSequence(activities: DateActivity[], rejected: boolean): TimelineStep[] {
+  const has = (match: string) => !!latestActivity(activities, match)
+  if (!has(PRINTED_STEP.match)) return rejected ? falseAlarmTimelineSequence : fullTimelineSequence
+  const base = rejected ? falseAlarmTimelineSequence : fullTimelineSequence
+  // Not filled in yet: nothing of the normal request path has happened.
+  if (!has(FILLED_IN_STEP.match) && !has('Requested')) {
+    return [PRINTED_STEP, ...(has(VOID_STEP.match) ? [VOID_STEP] : []), ...(rejected ? [base[1]] : [])]
+  }
+  return [PRINTED_STEP, ...(has(FILLED_IN_STEP.match) ? [FILLED_IN_STEP] : []), ...base]
+}
 
 const TONES = {
   violet: 'bg-violet-50 text-violet-900',
@@ -48,7 +66,7 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
   // A request that is a false alarm right now ends there (no Assigned/Completed
   // steps); once reopened it follows the normal path again.
   const rejected = isRejectedNow(activities)
-  const sequence = rejected ? falseAlarmTimelineSequence : fullTimelineSequence
+  const sequence = timelineSequence(activities, rejected)
   // A requester's dispute sends the ticket back to work: it isn't completed again until the next completion.
   const disputed = !!currentDispute(activities)
   const steps = sequence.map(step => {

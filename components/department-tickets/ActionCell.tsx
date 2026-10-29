@@ -1,10 +1,12 @@
 'use client'
 
-import { Ban, Mail, RotateCcw, UserCheck } from 'lucide-react'
+import Link from 'next/link'
+import { Ban, Mail, Pencil, Printer, RotateCcw, UserCheck, XCircle } from 'lucide-react'
 import { DepartmentTicket } from '@/types'
 import { useUser } from '@/hooks/useUser'
 import { isEncoder } from '@/lib/auth'
 import { canAssign } from '@/lib/assign'
+import { BLANK_STATUS, VOID_STATUS, canFillBlank, canReprintBlank, canVoid } from '@/lib/blankJobOrder'
 import { canCompleteTicket } from '@/lib/complete'
 import { FALSE_ALARM_STATUS, canMarkFalseAlarm, canReopen } from '@/lib/falseAlarm'
 import { canCloseOnBehalf, canResendConfirmation, isPendingConfirmation } from '@/lib/confirmation'
@@ -29,6 +31,7 @@ export default function ActionCell({
   onResend,
   resending = false,
   onCloseOnBehalf,
+  onVoid,
 }: {
   ticket: Pick<DepartmentTicket, 'id' | 'status' | 'department_id' | 'assigned_activity'> & {
     requester_email?: string | null
@@ -53,6 +56,8 @@ export default function ActionCell({
   resending?: boolean
   /** Department Heads only: close a pending confirmation for the requester. */
   onCloseOnBehalf?: (id: number) => void
+  /** Cancel a Blank ticket (IT staff and Heads). */
+  onVoid?: (id: number) => void
 }) {
   const user = useUser()
   const suffix = ticketNumber ? ` ${ticketNumber}` : ''
@@ -87,6 +92,55 @@ export default function ActionCell({
   )
   // Wraps on narrow cards instead of overflowing.
   const row = 'flex flex-wrap items-center gap-2'
+
+  // A Void ticket is finished and has no job order.
+  if (ticket.status === VOID_STATUS) return <span className="text-gray-500 text-xs">—</span>
+
+  // Reserved number, form not filled in yet: fill in, print again, cancel, or reject.
+  if (ticket.status === BLANK_STATUS) {
+    const canFill = canFillBlank(ticket, user)
+    const canReprint = !!onDownloadJo && canReprintBlank(ticket, user)
+    const canCancel = !!onVoid && canVoid(ticket, user)
+    if (!canFill && !canReprint && !canCancel && !canReject) return <span className="text-gray-500 text-xs">—</span>
+    return (
+      <div className={row}>
+        {canFill && (
+          <Link
+            href={`/tickets/${ticket.id}/fill`}
+            aria-label={`Fill in ticket${suffix}`}
+            className={`${btnPrimary} ${btnSm} ${nowrap}`}
+          >
+            <Pencil size={12} aria-hidden="true" />
+            Fill in
+          </Link>
+        )}
+        {canReprint && (
+          <button
+            type="button"
+            onClick={() => onDownloadJo?.(ticket.id, 'pdf')}
+            disabled={downloadingJo}
+            aria-label={`Reprint blank job order${suffix}`}
+            className={`${btnSecondary} ${btnSm} ${nowrap}`}
+          >
+            <Printer size={12} aria-hidden="true" />
+            {downloadingJo ? 'Printing…' : 'Reprint JO'}
+          </button>
+        )}
+        {canCancel && (
+          <button
+            type="button"
+            onClick={() => onVoid?.(ticket.id)}
+            aria-label={`Void ticket${suffix}`}
+            className={`${btnSecondary} ${btnSm} ${nowrap} !text-red-700`}
+          >
+            <XCircle size={12} aria-hidden="true" />
+            Void
+          </button>
+        )}
+        {falseAlarmButton}
+      </div>
+    )
+  }
 
   if (ticket.status === 'Open') {
     if (!isMember && !canReject && !canJo) return null

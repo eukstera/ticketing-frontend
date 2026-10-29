@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Download, SearchX, Inbox } from 'lucide-react'
+import { Download, Inbox, Printer, SearchX } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import AssignModal from '@/components/AssignModal'
 import CommentsModal from '@/components/CommentsModal'
@@ -10,6 +10,7 @@ import FalseAlarmModal from '@/components/FalseAlarmModal'
 import CompleteModal from '@/components/CompleteModal'
 import CloseOnBehalfModal from '@/components/CloseOnBehalfModal'
 import ReopenModal from '@/components/ReopenModal'
+import VoidModal from '@/components/VoidModal'
 import AccomplishmentModal from '@/components/AccomplishmentModal'
 import FilterPills from '@/components/department-tickets/FilterPills'
 import TicketsTable from '@/components/department-tickets/TicketsTable'
@@ -22,6 +23,7 @@ import { toast } from '@/components/Toast'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { useJobOrderDownload } from '@/hooks/useJobOrderDownload'
+import { usePrintBlankJobOrder } from '@/hooks/usePrintBlankJobOrder'
 import { useTicketListParams } from '@/hooks/useTicketListParams'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
@@ -35,7 +37,9 @@ import {
   markFalseAlarm,
   reopenTicket,
   takeTicket,
+  voidTicket,
 } from '@/lib/tickets'
+import { canPrintBlank } from '@/lib/blankJobOrder'
 import { falseAlarmEntry } from '@/lib/falseAlarm'
 import { completionMessage } from '@/lib/confirmation'
 import { canDownloadJobOrder, takeThenJobOrder } from '@/lib/jobOrder'
@@ -47,7 +51,7 @@ import {
   serializeListParams,
 } from '@/lib/ticketList'
 import { buildPriorityPills, buildStatusPills } from '@/components/tickets/pills'
-import { btnTint } from '@/lib/styles'
+import { btnSecondary, btnTint } from '@/lib/styles'
 
 type Mode = 'department' | 'mine'
 
@@ -89,7 +93,10 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const [falseAlarmTicketId, setFalseAlarmTicketId] = useState<number | null>(null)
   const [reopenTicketId, setReopenTicketId] = useState<number | null>(null)
   const [reportModalOpen, setReportModalOpen] = useState(false)
+  const [voidTicketId, setVoidTicketId] = useState<number | null>(null)
+  const [printConfirmOpen, setPrintConfirmOpen] = useState(false)
   const jobOrder = useJobOrderDownload()
+  const blank = usePrintBlankJobOrder()
 
   const copy = COPY[mode]
   const dateRangeInvalid = !!(params.date_from && params.date_to && params.date_to < params.date_from)
@@ -260,6 +267,28 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     void jobOrder.download(ticketId, data?.tickets.data.find(t => t.id === ticketId)?.ticket_number, { format })
   }
 
+  // Reserves the next number and downloads the blank PDF. The dialog stays open
+  // (and undismissable) until it is done; the hook ignores a second call.
+  async function handlePrintBlank() {
+    const reserved = await blank.print()
+    setPrintConfirmOpen(false)
+    if (reserved) refresh()
+  }
+
+  // Throws on failure so the dialog stays open and shows the message inline.
+  async function handleVoid(ticketId: number, reason: string) {
+    const number = data?.tickets.data.find(t => t.id === ticketId)?.ticket_number
+    try {
+      await voidTicket(ticketId, reason)
+    } catch (err) {
+      // 409: it isn't Blank anymore (filled in or rejected); the row is stale.
+      if (isApiError(err) && err.status === 409) refresh()
+      throw err
+    }
+    toast(`Ticket ${number ?? ''} voided`.replace('  ', ' '))
+    refresh()
+  }
+
   if (!authed) return null
 
   const filtered = hasActiveFilters(params)
@@ -271,6 +300,8 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
   const closeRow = rowOf(closeTicketId)
   const reopenRow = data?.tickets.data.find(t => t.id === reopenTicketId)
   const reopenRejection = reopenRow ? falseAlarmEntry(reopenRow) : null
+  const showPrintBlank = canPrintBlank(user)
+  const voidRow = rowOf(voidTicketId)
   const showReport = mode === 'mine' && user?.department_id === IT_DEPARTMENT_ID
 
   return (
@@ -304,6 +335,17 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
               {data ? ` (${data.tickets.total} total)` : ''}
             </p>
           </div>
+          {showPrintBlank && (
+            <button
+              type="button"
+              onClick={() => setPrintConfirmOpen(true)}
+              disabled={blank.printing}
+              className={`${btnSecondary} w-full sm:w-auto`}
+            >
+              <Printer size={14} aria-hidden="true" />
+              Print blank JO
+            </button>
+          )}
           {showReport && (
             <button
               type="button"
@@ -371,6 +413,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
                 onResend={openResend}
                 resendingId={resending ? resendTicketId : null}
                 onCloseOnBehalf={setCloseTicketId}
+                onVoid={setVoidTicketId}
                 onOpenComments={setCommentsTicketId}
               />
               <Pagination
@@ -407,6 +450,25 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
         rejectedBy={reopenRejection?.user}
         onClose={() => setReopenTicketId(null)}
         onSubmit={handleReopen}
+      />
+
+      <VoidModal
+        isOpen={voidTicketId !== null}
+        ticketId={voidTicketId}
+        ticketNumber={voidRow?.ticket_number}
+        onClose={() => setVoidTicketId(null)}
+        onSubmit={handleVoid}
+      />
+
+      <ConfirmModal
+        isOpen={printConfirmOpen}
+        title="Print a blank job order?"
+        message="This reserves the next ticket number in your department and downloads a blank job order (PDF). The number can't be reused, even if you never fill the form in."
+        confirmLabel="Reserve number & print"
+        loadingLabel="Reserving…"
+        loading={blank.printing}
+        onConfirm={handlePrintBlank}
+        onCancel={() => setPrintConfirmOpen(false)}
       />
 
       <CommentsModal

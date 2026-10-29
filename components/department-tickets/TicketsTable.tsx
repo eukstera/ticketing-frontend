@@ -6,6 +6,7 @@ import { optionalSlaLabel } from '@/lib/format'
 import { frozenElapsed } from '@/lib/falseAlarm'
 import type { JobOrderFormat } from '@/lib/jobOrderFormat'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
+import { VOID_STATUS } from '@/lib/blankJobOrder'
 import StatusCell from './StatusCell'
 import ActionCell from './ActionCell'
 import ActionInfo from './ActionInfo'
@@ -33,6 +34,7 @@ export default function TicketsTable({
   onResend,
   resendingId = null,
   onCloseOnBehalf,
+  onVoid,
   onOpenComments,
 }: {
   tickets: DepartmentTicket[]
@@ -52,6 +54,7 @@ export default function TicketsTable({
   /** Ticket whose confirmation email is being resent (disables its button). */
   resendingId?: number | null
   onCloseOnBehalf?: (id: number) => void
+  onVoid?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const user = useUser()
@@ -77,6 +80,7 @@ export default function TicketsTable({
           onResend={onResend}
           resending={resendingId === ticket.id}
           onCloseOnBehalf={onCloseOnBehalf}
+          onVoid={onVoid}
           onOpenComments={onOpenComments}
         />
       ))}
@@ -121,6 +125,7 @@ export default function TicketsTable({
           onResend={onResend}
           resending={resendingId === ticket.id}
           onCloseOnBehalf={onCloseOnBehalf}
+              onVoid={onVoid}
               onOpenComments={onOpenComments}
             />
           ))}
@@ -145,6 +150,7 @@ function TicketCard({
   onResend,
   resending,
   onCloseOnBehalf,
+  onVoid,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -160,6 +166,7 @@ function TicketCard({
   onResend?: (id: number) => void
   resending: boolean
   onCloseOnBehalf?: (id: number) => void
+  onVoid?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
@@ -218,6 +225,7 @@ function TicketCard({
           onResend={onResend}
           resending={resending}
           onCloseOnBehalf={onCloseOnBehalf}
+          onVoid={onVoid}
         />
         <CommentButton ticketNumber={ticket.ticket_number} count={ticket.comments_count} onClick={() => onOpenComments(ticket.id)} />
       </div>
@@ -250,6 +258,7 @@ function TicketRow({
   onResend,
   resending,
   onCloseOnBehalf,
+  onVoid,
   onOpenComments,
 }: {
   ticket: DepartmentTicket
@@ -267,6 +276,7 @@ function TicketRow({
   onResend?: (id: number) => void
   resending: boolean
   onCloseOnBehalf?: (id: number) => void
+  onVoid?: (id: number) => void
   onOpenComments: (id: number) => void
 }) {
   const timerStartDate = getTimerStartDate(ticket)
@@ -276,7 +286,7 @@ function TicketRow({
 
   return (
     <>
-      <tr className="hover:bg-gray-50 transition">
+      <tr className={`hover:bg-gray-50 transition${ticket.status === VOID_STATUS ? ' text-gray-500' : ''}`}>
         <td className="px-2 py-3">
           <button
             type="button"
@@ -298,9 +308,9 @@ function TicketRow({
           </Link>
         </td>
         <td className="px-4 py-3 text-gray-600">
-          {isIT ? ticket.type_of_concern : ticket.nature_of_work}
+          {(isIT ? ticket.type_of_concern : ticket.nature_of_work) || '—'}
         </td>
-        <td className="px-4 py-3 text-gray-600">{ticket.name_of_area}</td>
+        <td className="px-4 py-3 text-gray-600">{ticket.name_of_area || '—'}</td>
         <td className="px-4 py-3">
           <span className={(PRIORITY_STYLES[ticket.priority] ?? PRIORITY_FALLBACK).text}>
             {ticket.priority}
@@ -337,6 +347,7 @@ function TicketRow({
             onResend={onResend}
             resending={resending}
             onCloseOnBehalf={onCloseOnBehalf}
+            onVoid={onVoid}
           />
         </td>
         <td className="px-3 py-3 text-center">

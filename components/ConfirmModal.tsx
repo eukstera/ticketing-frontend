@@ -11,6 +11,8 @@ interface Props {
   message: string
   confirmLabel?: string
   cancelLabel?: string
+  /** Button text while `loading`. */
+  loadingLabel?: string
   variant?: 'danger' | 'success' | 'default'
   loading?: boolean
   /** Inline error shown above the buttons, e.g. when the confirmed action failed. */
@@ -31,6 +33,7 @@ export default function ConfirmModal({
   message,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
+  loadingLabel = 'Processing...',
   variant = 'default',
   loading = false,
   error,
@@ -86,7 +89,7 @@ export default function ConfirmModal({
           autoFocus={variant !== 'danger'}
           className={button}
         >
-          {loading ? 'Processing...' : confirmLabel}
+          {loading ? loadingLabel : confirmLabel}
         </button>
       </div>
     </Modal>

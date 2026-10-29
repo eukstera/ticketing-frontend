@@ -1,6 +1,6 @@
 // lib/tickets.ts
 import { api } from './api'
-import type { CompletionResult, ConfirmationInfo, FalseAlarmInfo, ReopenInfo, TicketDetail } from '@/types'
+import type { CompletionResult, ConfirmationInfo, FalseAlarmInfo, ReopenInfo, TicketDetail, VoidInfo } from '@/types'
 import { DEFAULT_JOB_ORDER_FORMAT, JOB_ORDER_FORMATS, type JobOrderFormat } from './jobOrderFormat'
 import {
   buildListQuery,
@@ -101,6 +101,26 @@ export function takeTicket(ticketId: number, userId: number) {
 export function markFalseAlarm(ticketId: number, reason: string) {
   return api.post<{ message: string; result: { false_alarm: FalseAlarmInfo } }>(
     `/tickets/${ticketId}/false-alarm`,
+    { reason: reason.trim() }
+  )
+}
+
+/**
+ * Reserves the next ticket number as a Blank ticket (no body). IT department
+ * staff and IT Heads only: 403 otherwise, and Encoders are read-only. Every
+ * call burns a number, so callers must not repeat it on a double click.
+ */
+export function createBlankJobOrder() {
+  return api.post<{ result: { ticket: { id: number; ticket_number: string; status: string }; job_order_url?: string } }>(
+    '/tickets/blank-job-order',
+    {}
+  )
+}
+
+/** Cancels a Blank ticket. 409 = it isn't Blank (anymore); 422 errors.reason = not 5..255 characters. */
+export function voidTicket(ticketId: number, reason: string) {
+  return api.post<{ result: { ticket: { id: number; status: string }; void: VoidInfo } }>(
+    `/tickets/${ticketId}/void`,
     { reason: reason.trim() }
   )
 }
