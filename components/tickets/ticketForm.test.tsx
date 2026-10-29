@@ -66,7 +66,9 @@ async function render(ui: React.ReactElement) {
   await act(async () => {}) // let the lookups resolve
 }
 
-const fillMode = <TicketForm mode="fill" ticket={{ id: 7, ticket_number: '10-007-2026' }} />
+const fillMode = (
+  <TicketForm mode="fill" ticket={{ id: 7, ticket_number: '10-007-2026', owner: { id: 5, name: 'Ana Cruz' } }} />
+)
 const $ = <T extends Element = HTMLElement>(sel: string) => container.querySelector<T>(sel)
 
 function setValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: string) {
@@ -125,6 +127,7 @@ describe('TicketForm in fill mode', () => {
     expect(block.textContent).toBe('10-007-2026')
     expect(block.tagName).toBe('DIV')
     expect(container.textContent).toContain('Reserved')
+    expect(container.textContent).toContain('Taken by Ana Cruz')
     expect($('h1')!.textContent).toBe('Fill in ticket')
     expect(byText('Save ticket')).not.toBeNull()
     expect(byText('Submit Ticket')).toBeNull()
@@ -186,21 +189,21 @@ describe('TicketForm in fill mode', () => {
     expect(push).toHaveBeenCalledWith('/tickets/7')
   })
 
-  it('includes the optional email, assignee and Hardware devices when given', async () => {
+  it('includes the optional email and Hardware devices when given', async () => {
     fillBlankTicket.mockResolvedValue({ result: { ticket: { id: 7, ticket_number: '10-007-2026' } } })
     await render(fillMode)
     fillValid()
     click(byText('Hardware'))
     setValue($<HTMLInputElement>('#f-devices\\.0\\.type')!, 'Monitor')
     setValue($<HTMLInputElement>('#f-requestor_email')!, 'maria@example.com')
-    setValue($<HTMLSelectElement>('#f-assigned_user')!, '5')
     await submit()
-    expect(fillBlankTicket.mock.calls[0][1]).toMatchObject({
+    const payload = fillBlankTicket.mock.calls[0][1]
+    expect(payload).toMatchObject({
       type_of_concern: 'Hardware',
       devices: [{ type: 'Monitor', quantity: 1 }],
       requestor_email: 'maria@example.com',
-      assigned_user: 5,
     })
+    expect(payload).not.toHaveProperty('assigned_user')
   })
 
   it('shows 422 errors on the matching controls and keeps the input', async () => {
@@ -235,18 +238,51 @@ describe('TicketForm in fill mode', () => {
     expect(replace).not.toHaveBeenCalled()
   })
 
-  it('offers staff only themselves to assign', async () => {
+  it('hides Assign to from staff and never sends assigned_user', async () => {
     currentUser = staffUser
+    fillBlankTicket.mockResolvedValue({ result: { ticket: { id: 7, ticket_number: '10-007-2026' } } })
     await render(fillMode)
-    const labels = Array.from($<HTMLSelectElement>('#f-assigned_user')!.options).map(o => o.textContent)
-    expect(labels).toEqual(['-- Leave unassigned --', 'Ana Cruz'])
+    expect($('#f-assigned_user')).toBeNull()
+    fillValid()
+    await submit()
+    expect(fillBlankTicket.mock.calls[0][1]).not.toHaveProperty('assigned_user')
   })
 
-  it('offers a Department Head everyone in the department', async () => {
+  it('pre-selects the owner for a Department Head and offers the whole department', async () => {
     currentUser = headUser
     await render(fillMode)
-    const labels = Array.from($<HTMLSelectElement>('#f-assigned_user')!.options).map(o => o.textContent)
-    expect(labels).toEqual(['-- Leave unassigned --', 'Ana Cruz', 'Ben Reyes'])
+    const select = $<HTMLSelectElement>('#f-assigned_user')!
+    expect(select.value).toBe('5')
+    expect(Array.from(select.options).map(o => o.textContent)).toEqual(['Ana Cruz', 'Ben Reyes'])
+  })
+
+  it('a Head who keeps the owner sends no assigned_user', async () => {
+    currentUser = headUser
+    fillBlankTicket.mockResolvedValue({ result: { ticket: { id: 7, ticket_number: '10-007-2026' } } })
+    await render(fillMode)
+    fillValid()
+    await submit()
+    expect(fillBlankTicket.mock.calls[0][1]).not.toHaveProperty('assigned_user')
+  })
+
+  it('a Head who picks someone else sends that id', async () => {
+    currentUser = headUser
+    fillBlankTicket.mockResolvedValue({ result: { ticket: { id: 7, ticket_number: '10-007-2026' } } })
+    await render(fillMode)
+    fillValid()
+    setValue($<HTMLSelectElement>('#f-assigned_user')!, '6')
+    await submit()
+    expect(fillBlankTicket.mock.calls[0][1]).toMatchObject({ assigned_user: 6 })
+  })
+
+  it('shows the printer-only 403 in the banner', async () => {
+    fillBlankTicket.mockRejectedValue(
+      new ApiError(403, 'Only the member who printed this blank job order can fill it in.')
+    )
+    await render(fillMode)
+    fillValid()
+    await submit()
+    expect($('[role="alert"]')!.textContent).toContain('Only the member who printed this blank job order can fill it in.')
   })
 })
 

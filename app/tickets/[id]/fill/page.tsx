@@ -17,7 +17,15 @@ import { getTicket } from '@/lib/tickets'
 
 interface LoadState {
   id: number
-  ticket: { id: number; ticket_number: string; status: string; department_id: number } | null
+  ticket: {
+    id: number
+    ticket_number: string
+    status: string
+    department_id: number
+    /** Whoever printed the blank job order. */
+    owner_id: number | null
+    owner: { id: number; name: string } | null
+  } | null
   error: string
   notFound: boolean
 }
@@ -54,7 +62,14 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
         const t = res.result.ticket
         setState({
           id: ticketId,
-          ticket: { id: t.id, ticket_number: t.ticket_number, status: t.status.label, department_id: t.department.id },
+          ticket: {
+            id: t.id,
+            ticket_number: t.ticket_number,
+            status: t.status.label,
+            department_id: t.department.id,
+            owner_id: t.assignee?.id ?? null,
+            owner: t.assignee ? { id: t.assignee.id, name: `${t.assignee.first_name} ${t.assignee.last_name}` } : null,
+          },
           error: '',
           notFound: false,
         })
@@ -74,7 +89,7 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
 
   const ticket = state?.id === ticketId ? state.ticket : null
   const notBlank = !!ticket && ticket.status !== BLANK_STATUS
-  // Blank, but not this user's to fill in (another department).
+  // Blank, but not this user's to fill in (not the owner, not a Head of the department).
   const notYours = !!ticket && !notBlank && !canFillBlank(ticket, user)
 
   useEffect(() => {
@@ -86,7 +101,7 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
   if (roleKnown && !notEncoder) return null
 
   if (ticket && !notBlank && !notYours) {
-    return <TicketForm key={ticket.id} mode="fill" ticket={ticket} />
+    return <TicketForm key={ticket.id} mode="fill" ticket={{ id: ticket.id, ticket_number: ticket.ticket_number, owner: ticket.owner }} />
   }
 
   return (

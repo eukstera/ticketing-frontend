@@ -81,7 +81,7 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
 export type TicketFormProps =
   | { mode: 'create' }
   /** Fill in a blank job order: the reserved number is fixed, and the requester and date are entered. */
-  | { mode: 'fill'; ticket: { id: number; ticket_number: string } }
+  | { mode: 'fill'; ticket: { id: number; ticket_number: string; owner?: { id: number; name: string } | null } }
 
 /** Shared by Create Ticket (new request) and Fill in ticket (blank job order). */
 export default function TicketForm(props: TicketFormProps) {
@@ -109,7 +109,9 @@ export default function TicketForm(props: TicketFormProps) {
   const [typeOfConcern, setTypeOfConcern] = useState('')
   const [areaSupervisor, setAreaSupervisor] = useState('')
   const [areaConcerned, setAreaConcerned] = useState('')
-  const [assignedUser, setAssignedUser] = useState('')
+  // Fill-in: the member who printed the blank job order owns the ticket; a Head may hand it on.
+  const owner = fillTicket?.owner ?? null
+  const [assignedUser, setAssignedUser] = useState(owner ? String(owner.id) : '')
   const [remarks, setRemarks] = useState('')
   const [requestor, setRequestor] = useState('')
   const [requestorEmail, setRequestorEmail] = useState('')
@@ -241,7 +243,8 @@ export default function TicketForm(props: TicketFormProps) {
           priority: priority!,
         }
         if (requestorEmail.trim()) payload.requestor_email = requestorEmail.trim()
-        if (assignedUser) payload.assigned_user = Number(assignedUser)
+        // Only a Head hands the ticket to someone other than its owner; staff send nothing.
+        if (isAdmin(user) && assignedUser && Number(assignedUser) !== owner?.id) payload.assigned_user = Number(assignedUser)
         if (typeOfConcern === HARDWARE_CONCERN) payload.devices = devices.filter(d => d.type.trim())
         await fillBlankTicket(fillTicket.id, payload)
         toast(`Ticket ${fillTicket.ticket_number} saved`)
@@ -297,8 +300,7 @@ export default function TicketForm(props: TicketFormProps) {
   const previewTicketNumber =
     fillTicket?.ticket_number ?? `${String(now.getMonth() + 1).padStart(2, '0')}-XXX-${now.getFullYear()}`
   const employees = lookups?.employees ?? []
-  // Fill-in: a Head may assign anyone in the department; staff only themselves.
-  const assignable = fill && user && !isAdmin(user) ? employees.filter(u => u.id === user.id) : employees
+  const showAssign = !fill || isAdmin(user)
   const assignedPerson = employees.find(u => String(u.id) === assignedUser)
   const assignedPersonName = assignedPerson ? `${assignedPerson.first_name} ${assignedPerson.last_name}` : ''
   const selectedPriority = lookups?.priorities.find(p => p.id === priority)
@@ -352,7 +354,10 @@ export default function TicketForm(props: TicketFormProps) {
                   >
                     {fillTicket.ticket_number}
                   </div>
-                  <p id="f-ticket_number-hint" className="mt-1 text-xs text-gray-500">Reserved &mdash; can&apos;t be changed</p>
+                  <p id="f-ticket_number-hint" className="mt-1 text-xs text-gray-500">
+                    Reserved &mdash; can&apos;t be changed
+                    {owner && <> &middot; Taken by <span className="font-medium text-gray-700">{owner.name}</span></>}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -573,8 +578,8 @@ export default function TicketForm(props: TicketFormProps) {
               )}
             </Field>
 
-            {/* Assign User */}
-            <Field
+            {/* Assign User (Create: required; Fill-in: Heads only, defaults to the owner) */}
+            {showAssign && <Field
               id="f-assigned_user"
               icon={UserCheck}
               label={fill ? 'Assign to' : 'Personnel Assigned'}
@@ -582,9 +587,9 @@ export default function TicketForm(props: TicketFormProps) {
               error={fe('assigned_user')?.[0]}
               hint={
                 fill
-                  ? isAdmin(user)
-                    ? 'Optional. Leave empty to keep the ticket open.'
-                    : 'Optional. You can only assign the ticket to yourself.'
+                  ? owner
+                    ? 'Defaults to the member who printed this job order. Pick someone else to hand it over.'
+                    : 'Optional.'
                   : undefined
               }
             >
@@ -596,21 +601,23 @@ export default function TicketForm(props: TicketFormProps) {
                   onChange={e => { setAssignedUser(e.target.value); clearFieldError('assigned_user') }}
                   className={fieldClass(control['aria-invalid'])}
                 >
-                  <option value="">
-                    {!lookups
-                      ? 'Loading…'
-                      : fill
-                        ? '-- Leave unassigned --'
-                        : employees.length === 0
-                          ? 'No personnel available'
-                          : '-- Select Personnel --'}
-                  </option>
-                  {assignable.map(person => (
+                  {(!fill || !owner) && (
+                    <option value="">
+                      {!lookups
+                        ? 'Loading…'
+                        : fill
+                          ? '-- Leave as is --'
+                          : employees.length === 0
+                            ? 'No personnel available'
+                            : '-- Select Personnel --'}
+                    </option>
+                  )}
+                  {employees.map(person => (
                     <option key={person.id} value={person.id}>{person.first_name} {person.last_name}</option>
                   ))}
                 </select>
               )}
-            </Field>
+            </Field>}
 
             {/* Priority */}
             <FieldGroup id="f-priority" icon={Clock} label="Priority" required error={fe('priority')?.[0]}>
