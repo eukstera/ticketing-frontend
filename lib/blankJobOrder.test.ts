@@ -37,9 +37,9 @@ describe.each([
   ['canReprintBlank', canReprintBlank],
   ['canVoid', canVoid],
 ])('%s', (_name, predicate) => {
-  it('is true for staff and heads of the ticket department on a Blank ticket', () => {
-    expect(predicate(blank, user())).toBe(true)
+  it('is true for heads of the ticket department, and for staff only where they may work on it', () => {
     expect(predicate(blank, head())).toBe(true)
+    expect(predicate(blank, user())).toBe(_name === 'canReprintBlank')
   })
 
   it('is false for encoders, other-department staff, and signed-out visitors', () => {
@@ -55,9 +55,8 @@ describe.each([
 })
 
 describe('canMarkFalseAlarm on Blank tickets', () => {
-  it('is offered to department staff and heads, not encoders', () => {
+  it('is offered to heads, not encoders (the owner case is covered below)', () => {
     const t = { ...blank, assigned_activity: null }
-    expect(canMarkFalseAlarm(t, user())).toBe(true)
     expect(canMarkFalseAlarm(t, head(2))).toBe(true)
     expect(canMarkFalseAlarm(t, encoder)).toBe(false)
   })
@@ -122,5 +121,40 @@ describe('print messages', () => {
     expect(reservedNotDownloadedMessage('10-045-2026')).toBe(
       `Ticket number 10-045-2026 was reserved, but the PDF wasn't downloaded. Use "Reprint JO" on that row.`
     )
+  })
+})
+
+describe('Blank ticket ownership', () => {
+  const owned = { ...blank, assigned_activity: { id: 1, created_at: '', user: 'Eve', user_id: 7 } }
+  const owner = user({ id: 7 })
+  const other = user({ id: 8 })
+
+  it.each([
+    ['canFillBlank', canFillBlank],
+    ['canVoid', canVoid],
+  ])('%s: the owner and heads yes, other staff and encoders no', (_n, predicate) => {
+    expect(predicate(owned, owner)).toBe(true)
+    expect(predicate(owned, head())).toBe(true)
+    expect(predicate(owned, other)).toBe(false)
+    expect(predicate(owned, user({ id: 7, role: { id: 4, name: 'Encoder' } }))).toBe(false)
+  })
+
+  it('false alarm on a Blank ticket: the owner and heads yes, other staff no', () => {
+    const t = { ...owned, assigned_activity: owned.assigned_activity }
+    expect(canMarkFalseAlarm(t, owner)).toBe(true)
+    expect(canMarkFalseAlarm(t, head(2))).toBe(true)
+    expect(canMarkFalseAlarm(t, other)).toBe(false)
+  })
+
+  it('reprint stays open to any staff of the department', () => {
+    expect(canReprintBlank(owned, other)).toBe(true)
+    expect(canReprintBlank(owned, user({ department_id: 2 }))).toBe(false)
+  })
+
+  it('accepts owner_id (a detail page) as well as assigned_activity (a list row)', () => {
+    const detail = { ...blank, owner_id: 7 }
+    expect(canFillBlank(detail, owner)).toBe(true)
+    expect(canFillBlank(detail, other)).toBe(false)
+    expect(canFillBlank({ ...blank, owner_id: null }, other)).toBe(false)
   })
 })

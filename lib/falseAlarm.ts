@@ -28,10 +28,13 @@ type RejectableTicket = Pick<DepartmentTicket, 'status' | 'department_id' | 'ass
 export function canMarkFalseAlarm(ticket: RejectableTicket, user: AuthUser | null | undefined): boolean {
   if (!user || isEncoder(user)) return false
   if (ticket.status !== 'Open' && ticket.status !== 'Blank' && ticket.status !== 'In-progress' && ticket.status !== 'Overdue') return false
+  const isOwner = ticket.assigned_activity?.user_id === user.id
+  // A Blank ticket belongs to whoever printed it: only the owner or a head may reject it.
+  if (ticket.status === 'Blank') return isOwner || isAdmin(user)
   return (
     user.department_id === ticket.department_id ||
     isAdmin(user) ||
-    ticket.assigned_activity?.user_id === user.id
+    isOwner
   )
 }
 

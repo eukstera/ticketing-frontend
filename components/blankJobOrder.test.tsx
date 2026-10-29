@@ -35,7 +35,12 @@ const otherStaff = { id: 9, department_id: 2, role: { id: 2, name: 'Normal User'
 const encoder = { id: 10, department_id: 1, role: { id: 4, name: 'Encoder' } } as AuthUser
 
 const noop = () => {}
-const row = (status: string) => ({ id: 5, status, department_id: 1, assigned_activity: null })
+const row = (status: string, owner: number | null = 7) => ({
+  id: 5,
+  status,
+  department_id: 1,
+  assigned_activity: owner ? { id: 1, created_at: '', user: 'Eve', user_id: owner } : null,
+})
 
 function actions(user: AuthUser | null, status: string, over: { downloadingJo?: boolean } = {}) {
   mocks.user = user
@@ -81,6 +86,34 @@ describe('ActionCell: Blank rows', () => {
     expect(actions(encoder, 'Blank')).toContain('—')
     expect(actions(encoder, 'Blank')).not.toContain('Fill in')
     expect(actions(otherStaff, 'Blank')).not.toContain('Fill in')
+  })
+})
+
+describe('ActionCell: Blank rows owned by someone else', () => {
+  const owned = (user: AuthUser) => {
+    mocks.user = user
+    return renderToString(
+      <ActionCell ticket={row('Blank', 99)} ticketNumber="10-005-2026" onMarkComplete={noop} onFalseAlarm={noop} onDownloadJo={noop} onVoid={noop} onAssign={noop} />
+    )
+  }
+
+  it('gives other staff only Reprint JO, and the owner nothing extra to Complete or Assign', () => {
+    const html = owned(staff)
+    expect(html).toContain('Reprint blank job order')
+    for (const gone of ['Fill in', 'Void ticket', 'false alarm', 'Complete', 'Assign']) expect(html).not.toContain(gone)
+  })
+
+  it('still gives a head every action', () => {
+    const html = owned(head)
+    for (const label of ['Fill in', 'Reprint blank', 'Void ticket', 'false alarm']) expect(html).toContain(label)
+  })
+
+  it('never shows Complete or Assign on a Blank row, even to its owner or a head', () => {
+    for (const user of [staff, head]) {
+      const html = actions(user, 'Blank')
+      expect(html).not.toContain('Complete ticket')
+      expect(html).not.toContain('Assign ticket')
+    }
   })
 })
 

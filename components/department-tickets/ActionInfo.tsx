@@ -51,7 +51,18 @@ function statusInfo(ticket: DepartmentTicket) {
   }
 
   if (ticket.status === BLANK_STATUS) {
-    return <p className="text-xs italic text-gray-500">{NOT_FILLED_IN_TEXT}</p>
+    const owner = ticket.assigned_activity
+    return (
+      <div className="text-xs">
+        {owner && (
+          <>
+            <p className="text-gray-500">Printed by:</p>
+            <p className="font-medium text-gray-700">{owner.user}</p>
+          </>
+        )}
+        <p className="italic text-gray-500">{NOT_FILLED_IN_TEXT}</p>
+      </div>
+    )
   }
 
   if (ticket.status === 'Open' && ticket.requested_activity) {

@@ -11,7 +11,16 @@ export const VOID_REASON_MAX = 255
 /** Shown where a Blank ticket has no value yet (area, concern type). */
 export const NOT_FILLED_IN_TEXT = 'Not filled in yet'
 
-type BlankTicket = Pick<DepartmentTicket, 'status' | 'department_id'>
+/**
+ * The owner is whoever printed the blank job order: `owner_id` (from a detail's
+ * assignee) or, on a list row, `assigned_activity.user_id`.
+ */
+type BlankTicket = Pick<DepartmentTicket, 'status' | 'department_id'> &
+  Partial<Pick<DepartmentTicket, 'assigned_activity'>> & { owner_id?: number | null }
+
+function ownerId(ticket: BlankTicket): number | null {
+  return ticket.owner_id ?? ticket.assigned_activity?.user_id ?? null
+}
 
 /**
  * Who sees "Print blank job order": IT department staff and IT Department
@@ -22,24 +31,33 @@ export function canPrintBlank(user: AuthUser | null | undefined): boolean {
 }
 
 /** Member of the ticket's department or a Department Head, and not an Encoder. */
-function canWorkBlank(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
+function isBlankStaff(ticket: BlankTicket, user: AuthUser | null | undefined): user is AuthUser {
   if (!user || isEncoder(user) || ticket.status !== BLANK_STATUS) return false
   return user.department_id === ticket.department_id || isAdmin(user)
 }
 
+/**
+ * Whoever printed a blank job order owns the ticket. Only the owner or a
+ * Department Head works on it (fill in, void, reject); other staff get a 403.
+ */
+export function canWorkOnBlank(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
+  if (!isBlankStaff(ticket, user)) return false
+  return isAdmin(user) || ownerId(ticket) === user.id
+}
+
 /** "Fill in": open the fill-in page for a Blank ticket. */
 export function canFillBlank(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
-  return canWorkBlank(ticket, user)
+  return canWorkOnBlank(ticket, user)
 }
 
-/** "Reprint JO": the blank PDF again (the API only serves PDF while Blank). */
+/** "Reprint JO": the blank PDF again (any staff of the department, and heads; the API only serves PDF while Blank). */
 export function canReprintBlank(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
-  return canWorkBlank(ticket, user)
+  return isBlankStaff(ticket, user)
 }
 
-/** "Void": cancel a Blank ticket that will never be filled in. */
+/** "Void": cancel a Blank ticket that will never be filled in (owner or head). */
 export function canVoid(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
-  return canWorkBlank(ticket, user)
+  return canWorkOnBlank(ticket, user)
 }
 
 /** Client-side check before sending; the API enforces the same 5..255 (422 errors.reason). */
