@@ -25,6 +25,7 @@ const summary: ConsolidationSummary = {
   false_alarms: 0,
   avg_satisfaction: 4.3,
   disputes: 1,
+  voided: 7,
 }
 
 const ticket = (over: Partial<ConsolidationTicket> = {}): ConsolidationTicket => ({
@@ -59,9 +60,10 @@ const body = (over: Partial<Parameters<typeof ReportBody>[0]> = {}) =>
   )
 
 describe('KPI tiles', () => {
-  it('shows eight tiles with formatted values', () => {
+  it('shows nine tiles with formatted values, Voided last', () => {
     const html = renderToString(<KpiTiles summary={summary} />)
-    expect(buildTiles(summary)).toHaveLength(8)
+    expect(buildTiles(summary)).toHaveLength(9)
+    expect(buildTiles(summary).at(-1)).toMatchObject({ label: 'Voided', value: '7' })
     expect(html).toContain('1,234')
     expect(html).toContain('87.5%')
     expect(html).toContain('2d 4h')
@@ -108,6 +110,55 @@ describe('report body states', () => {
     expect(html.replace(/<!-- -->/g, '')).toContain('Showing 1 of 1,234 tickets')
     expect(html).toContain('href="/tickets/7"')
     expect(html).toContain('10-007-2026')
+  })
+})
+
+describe('voided rows and tile', () => {
+  it('shows the Voided tile as a dash when the server does not send it', () => {
+    const tile = buildTiles({ ...summary, voided: null }).at(-1)
+    expect(tile).toMatchObject({ label: 'Voided', value: null })
+    expect(buildTiles({ ...summary, voided: undefined }).at(-1)?.value).toBeNull()
+  })
+
+  it('renders a Void row: dashes for the empty cells, the Void pill and the reason', () => {
+    const html = renderToString(
+      <PreviewTable
+        tickets={[
+          ticket({
+            status: 'Void',
+            requester: null,
+            requesting_area: null,
+            concern_type: null,
+            priority: null,
+            handled_by: null,
+            resolution_minutes: null,
+            within_sla: null,
+            survey_score: null,
+            action_taken: null,
+            is_void: true,
+            void_reason: 'Printed twice by mistake',
+            voided_at: '2026-10-21T03:05:00Z',
+          }),
+        ]}
+      />
+    )
+    expect(html).toContain('>Void<')
+    expect(html).toContain('bg-gray-700') // the Void pill
+    expect(html).toContain('Voided: Printed twice by mistake')
+    expect(html).toContain('text-gray-500')
+    expect(html).not.toContain('Replaced the switch')
+    // requester, concern, priority, handled by, resolution, SLA and survey are all dashes
+    expect((html.match(/—/g) ?? []).length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('a Void row without a reason still says it was voided', () => {
+    const html = renderToString(<PreviewTable tickets={[ticket({ status: 'Void', is_void: true, void_reason: null })]} />)
+    expect(html).toContain('>Voided<')
+  })
+
+  it('a null priority renders a dash, not a pill', () => {
+    const html = renderToString(<PreviewTable tickets={[ticket({ priority: null })]} />)
+    expect(html).not.toContain('border-orange-300')
   })
 })
 

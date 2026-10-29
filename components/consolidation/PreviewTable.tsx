@@ -102,7 +102,14 @@ export default function PreviewTable({
                 <td className="px-4 py-3"><SlaCell value={t.within_sla} /></td>
                 <td className="px-4 py-3 tabular-nums text-gray-700">{formatSurvey(t.survey_score)}</td>
                 <td className="px-4 py-3 text-gray-700">
-                  {t.action_taken ? (
+                  {t.is_void ? (
+                    <span
+                      className="block max-w-[16rem] truncate text-gray-500"
+                      title={t.void_reason ? `Voided: ${t.void_reason}` : 'Voided'}
+                    >
+                      {t.void_reason ? `Voided: ${t.void_reason}` : 'Voided'}
+                    </span>
+                  ) : t.action_taken ? (
                     <span className="block max-w-[16rem] truncate" title={t.action_taken}>
                       {t.action_taken}
                     </span>

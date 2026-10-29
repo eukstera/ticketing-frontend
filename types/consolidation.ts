@@ -28,6 +28,8 @@ export interface ConsolidationSummary {
   false_alarms: number
   avg_satisfaction: number | null
   disputes: number
+  /** Voided blank job orders (already included in `total`). Absent on older servers. */
+  voided?: number | null
 }
 
 export interface LabelCount {
@@ -60,6 +62,10 @@ export interface ConsolidationTicket {
   survey_score: number | null
   disputed: boolean
   action_taken: string | null
+  /** A voided blank job order: requester, priority, area and concern are empty; requested_at is the print date. */
+  is_void?: boolean
+  void_reason?: string | null
+  voided_at?: string | null
 }
 
 export interface ConsolidationReport {

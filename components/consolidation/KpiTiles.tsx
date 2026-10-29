@@ -1,4 +1,4 @@
-// Eight KPI tiles. Static (not links), so they are plain divs with StatCard's shell.
+// Nine KPI tiles. Static (not links), so they are plain divs with StatCard's shell.
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatCount, formatPercent, formatScore } from '@/lib/consolidation'
 import { formatDuration } from '@/lib/format'
@@ -36,6 +36,7 @@ export function buildTiles(s: ConsolidationSummary): Tile[] {
     },
     { label: 'Avg. satisfaction', value: dash(formatScore(s.avg_satisfaction)), className: NEUTRAL },
     { label: 'Disputes', value: formatCount(s.disputes), className: NEUTRAL },
+    { label: 'Voided', value: dash(formatCount(s.voided)), className: NEUTRAL },
   ]
 }
 
@@ -45,7 +46,7 @@ export function KpiSkeleton() {
   return (
     <div role="status" aria-busy="true" className={GRID}>
       <span className="sr-only">Loading…</span>
-      {Array.from({ length: 8 }, (_, i) => (
+      {Array.from({ length: 9 }, (_, i) => (
         <Skeleton key={i} className="h-20 rounded-xl" />
       ))}
     </div>
