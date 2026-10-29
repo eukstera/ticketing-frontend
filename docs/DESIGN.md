@@ -119,6 +119,16 @@ Built from existing pieces; no new look and no chart library. Commits e1101cc, e
 - Durations use `formatDuration` (`lib/format.ts`): "2d 4h", "5h 30m", "<1m", "—".
 - Not yet checked visually at phone width (Filters toggle, sticky column, dropdown near the bottom of the panel).
 
+### Blank job orders (IT department only: IT staff and IT Heads, never Encoders)
+A printed blank form reserves a ticket number (status **Blank**); it is later filled in (a normal ticket, same number), voided (**Void**, reason required, number stays used) or rejected as a false alarm (a Head's Reopen goes back to Blank). Commits 4ebcc5b (styles), dbacc11 (fill-in), 061bc59 (rows, dialogs, banners).
+- **Status colours** (`STATUS_STYLES`): Blank = slate with a *dashed* outline (placeholder, nothing entered); Void = solid dark gray with white text (closed for good, distinct from the pale-gray unknown-status fallback). Timeline steps match: slate "Blank JO Printed", blue "Filled In Date", gray "Void Date".
+- **Print blank JO** lives in the ticket list toolbar only (not the dashboard), `btnSecondary` + Printer icon. It always goes through `ConfirmModal` because a reserved number can never be reused; the call is ref-guarded so a double click can't burn two numbers; the number in the toast comes from the API. A reserved-but-not-downloaded result gets its own error toast that points to "Reprint JO". PDF only, so there is no format menu.
+- **Blank row actions**, in order: Fill in (link styled `btnPrimary`), Reprint JO (`btnSecondary`, plain button), Void (`btnSecondary` with `!text-red-700` and XCircle; the `!` is needed for the usual Tailwind ordering reason), False alarm. No Take/Assign/Complete. Void rows have no actions ("—") and carry the reason as a `title` on the pill. Empty area/concern cells show "—".
+- **Void dialog** is `ReasonDialog` (5-255 characters, `btnDanger`); a 409 means the ticket is no longer Blank, so the row refreshes.
+- **Detail page:** Blank shows a gray info banner and hides comments; Void shows "Voided: {reason}" with who and when.
+- **Fill in** (`/tickets/{id}/fill`) is `TicketForm` with `mode="fill"`, the same form as Create: a read-only number block (a div, not an input), plus Requester, optional Requester email and "Date & time requested" (datetime-local, not in the future); submit "Save ticket". A 409 redirects to the ticket with "This ticket has already been filled in."
+- Not yet checked in a browser: the Create form after the `TicketForm` extraction, and phone width for the new buttons.
+
 ## Open (none blocks release)
 1. **Admin tables on phones.** They scroll horizontally (`min-w-[640px]`) rather than stacking into cards like the ticket list. Acceptable for an admin tool; reuse the ticket card pattern if that changes.
 2. **Page titles.** Only the ticket detail and Consolidation pages set `document.title`; the other client pages share the layout title.
