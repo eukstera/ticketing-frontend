@@ -40,14 +40,16 @@ export function buildTiles(s: ConsolidationSummary): Tile[] {
   ]
 }
 
-const GRID = 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5'
+// 9 tiles: a 3x3 from md up; on phones (2 columns) the last one spans both.
+const LAST_TILE = 'col-span-2 md:col-span-1'
+const GRID = 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-5'
 
 export function KpiSkeleton() {
   return (
     <div role="status" aria-busy="true" className={GRID}>
       <span className="sr-only">Loading…</span>
       {Array.from({ length: 9 }, (_, i) => (
-        <Skeleton key={i} className="h-20 rounded-xl" />
+        <Skeleton key={i} className={`h-20 rounded-xl ${i === 8 ? LAST_TILE : ''}`} />
       ))}
     </div>
   )
@@ -56,9 +58,9 @@ export function KpiSkeleton() {
 export default function KpiTiles({ summary }: { summary: ConsolidationSummary }) {
   return (
     <dl className={GRID}>
-      {buildTiles(summary).map(t => (
+      {buildTiles(summary).map((t, i, all) => (
         // DOM order is dt, dd, dd (valid); `order-*` shows value, label, caption.
-        <div key={t.label} className={`flex flex-col rounded-xl border px-4 py-4 sm:px-6 sm:py-5 ${t.className}`}>
+        <div key={t.label} className={`flex flex-col rounded-xl border px-4 py-4 sm:px-6 sm:py-5 ${i === all.length - 1 ? LAST_TILE : ''} ${t.className}`}>
           <dt className="order-2 mt-1 text-xs text-gray-700 sm:text-sm">{t.label}</dt>
           <dd className="order-1 text-2xl font-semibold sm:text-3xl">
             {t.value ?? (

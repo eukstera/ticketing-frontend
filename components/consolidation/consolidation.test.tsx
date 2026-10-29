@@ -70,6 +70,12 @@ describe('KPI tiles', () => {
     expect(html).toContain('4.3 / 5')
   })
 
+  it('lays nine tiles out as 3x3 from md up, the last spanning both phone columns', () => {
+    const html = renderToString(<KpiTiles summary={summary} />)
+    expect(html).toContain('md:grid-cols-3')
+    expect(html.match(/col-span-2 md:col-span-1/g)).toHaveLength(1)
+  })
+
   it('renders null as a dash with a screen-reader note', () => {
     const html = renderToString(<KpiTiles summary={summary} />)
     expect(html).toContain('—')
