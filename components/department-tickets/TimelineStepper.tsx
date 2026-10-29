@@ -22,7 +22,7 @@ function timelineSequence(activities: DateActivity[], rejected: boolean): Timeli
   const base = rejected ? falseAlarmTimelineSequence : fullTimelineSequence
   // Not filled in yet: nothing of the normal request path has happened.
   if (!has(FILLED_IN_STEP.match) && !has('Requested')) {
-    return [PRINTED_STEP, ...(has(VOID_STEP.match) ? [VOID_STEP] : []), ...(rejected ? [base[1]] : [])]
+    return [PRINTED_STEP, ...(has(VOID_STEP.match) ? [VOID_STEP] : []), ...(rejected ? base.filter(step => step.match === 'False Alarm') : [])]
   }
   return [PRINTED_STEP, ...(has(FILLED_IN_STEP.match) ? [FILLED_IN_STEP] : []), ...base]
 }
