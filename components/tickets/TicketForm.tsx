@@ -716,7 +716,7 @@ export default function TicketForm(props: TicketFormProps) {
                 <p className="text-sm text-gray-600">
                     Service Level Agreement target:{' '}
                     <span className="font-medium text-gray-800">
-                      {selectedPriority.sla_days > 0 ? `${selectedPriority.sla_days} ${selectedPriority.sla_days === 1 ? 'day' : 'days'}` : 'none'}
+                      {selectedPriority.sla_days > 0 ? `${selectedPriority.sla_days} working ${selectedPriority.sla_days === 1 ? 'day' : 'days'}` : 'none'}
                     </span>
                 </p>
                 ) : (

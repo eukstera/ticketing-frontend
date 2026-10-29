@@ -31,8 +31,8 @@ describe('barWidth', () => {
 
 describe('slaLabel', () => {
   it('pluralizes and handles no SLA', () => {
-    expect(slaLabel(1)).toBe('SLA 1 day')
-    expect(slaLabel(3)).toBe('SLA 3 days')
+    expect(slaLabel(1)).toBe('SLA 1 working day')
+    expect(slaLabel(3)).toBe('SLA 3 working days')
     expect(slaLabel(0)).toBe('No SLA')
     expect(slaLabel(NaN)).toBe('No SLA')
   })
@@ -44,7 +44,7 @@ describe('optionalSlaLabel', () => {
     expect(optionalSlaLabel(null)).toBeNull()
   })
   it('delegates to slaLabel otherwise', () => {
-    expect(optionalSlaLabel(2)).toBe('SLA 2 days')
+    expect(optionalSlaLabel(2)).toBe('SLA 2 working days')
     expect(optionalSlaLabel(0)).toBe('No SLA')
   })
 })

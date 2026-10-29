@@ -174,7 +174,7 @@ export default function FilterPills({
                     <span className="block truncate font-medium text-gray-700">{pill.label}</span>
                     {pill.sla != null && (
                       <span className="block text-[11px] text-gray-500">
-                        SLA {pill.sla} {pill.sla > 1 ? 'Days' : 'Day'}
+                        SLA {pill.sla} working {pill.sla > 1 ? 'days' : 'day'}
                       </span>
                     )}
                   </span>

@@ -12,10 +12,10 @@ export function barWidth(count: number, max: number): number {
   return Math.min(100, Math.max(0, (count / max) * 100))
 }
 
-/** 'SLA 3 days' / 'SLA 1 day' / 'No SLA' (sla_days of 0 means the priority has no SLA). */
+/** 'SLA 3 working days' / 'SLA 1 working day' / 'No SLA' (sla_days of 0 means the priority has no SLA). */
 export function slaLabel(days: number): string {
   if (!Number.isFinite(days) || days <= 0) return 'No SLA'
-  return `SLA ${days} ${days === 1 ? 'day' : 'days'}`
+  return `SLA ${days} working ${days === 1 ? 'day' : 'days'}`
 }
 
 /** slaLabel for data that may not carry an SLA at all (undefined/null -> null, so callers can skip the row). */

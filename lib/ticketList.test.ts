@@ -182,8 +182,8 @@ describe('normalizeListResponse', () => {
   })
 
   it('renders the coerced values as SLA labels ("10" -> 10 days, "1" -> 1 day)', () => {
-    expect(optionalSlaLabel(coerceSla('10'))).toBe('SLA 10 days')
-    expect(optionalSlaLabel(coerceSla('1'))).toBe('SLA 1 day')
+    expect(optionalSlaLabel(coerceSla('10'))).toBe('SLA 10 working days')
+    expect(optionalSlaLabel(coerceSla('1'))).toBe('SLA 1 working day')
     expect(optionalSlaLabel(coerceSla('0'))).toBe('No SLA')
     expect(optionalSlaLabel(coerceSla(null))).toBeNull()
   })
