@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-10-29 — Blank job orders
+
+**Ship with the matching API changes.** The API needs `php artisan db:seed --class=ReferenceDataSeeder --force`, which adds the "Blank" and "Void" statuses and the "Blank JO Printed Date", "Filled In Date" and "Void Date" categories.
+
+- **Print blank JO** (061bc59, e205cf8): IT staff and IT Department Heads only, never Encoders.
+  - The ticket-list toolbar button reserves the next ticket number, after a confirm step, and downloads the blank PDF. It is PDF only, ref-guarded so a double click can't burn two numbers, and a "reserved but not downloaded" toast points to Reprint.
+  - The printer owns the ticket: it is assigned to them at print time and shows "Printed by" on the row.
+- **Blank and Void statuses** (4ebcc5b, 061bc59, 3ab05a1): new pills. Blank is slate with a dashed outline; Void is dark gray. Lists show "—" and "Not filled in yet" for empty fields.
+  - Blank row actions: Fill in, Reprint JO, Void, False alarm. Fill in, Void and False alarm are for the owner or a Head; Reprint is for any department staff.
+  - No Take, Assign or Complete on Blank or Void rows.
+  - Void needs a 5–255 character reason. A Void ticket has no actions, and its pill tooltip and detail banner show the reason.
+  - A Head's Reopen of a rejected blank returns it to Blank.
+- **Fill in** (dbacc11, 4440616, 64ac4d6): `/tickets/{id}/fill` uses the Create Ticket form, now a shared `TicketForm` with a `mode` prop.
+  - The reserved number is shown read-only, plus requester, optional email and the date/time from the paper form. The SLA counts from that time.
+  - After saving, the ticket is In-progress with the owner. "Assign to" is Head-only.
+- **Consolidation** (60ab3cb, 46ff6af): voided blank JOs count toward Total and get a ninth "Voided" tile; the tiles are now a 3×3 grid. Void rows show "Voided: {reason}". Voids are excluded from Completed, SLA, resolution, overdue, false-alarm rate and satisfaction. Unfilled Blank tickets are not counted.
+- **Not yet verified live:** checked with tsc, eslint, Vitest (714 tests) and design review only. Create Ticket was refactored into `TicketForm`, so check it in a browser along with Print, Fill in, Void and Consolidation.
+
 ## 2026-10-28 — Encoder role and Consolidation report
 
 **Ship with the matching API changes.** The API needs `composer install` (phpoffice/phpspreadsheet) and `php artisan db:seed --class=ReferenceDataSeeder --force`, which adds the "Encoder" role.
