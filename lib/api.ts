@@ -98,6 +98,9 @@ const FRAMEWORK_MESSAGE =
 /**
  * Friendly text for any thrown value. 405, 5xx, network failures and non-JSON
  * bodies always get our own copy (the server text there is framework output).
+ * The one exception is a 503 whose JSON envelope carries a deliberate message
+ * (e.g. a missing PHP extension for PDF/Excel export): that text is shown, unless
+ * it is framework output or just the bare "Service Unavailable" status text.
  * For other statuses the API's own message is preferred, unless it looks like
  * framework output; then a status-based message, then the caller's fallback.
  */
@@ -105,6 +108,15 @@ export function getErrorMessage(err: unknown, fallback = 'Something went wrong.'
   if (err instanceof ApiError) {
     if (err.status === 0) return NETWORK_MESSAGE
     if (err.status === 405) return NOT_AVAILABLE_MESSAGE
+    if (
+      err.status === 503 &&
+      err.fromServer &&
+      err.message &&
+      !FRAMEWORK_MESSAGE.test(err.message) &&
+      !/^service unavailable\.?$/i.test(err.message.trim())
+    ) {
+      return err.message
+    }
     if (err.status >= 500) return SERVER_MESSAGE
     if (err.fromServer && err.message && !FRAMEWORK_MESSAGE.test(err.message)) return err.message
     return STATUS_MESSAGES[err.status] ?? fallback

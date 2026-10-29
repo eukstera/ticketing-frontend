@@ -37,6 +37,21 @@ describe('error helpers', () => {
     expect(getErrorMessage(new Error('boom'), 'fallback')).toBe('fallback')
   })
 
+  it('shows the deliberate message of a 503 envelope, and nothing else from 5xx', async () => {
+    const { getErrorMessage, ApiError, SERVER_MESSAGE } = await load()
+    const msg =
+      'PDF generation is not available on this server (missing PHP extension: gd). Ask the system administrator to enable it.'
+    expect(getErrorMessage(new ApiError(503, msg))).toBe(msg)
+    // no envelope message (proxy / maintenance page)
+    expect(getErrorMessage(new ApiError(503, 'Server responded with 503', undefined, false))).toBe(SERVER_MESSAGE)
+    // framework text and bare status text
+    expect(getErrorMessage(new ApiError(503, 'SQLSTATE[HY000]: General error'))).toBe(SERVER_MESSAGE)
+    expect(getErrorMessage(new ApiError(503, 'Service Unavailable'))).toBe(SERVER_MESSAGE)
+    // other 5xx keep the generic copy even with a message
+    expect(getErrorMessage(new ApiError(500, msg))).toBe(SERVER_MESSAGE)
+    expect(getErrorMessage(new ApiError(502, msg))).toBe(SERVER_MESSAGE)
+  })
+
   it('hides framework text for 405, 5xx, network and non-JSON failures', async () => {
     const { getErrorMessage, ApiError, NETWORK_MESSAGE, SERVER_MESSAGE, NOT_AVAILABLE_MESSAGE } = await load()
     const laravel405 = 'The GET method is not supported for route api/admin/users. Supported methods: POST.'
