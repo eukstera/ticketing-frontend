@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-29 — Production hardening
+
+- **503 messages** (7066e3e): `getErrorMessage` now shows the API's own message for a 503 envelope, e.g. "PDF generation is not available on this server (missing PHP extension: gd)…". Other 5xx statuses, a 503 without an envelope, and a bare "Service Unavailable" still get the generic copy.
+- **Production findings** (fixed on the API side or by server configuration):
+  - Job Order PDFs failed because the PHP GD extension was not enabled.
+  - An unauthenticated API request without an Accept header returned 500 "Route [login] not defined".
+  - The API ran with `APP_DEBUG=true`, so error responses exposed stack traces. Set `APP_ENV=production` and `APP_DEBUG=false`.
+  - On the API server, `php artisan tickets:check-server` reports missing extensions and unwritable folders.
+- **SOP / WI documents:** GBTRGHSC-ICTS-02-0001-0000 and 03-0001…0005-0000 were generated from the hospital templates into `docs/sop/`. By user decision `/docs/sop` is git-ignored, so they are kept outside the repository.
+
 ## 2026-10-29 — Blank job orders
 
 **Ship with the matching API changes.** The API needs `php artisan db:seed --class=ReferenceDataSeeder --force`, which adds the "Blank" and "Void" statuses and the "Blank JO Printed Date", "Filled In Date" and "Void Date" categories.
