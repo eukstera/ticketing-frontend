@@ -98,7 +98,7 @@ describe('StatusCell for Void', () => {
   it('shows the reason as a title on the pill', () => {
     const ticket = {
       status: 'Void',
-      void: { reason: 'Printed by mistake', voided_by: { id: 1, first_name: 'A', last_name: 'B' }, voided_at: '' },
+      void_activity: { user: 'A B', created_at: '', remarks: 'Printed by mistake' },
     }
     const html = renderToString(<StatusCell ticket={ticket as never} />)
     expect(html).toContain('title="Voided: Printed by mistake"')

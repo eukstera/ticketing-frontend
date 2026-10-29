@@ -6,7 +6,7 @@ export default function StatusCell({ ticket }: { ticket: DepartmentTicket }) {
   return (
     <span
       className={statusBadgeClass(ticket.status)}
-      title={ticket.status === VOID_STATUS && ticket.void?.reason ? `Voided: ${ticket.void.reason}` : undefined}
+      title={ticket.status === VOID_STATUS && ticket.void_activity?.remarks ? `Voided: ${ticket.void_activity.remarks}` : undefined}
     >
       {ticket.status}
     </span>

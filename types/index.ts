@@ -61,8 +61,8 @@ export interface DepartmentTicket {
   requester_email?: string | null
   priority_sla?: number | null
   comments_count?: number
-  /** Why a Void row was cancelled, when the list sends it. */
-  void?: VoidInfo | null
+  /** The void (who, when, remarks = the reason) for a Void row; null otherwise. */
+  void_activity?: FalseAlarmActivity | null
   devices: Device[]
 }
 
