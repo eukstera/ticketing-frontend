@@ -1,20 +1,11 @@
 // lib/fillBlank.ts
-// Filling in a blank job order (PATCH /tickets/{id}/fill-blank): who may, the
+// Filling in a blank job order (PATCH /tickets/{id}/fill-blank): the
 // payload, and the date helpers for the "Date & time requested" field.
 import { api } from './api'
-import { isEncoder, type AuthUser } from './auth'
-import { IT_DEPARTMENT_ID } from './constants'
 import type { CreateTicketDevice } from './tickets'
 
-export const BLANK_STATUS = 'Blank'
 export const ALREADY_FILLED_MESSAGE = 'This ticket has already been filled in.'
 export const FUTURE_DATE_MESSAGE = "The requested date can't be in the future."
-
-/** IT staff and IT Heads fill in blank job orders; Encoders never do (the API answers 403). */
-export function canFillBlank(user: AuthUser | null | undefined): boolean {
-  if (!user || isEncoder(user)) return false
-  return user.department_id === IT_DEPARTMENT_ID
-}
 
 export interface FillBlankPayload {
   /** "YYYY-MM-DD HH:mm", now or earlier. */

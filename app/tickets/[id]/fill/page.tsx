@@ -10,12 +10,14 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useUser } from '@/hooks/useUser'
 import { getErrorMessage, isAbortError, isApiError } from '@/lib/api'
-import { ALREADY_FILLED_MESSAGE, BLANK_STATUS, canFillBlank } from '@/lib/fillBlank'
+import { isEncoder } from '@/lib/auth'
+import { BLANK_STATUS, canFillBlank } from '@/lib/blankJobOrder'
+import { ALREADY_FILLED_MESSAGE } from '@/lib/fillBlank'
 import { getTicket } from '@/lib/tickets'
 
 interface LoadState {
   id: number
-  ticket: { id: number; ticket_number: string; status: string } | null
+  ticket: { id: number; ticket_number: string; status: string; department_id: number } | null
   error: string
   notFound: boolean
 }
@@ -32,27 +34,27 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
   const [reloadToken, setReloadToken] = useState(0)
 
   const roleKnown = !!user?.role
-  const allowed = canFillBlank(user)
+  // Encoders never fill in; the ticket's department is checked once it is loaded.
+  const notEncoder = !isEncoder(user)
   const loading = validId && state?.id !== ticketId
 
   useEffect(() => {
     document.title = 'Fill in ticket – Ticketing System'
   }, [])
 
-  // Encoders and other departments never fill in a blank job order.
   useEffect(() => {
-    if (authed && roleKnown && !allowed && validId) router.replace(`/tickets/${ticketId}`)
-  }, [authed, roleKnown, allowed, validId, ticketId, router])
+    if (authed && roleKnown && !notEncoder && validId) router.replace(`/tickets/${ticketId}`)
+  }, [authed, roleKnown, notEncoder, validId, ticketId, router])
 
   useEffect(() => {
-    if (!authed || !validId || !allowed) return
+    if (!authed || !validId || !roleKnown || !notEncoder) return
     const controller = new AbortController()
     getTicket(ticketId, controller.signal)
       .then(res => {
         const t = res.result.ticket
         setState({
           id: ticketId,
-          ticket: { id: t.id, ticket_number: t.ticket_number, status: t.status.label },
+          ticket: { id: t.id, ticket_number: t.ticket_number, status: t.status.label, department_id: t.department.id },
           error: '',
           notFound: false,
         })
@@ -68,21 +70,22 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
         })
       })
     return () => controller.abort()
-  }, [authed, ticketId, validId, allowed, reloadToken])
+  }, [authed, ticketId, validId, roleKnown, notEncoder, reloadToken])
 
   const ticket = state?.id === ticketId ? state.ticket : null
   const notBlank = !!ticket && ticket.status !== BLANK_STATUS
+  // Blank, but not this user's to fill in (another department).
+  const notYours = !!ticket && !notBlank && !canFillBlank(ticket, user)
 
   useEffect(() => {
-    if (!notBlank) return
-    toast(ALREADY_FILLED_MESSAGE, 'error')
-    router.replace(`/tickets/${ticketId}`)
-  }, [notBlank, ticketId, router])
+    if (notBlank) toast(ALREADY_FILLED_MESSAGE, 'error')
+    if (notBlank || notYours) router.replace(`/tickets/${ticketId}`)
+  }, [notBlank, notYours, ticketId, router])
 
   if (!authed) return null
-  if (roleKnown && !allowed) return null
+  if (roleKnown && !notEncoder) return null
 
-  if (ticket && !notBlank) {
+  if (ticket && !notBlank && !notYours) {
     return <TicketForm key={ticket.id} mode="fill" ticket={ticket} />
   }
 

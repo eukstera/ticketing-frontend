@@ -1,21 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AuthUser } from '@/lib/auth'
-import { canFillBlank, isValidEmail, requestedAtError, toApiDateTime, toLocalInput } from '@/lib/fillBlank'
-
-const user = (department_id: number, roleName?: string) =>
-  ({ id: 1, department_id, role: roleName ? { id: 1, name: roleName } : undefined }) as AuthUser
-
-describe('canFillBlank', () => {
-  it('is for IT staff and IT Heads', () => {
-    expect(canFillBlank(user(1, 'Staff'))).toBe(true)
-    expect(canFillBlank(user(1, 'Department Head'))).toBe(true)
-  })
-  it('is never for Encoders, other departments or nobody', () => {
-    expect(canFillBlank(user(1, 'Encoder'))).toBe(false)
-    expect(canFillBlank(user(2, 'Department Head'))).toBe(false)
-    expect(canFillBlank(null)).toBe(false)
-  })
-})
+import { isValidEmail, requestedAtError, toApiDateTime, toLocalInput } from '@/lib/fillBlank'
 
 describe('date helpers', () => {
   it('formats a datetime-local value for the API and back', () => {
