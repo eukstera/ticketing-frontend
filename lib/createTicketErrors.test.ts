@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapCreateTicketErrors } from './createTicketErrors'
+import { FILL_TICKET_FIELDS, mapCreateTicketErrors } from './createTicketErrors'
 
 describe('mapCreateTicketErrors', () => {
   it('maps each key that has a control inline and focuses the first in form order', () => {
@@ -65,5 +65,45 @@ describe('mapCreateTicketErrors', () => {
     expect(r.fieldErrors).toEqual({})
     expect(r.firstElementId).toBeNull()
     expect(r.banner).toBe('Failed')
+  })
+})
+
+describe('mapCreateTicketErrors for the fill-in form', () => {
+  it('maps requestor, requestor_email and requested_at, and focuses the first in form order', () => {
+    const r = mapCreateTicketErrors(
+      {
+        remarks: ['Required.'],
+        requested_at: ['Must be now or earlier.'],
+        requestor_email: ['Invalid email.'],
+        requestor: ['Too long.'],
+      },
+      '',
+      FILL_TICKET_FIELDS
+    )
+    expect(Object.keys(r.fieldErrors).sort()).toEqual(['remarks', 'requested_at', 'requestor', 'requestor_email'])
+    expect(r.banner).toBe('')
+    expect(r.firstElementId).toBe('f-requestor')
+  })
+
+  it('focuses the date when it is the first failing control', () => {
+    const r = mapCreateTicketErrors({ requested_at: ['Future.'], priority: ['Inactive.'] }, '', FILL_TICKET_FIELDS)
+    expect(r.firstElementId).toBe('f-requested_at')
+  })
+
+  it('accepts the requester spelling', () => {
+    const r = mapCreateTicketErrors({ requester: ['Required.'] }, '', FILL_TICKET_FIELDS)
+    expect(r.fieldErrors.requestor).toEqual(['Required.'])
+  })
+
+  it('sends keys without a control to the banner', () => {
+    const r = mapCreateTicketErrors({ service_department: ['Inactive.'] }, '', FILL_TICKET_FIELDS)
+    expect(r.banner).toBe('Inactive.')
+    expect(r.firstElementId).toBeNull()
+  })
+
+  it('on the create form, requestor has no control and goes to the banner', () => {
+    const r = mapCreateTicketErrors({ requestor: ['Too long.'] })
+    expect(r.fieldErrors).toEqual({})
+    expect(r.banner).toBe('Too long.')
   })
 })

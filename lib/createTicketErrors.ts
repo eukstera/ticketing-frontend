@@ -16,13 +16,23 @@ export const CREATE_TICKET_FIELDS = [
   'priority',
 ] as const
 
-type Known = (typeof CREATE_TICKET_FIELDS)[number]
+/** Controls on the fill-in (blank job order) form, top to bottom. */
+export const FILL_TICKET_FIELDS = [
+  'requestor',
+  'requestor_email',
+  'requested_at',
+  ...CREATE_TICKET_FIELDS,
+] as const
+
+type Known = (typeof FILL_TICKET_FIELDS)[number]
 
 // Keys the API may send under a different spelling than the form's field name.
 const ALIASES: Record<string, Known> = {
   priority_id: 'priority',
   assigned_user_id: 'assigned_user',
   type_of_concern_id: 'type_of_concern',
+  requester: 'requestor',
+  requester_email: 'requestor_email',
 }
 
 const DEVICE_ROW = /^devices\.(\d+)\.(type|quantity)$/
@@ -40,9 +50,15 @@ function first(messages: string[] | undefined): string | undefined {
   return messages?.find(m => !!m)
 }
 
+/**
+ * `fields` lists the controls the form has, top to bottom (default: the create
+ * form). Keys outside it go to the banner, so e.g. `requestor` is a banner
+ * message on Create Ticket, which has no such control.
+ */
 export function mapCreateTicketErrors(
   errors: FieldErrors | undefined | null,
-  fallbackMessage = ''
+  fallbackMessage = '',
+  fields: readonly string[] = CREATE_TICKET_FIELDS
 ): MappedCreateTicketErrors {
   const fieldErrors: FieldErrors = {}
   let banner = ''
@@ -62,7 +78,8 @@ export function mapCreateTicketErrors(
       continue
     }
 
-    const key = (CREATE_TICKET_FIELDS as readonly string[]).includes(rawKey) ? rawKey : ALIASES[rawKey]
+    const aliased = ALIASES[rawKey]
+    const key = fields.includes(rawKey) ? rawKey : aliased && fields.includes(aliased) ? aliased : undefined
     if (key) {
       fieldErrors[key] = messages.filter(m => !!m)
     } else if (!banner) {
@@ -70,7 +87,7 @@ export function mapCreateTicketErrors(
     }
   }
 
-  const firstKey = CREATE_TICKET_FIELDS.find(k => fieldErrors[k]?.length)
+  const firstKey = fields.find(k => fieldErrors[k]?.length)
   let firstElementId: string | null = null
   if (firstKey === 'devices') {
     const row = firstDeviceRow
