@@ -63,6 +63,22 @@ export const STATUS_STYLES: Record<string, StatusStyle> = {
     card: 'bg-violet-100 border-violet-200 text-violet-700 hover:bg-violet-200',
     solid: 'bg-violet-500',
   },
+  // A reserved ticket number with nothing filled in yet (blank job order): slate with a dashed outline = "placeholder".
+  Blank: {
+    badge: 'bg-slate-50 text-slate-600 outline outline-1 -outline-offset-1 outline-dashed outline-slate-400',
+    pill: 'bg-slate-50 text-slate-600 border-slate-400 border-dashed',
+    ring: 'ring-slate-400',
+    card: 'bg-slate-50 border-slate-300 text-slate-600 hover:bg-slate-100',
+    solid: 'bg-slate-300',
+  },
+  // A number that was used and cancelled: solid dark gray = "closed for good", unlike the pale gray fallback.
+  Void: {
+    badge: 'bg-gray-700 text-white',
+    pill: 'bg-gray-700 text-white border-gray-700',
+    ring: 'ring-gray-600',
+    card: 'bg-gray-200 border-gray-300 text-gray-700 hover:bg-gray-300',
+    solid: 'bg-gray-700',
+  },
 }
 
 export const STATUS_FALLBACK: StatusStyle = {
