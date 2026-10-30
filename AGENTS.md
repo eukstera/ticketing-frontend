@@ -35,6 +35,26 @@ When the user says to commit and push, always do all of these, in order:
 3. **Update the graphify graph**: run `/graphify . --update` so `graphify-out/` reflects the new code.
 4. **Report back to the user**: what was committed (hashes/range), test results, push status, and the graph update result.
 
+## Google Workspace: read the ICTS AI guidelines first
+
+Before uploading files to, or updating spreadsheets in, the ICTS Google Workspace, read **`AI GUIDELINES - READ FIRST.md`** in the ICTS Drive folder (locally `G:\My Drive\ICTS\AI GUIDELINES - READ FIRST.md`). It covers uploading files and the spreadsheet house style. If it conflicts with anything here, follow that document and tell the user about the conflict.
+
+## ISO documents (SOP / WI / Forms)
+
+- **Templates:** `D:\Admin Account\Desktop\ICTS Policies\Templates\` (`SOP- TEMPLATE.docx`, `WI - TEMPLATE.docx`). Fill the template's own sections; keep its header, logos and footer.
+- **Document code:** `GBTRGHSC-ICTS-<type>-<ICTS index>-<revision>`. Type: `01` Quality Manual, `02` SOP, `03` WI, `04` Form. The index is a 4-digit sequence per type; the revision is `0000` for a new document. A document stays at `0000`, with no new Revision History row, until it has been DRF'ed (made official); only later changes raise the revision. Check the catalog for the next free number before assigning one.
+- **File name:** `<code> <Title>.docx`. Local copies live in `docs/sop/`, which is git-ignored and never committed.
+- **Content rules:**
+  - REFERENCES start with ARTA (RA 11032, its IRR, ARTA MC 2019-002).
+  - Processing times follow the Citizen's Charter in working days.
+  - Cross-reference the related SOPs and WIs by code.
+- **Upload to Google Drive** (Drive for desktop, `G:\My Drive\ICTS\ISO\`):
+  - Copy (never move) each document into `<System>\SOP`, `<System>\WI` or `<System>\Forms`, e.g. `Ticketing System\SOP`. Create a new `<System>` folder with the same three subfolders for another system.
+  - After Drive has synced, add a row to the spreadsheet in `ICTS ISO Document Catalog`. The columns are **Document name**, **Type**, **Belongs to SOP**, **Date Uploaded**, **Link to the actual Document** and **DRF'ed At** (date it was DRF'ed; blank until the user says so).
+  - The catalog is cascaded: a system heading row, then each SOP, then its WIs indented under it ("↳ …", Belongs to SOP = the SOP's `02-xxxx`) in a collapsible row group. Insert a new WI under its SOP's group; a new SOP starts its own block.
+  - When a document is revised, replace the file in place and update its catalog row. Don't add a second row.
+- Only the orchestrator uploads and edits the catalog; it confirms the upload with the user first.
+
 ## CSS / styling
 
 - Keep the styling as it is — polish only, no redesign.
