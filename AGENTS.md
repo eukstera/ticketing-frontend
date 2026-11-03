@@ -47,13 +47,13 @@ Before uploading files to, or updating spreadsheets in, the ICTS Google Workspac
 - **Content rules:**
   - REFERENCES start with ARTA (RA 11032, its IRR, ARTA MC 2019-002).
   - Processing times follow the Citizen's Charter in working days.
-  - Cross-reference the related SOPs and WIs by code.
+  - Cross-reference the related SOPs, WIs and forms by title, never by our working code (the QMO assigns the official codes). In REFERENCES write "(Version 01, <Title>, (TBA), <issuer>)".
 - **Upload to Google Drive** (Drive for desktop, `G:\My Drive\ICTS\ISO\`):
   - Copy (never move) each document into `<System>\SOP`, `<System>\WI` or `<System>\Forms`, e.g. `Ticketing System\SOP`. Create a new `<System>` folder with the same three subfolders for another system.
-  - After Drive has synced, add a row to the spreadsheet in `ICTS ISO Document Catalog`. The columns are **Document name**, **Type**, **Belongs to SOP**, **Date Uploaded**, **Link to the actual Document** and **DRF'ed At** (date it was DRF'ed; blank until the user says so).
+  - After Drive has synced, add a row to the spreadsheet in `ICTS ISO Document Catalog`. The columns are **Document name**, **Type**, **Belongs to SOP**, **Date Uploaded**, **Link to the actual Document**, **DRF Link** (Drive link of the document's filled DRF), **DRF'ed At** (date it was DRF'ed; blank until the user says so), **DRF Created** and **DRF Approved / Completed** (dates of the Document Request Form), and **Official Document Code** (assigned by the QMO; our codes are working codes until then). On the DRF itself, write the title only, never a code. Filled DRFs go to `<System>\DRF\<SOP|WI|Forms|QM>` by document type, named `DRF - <code> <Title>.pdf`.
   - The catalog is cascaded: a system heading row, then each SOP, then its WIs indented under it ("↳ …", Belongs to SOP = the SOP's `02-xxxx`) in a collapsible row group. Insert a new WI under its SOP's group; a new SOP starts its own block.
   - When a document is revised, replace the file in place and update its catalog row. Don't add a second row.
-- Only the orchestrator uploads and edits the catalog; it confirms the upload with the user first.
+- Only the orchestrator uploads and edits the catalog; it confirms the upload with the user first. Exception: another session (e.g. documentation) may upload presentations to `<System>\Presentation` once the user has approved that upload; it reports the links back to the orchestrator.
 
 ## CSS / styling
 
