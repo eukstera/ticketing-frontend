@@ -14,7 +14,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           function Run($c) { Invoke-Expression $c; if ($LASTEXITCODE -ne 0) { throw "FAILED: $c" } }
 
-          cd C:\nginx\www\nextapp       # <-- your Next.js project folder
+          cd C:\nginx\www\TicketingSystem-Frontend       # <-- your Next.js project folder
 
           Run "git pull origin main"
 
