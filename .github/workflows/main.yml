@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Deploy the app
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Run($c) { Invoke-Expression $c; if ($LASTEXITCODE -ne 0) { throw "FAILED: $c" } }
+
+          cd C:\nginx\www\nextapp       # <-- your Next.js project folder
+
+          Run "git pull origin main"
+
+          Stop-Service TicketingFrontend          # <-- your NSSM service name
+          try {
+            Run "npm ci"
+            Run "npm run build"
+          }
+          finally {
+            Start-Service TicketingFrontend       # always bring it back up, even if the build fails
+          }
