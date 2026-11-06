@@ -44,7 +44,7 @@ export default function CompleteModal({ isOpen, ticketId, ticketNumber, requeste
                 </>
               ) : (
                 <>
-                  <strong className="font-semibold text-gray-800">{NO_EMAIL_TEXT}.</strong> A Department Head will have to
+                  <strong className="font-semibold text-gray-800">{NO_EMAIL_TEXT}.</strong> A Section Head will have to
                   close it on the requester&apos;s behalf.
                 </>
               )}

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-06 — Roles by key; Section Head and Section Secretary
+
+**Ship before or with the matching API change** (roles.key and the display-name migrations; the API needs `php artisan migrate --force`).
+
+- **Roles are compared by key, not name:** `isAdmin` and `isEncoder` read `role.key` (`department-head`, `encoder`), so the roles can be renamed. A role created in Admin has `key: null` and never counts as admin or encoder.
+  - When the API sends no `key` (an older API, or a user stored before this release), the old names "Department Head" and "Encoder" are still recognised, so either side can deploy first.
+  - The protected admin role in Admin › Roles is found by key, whatever it is called.
+- **Wording:** user-facing text now says Section Head instead of Department Head (close on behalf, the no-email warnings, the confirmation labels, the Roles page). The API renames the roles themselves to "Section Head" and "Section Secretary".
+- Checked with tsc, eslint and Vitest (718 tests). Not yet checked against the new API in a browser.
+
 ## 2026-10-29 — Production hardening
 
 - **503 messages** (7066e3e): `getErrorMessage` now shows the API's own message for a 503 envelope, e.g. "PDF generation is not available on this server (missing PHP extension: gd)…". Other 5xx statuses, a 503 without an envelope, and a bare "Service Unavailable" still get the generic copy.

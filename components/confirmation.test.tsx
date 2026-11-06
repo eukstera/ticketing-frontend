@@ -362,7 +362,7 @@ describe('ConfirmationPanel', () => {
   })
 
   it('names a close by a head and an automatic close', () => {
-    expect(panel({ state: 'head_closed', channel: 'head' })).toContain('Closed by a Department Head')
+    expect(panel({ state: 'head_closed', channel: 'head' })).toContain('Closed by a Section Head')
     expect(panel({ state: 'auto_closed', channel: 'auto' })).toContain('Closed automatically')
   })
 
@@ -410,7 +410,7 @@ describe('Complete and Close dialogs', () => {
   it('warns when there is no email, and says a head must close it', () => {
     const out = complete({ requesterEmail: null })
     expect(out).toContain('No email provided')
-    expect(out).toContain('Department Head')
+    expect(out).toContain('Section Head')
   })
 
   it('stays quiet about email when it is not known', () => {
@@ -430,7 +430,7 @@ describe('Complete and Close dialogs', () => {
     expect(out).toContain('Close on behalf of the requester')
     expect(out).toMatch(/<textarea[^>]*maxLength="500"/i)
     expect(out).toMatch(/<textarea[^>]*required/i)
-    expect(out).toContain('closed by a Department Head')
+    expect(out).toContain('closed by a Section Head')
     expect(out).toContain('No email provided')
     expect(out).toContain('Close ticket')
   })

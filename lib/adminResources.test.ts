@@ -4,7 +4,6 @@ import type { AuthUser } from '@/lib/auth'
 import {
   ADMIN_RESOURCES,
   ADMIN_RESOURCE_KEYS,
-  DEPARTMENT_HEAD_ROLE,
   OTHERS_NATURE_OF_WORK,
   SET_ANOTHER_DEFAULT_FIRST,
   getAdminResource,
@@ -77,12 +76,20 @@ describe('config invariants', () => {
 describe('row locks', () => {
   const me = { id: 7 } as AuthUser
 
-  it('locks edit and deactivate for the Department Head role only', () => {
+  it('locks edit and deactivate for the admin role only, by its key', () => {
     const lock = byKey('roles').lock!
-    expect(lock({ id: 2, name: DEPARTMENT_HEAD_ROLE }, me)).toMatchObject({
+    expect(lock({ id: 2, name: 'Section Head', key: 'department-head' }, me)).toMatchObject({
       edit: expect.any(String),
       deactivate: expect.any(String),
     })
+    expect(lock({ id: 1, name: 'Normal User', key: 'normal-user' }, me)).toBeNull()
+    // A role created in Admin has no key, even if someone names it like the admin role.
+    expect(lock({ id: 9, name: 'Department Head', key: null }, me)).toBeNull()
+  })
+
+  it('falls back to the old admin role name when the API sends no key', () => {
+    const lock = byKey('roles').lock!
+    expect(lock({ id: 2, name: 'Department Head' }, me)).not.toBeNull()
     expect(lock({ id: 1, name: 'Normal User' }, me)).toBeNull()
   })
 

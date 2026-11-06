@@ -31,7 +31,7 @@ export default function CloseOnBehalfModal({ isOpen, ticketId, ticketNumber, req
         <>
           <p>
             Close <strong className="font-semibold text-gray-800">{ticketNumber ?? 'this ticket'}</strong> as completed
-            without the requester&apos;s confirmation. It is recorded as closed by a Department Head, with your reason.
+            without the requester&apos;s confirmation. It is recorded as closed by a Section Head, with your reason.
           </p>
           {requesterEmail === null && (
             <p className="mt-2 text-gray-500">{NO_EMAIL_TEXT}, so there is nobody to confirm it.</p>

@@ -119,17 +119,17 @@ describe('completionMessage', () => {
     expect(msg).toMatch(/retried automatically|resend/)
   })
 
-  it('points to a Department Head when there is no address', () => {
+  it('points to a Section Head when there is no address', () => {
     for (const mail of ['none', 'pending'] as const) {
       expect(completionMessage({ requester_email: null, mail: { status: mail } })).toMatch(
-        /no email address.*Department Head can close it/
+        /no email address.*Section Head can close it/
       )
     }
   })
 
   it('copes with a missing confirmation (older server)', () => {
     expect(completionMessage(undefined)).toContain('no email address')
-    expect(completionMessage(null)).toContain('Department Head')
+    expect(completionMessage(null)).toContain('Section Head')
   })
 })
 
@@ -139,14 +139,14 @@ describe('wording', () => {
     expect(confirmationStateLabel('confirmed')).toBe('Confirmed by the requester')
     expect(confirmationStateLabel('disputed')).toBe('Disputed by the requester')
     expect(confirmationStateLabel('auto_closed')).toBe('Closed automatically')
-    expect(confirmationStateLabel('head_closed')).toBe('Closed by a Department Head')
+    expect(confirmationStateLabel('head_closed')).toBe('Closed by a Section Head')
     expect(confirmationStateLabel('superseded')).toBeTruthy()
     expect(confirmationStateLabel('something_new' as never)).toBe('something_new')
   })
 
   it('names where an answer came from', () => {
     expect(channelLabel('email')).toBe('the email link')
-    expect(channelLabel('head')).toBe('a Department Head')
+    expect(channelLabel('head')).toBe('a Section Head')
     expect(channelLabel(null)).toBeNull()
   })
 

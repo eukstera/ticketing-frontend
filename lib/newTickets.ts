@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import { ADMIN_ROLE_NAME, type AuthUser } from '@/lib/auth'
+import { isAdmin, type AuthUser } from '@/lib/auth'
 import { IT_DEPARTMENT_ID } from '@/lib/constants'
 
 export interface NewTicket {
@@ -22,9 +22,9 @@ export interface NewTicketsResult {
   has_more: boolean
 }
 
-/** Only IT-department users and Department Heads get the alarm (the API 403s everyone else). */
+/** Only IT-department users and Section Heads get the alarm (the API 403s everyone else). */
 export function canReceiveTicketAlarm(user: AuthUser | null | undefined): boolean {
-  return user?.department_id === IT_DEPARTMENT_ID || user?.role?.name === ADMIN_ROLE_NAME
+  return user?.department_id === IT_DEPARTMENT_ID || isAdmin(user)
 }
 
 export const NO_SUBJECT = '(No subject)'

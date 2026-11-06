@@ -1,5 +1,5 @@
 import { AdminRow, buildQuery } from '@/lib/admin'
-import type { AuthUser } from '@/lib/auth'
+import { ADMIN_ROLE_KEY, hasRoleKey, type AuthUser } from '@/lib/auth'
 
 // Declarative config for the admin CRUD pages: one entry per resource, rendered
 // by <AdminResourcePage>. Endpoints and fields follow the BE contract
@@ -104,7 +104,6 @@ export interface AdminResource {
   rowActions?: RowAction[]
 }
 
-export const DEPARTMENT_HEAD_ROLE = 'Department Head'
 export const OTHERS_NATURE_OF_WORK = 'Others'
 
 export const SET_ANOTHER_DEFAULT_FIRST = 'Set another signatory as default first.'
@@ -200,7 +199,7 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     slug: 'roles',
     title: 'Roles',
     singular: 'role',
-    description: 'Roles decide what a user can do. Department Head is the admin role.',
+    description: 'Roles decide what a user can do. Section Head is the admin role.',
     endpoint: '/admin/roles',
     listKey: 'roles',
     searchPlaceholder: 'Role name',
@@ -208,11 +207,12 @@ export const ADMIN_RESOURCES: AdminResource[] = [
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true }],
     rowTitle: r => str(r.name),
     deactivateNote: 'Roles that active users still hold cannot be deactivated.',
+    // The admin role is protected by its key, whatever its display name.
     lock: row =>
-      row.name === DEPARTMENT_HEAD_ROLE
+      hasRoleKey({ name: str(row.name), key: row.key as string | null | undefined }, ADMIN_ROLE_KEY)
         ? {
-            edit: 'The Department Head role is built in and cannot be renamed.',
-            deactivate: 'The Department Head role is built in and cannot be deactivated.',
+            edit: 'The Section Head role is built in and cannot be renamed.',
+            deactivate: 'The Section Head role is built in and cannot be deactivated.',
           }
         : null,
   },

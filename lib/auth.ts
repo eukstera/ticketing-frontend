@@ -4,9 +4,16 @@ import { LoginForm, User } from '@/types'
 // User as returned by /login and /me. role/department/designation are optional
 // so users stored before the contract change still parse.
 export interface AuthUser extends User {
-  role?: { id: number; name: string }
+  role?: Role
   department?: { id: number; name: string }
   designation?: { id: number; name: string }
+}
+
+/** `key` is the role's fixed identity; null for roles created in Admin, missing from APIs before roles had keys. */
+export interface Role {
+  id: number
+  name: string
+  key?: string | null
 }
 
 interface LoginResult {
@@ -15,10 +22,24 @@ interface LoginResult {
   result: { user: AuthUser; token: string; expires_at: string }
 }
 
-// Roles are compared by NAME, never id.
-export const ADMIN_ROLE_NAME = 'Department Head'
-/** Read-only on its own department's tickets: no ticket actions, no commenting. */
-export const ENCODER_ROLE_NAME = 'Encoder'
+// Roles are compared by KEY, never id or name: the display names can be renamed
+// (Department Head is shown as Section Head, Encoder as Section Secretary).
+/** The admin role (Section Head). */
+export const ADMIN_ROLE_KEY = 'department-head'
+/** Read-only on its own department's tickets: no ticket actions, no commenting (Section Secretary). */
+export const ENCODER_ROLE_KEY = 'encoder'
+
+// Names used before the API sent role keys; only consulted when `key` is missing.
+const LEGACY_ROLE_NAMES: Record<string, string> = {
+  [ADMIN_ROLE_KEY]: 'Department Head',
+  [ENCODER_ROLE_KEY]: 'Encoder',
+}
+
+export function hasRoleKey(role: Pick<Role, 'name' | 'key'> | null | undefined, key: string): boolean {
+  if (!role) return false
+  if (role.key !== undefined) return role.key === key
+  return role.name === LEGACY_ROLE_NAMES[key]
+}
 
 // localStorage has no same-tab change event, so writes here notify subscribers
 // (useSyncExternalStore) through a custom event; the native 'storage' event
@@ -81,11 +102,11 @@ export function isAuthenticated(): boolean {
 }
 
 export function isAdmin(user: AuthUser | null | undefined): boolean {
-  return user?.role?.name === ADMIN_ROLE_NAME
+  return hasRoleKey(user?.role, ADMIN_ROLE_KEY)
 }
 
 export function isEncoder(user: AuthUser | null | undefined): boolean {
-  return user?.role?.name === ENCODER_ROLE_NAME
+  return hasRoleKey(user?.role, ENCODER_ROLE_KEY)
 }
 
 // Refreshes the stored user with role/department/designation from GET /me.

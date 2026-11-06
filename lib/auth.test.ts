@@ -71,9 +71,16 @@ describe('isAdmin', () => {
     expect(isAdmin(user())).toBe(true)
   })
 
-  it('compares by NAME, never by id', () => {
+  it('compares by KEY, never by id or display name', () => {
+    expect(isAdmin(user({ role: { id: 9, name: 'Section Head', key: 'department-head' } }))).toBe(true)
+    expect(isAdmin(user({ role: { id: 2, name: 'Department Head', key: 'normal-user' } }))).toBe(false)
+    expect(isAdmin(user({ role: { id: 2, name: 'Department Head', key: null } }))).toBe(false)
+  })
+
+  it('falls back to the old role name only when the API sends no key', () => {
     expect(isAdmin(user({ role: { id: 2, name: 'Normal User' } }))).toBe(false)
     expect(isAdmin(user({ role: { id: 1, name: 'Department Head' } }))).toBe(true)
+    expect(isAdmin(user({ role: { id: 1, name: 'Section Head' } }))).toBe(false)
   })
 
   it('is false without a user or role', () => {

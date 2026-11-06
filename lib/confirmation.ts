@@ -74,7 +74,7 @@ export function completionMessage(confirmation: Pick<CompletionResult, 'requeste
   const email = confirmation?.requester_email
   const lead = "Ticket completed and sent for the requester's confirmation."
   if (!email) {
-    return `${lead} There is no email address on file, so a Department Head can close it on the requester's behalf.`
+    return `${lead} There is no email address on file, so a Section Head can close it on the requester's behalf.`
   }
   switch (confirmation?.mail.status) {
     case 'sent':
@@ -93,7 +93,7 @@ export const CONFIRMATION_STATE_LABELS: Record<ConfirmationState, string> = {
   confirmed: 'Confirmed by the requester',
   disputed: 'Disputed by the requester',
   auto_closed: 'Closed automatically',
-  head_closed: 'Closed by a Department Head',
+  head_closed: 'Closed by a Section Head',
   superseded: 'Replaced by a newer request',
 }
 
@@ -104,7 +104,7 @@ export function confirmationStateLabel(state: ConfirmationState): string {
 const CHANNEL_LABELS: Record<NonNullable<ConfirmationInfo['channel']>, string> = {
   email: 'the email link',
   track: 'the Track page',
-  head: 'a Department Head',
+  head: 'a Section Head',
   auto: 'the automatic close',
 }
 

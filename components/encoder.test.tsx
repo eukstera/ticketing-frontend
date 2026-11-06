@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToString } from 'react-dom/server'
-import { ENCODER_ROLE_NAME, isEncoder, type AuthUser } from '@/lib/auth'
+import { ENCODER_ROLE_KEY, isEncoder, type AuthUser } from '@/lib/auth'
 import { canAssign } from '@/lib/assign'
 import { canCompleteTicket } from '@/lib/complete'
 import { canCloseOnBehalf, canResendConfirmation } from '@/lib/confirmation'
@@ -13,7 +13,7 @@ vi.mock('@/hooks/useUser', () => ({ useUser: () => state.user }))
 import ActionCell from '@/components/department-tickets/ActionCell'
 import CommentThread from '@/components/comments/CommentThread'
 
-const encoder = { id: 7, department_id: 1, role: { id: 4, name: ENCODER_ROLE_NAME } } as AuthUser
+const encoder = { id: 7, department_id: 1, role: { id: 4, name: 'Section Secretary', key: ENCODER_ROLE_KEY } } as AuthUser
 const staff = { id: 7, department_id: 1, role: { id: 2, name: 'Normal User' } } as AuthUser
 
 const noop = () => {}
@@ -49,12 +49,18 @@ beforeEach(() => {
 })
 
 describe('isEncoder', () => {
-  it('matches the Encoder role by name only', () => {
+  it('matches the encoder role by key, whatever its display name', () => {
     expect(isEncoder(encoder)).toBe(true)
     expect(isEncoder(staff)).toBe(false)
+    expect(isEncoder({ ...staff, role: { id: 9, name: 'Encoder', key: null } } as AuthUser)).toBe(false)
     expect(isEncoder(null)).toBe(false)
     expect(isEncoder(undefined)).toBe(false)
     expect(isEncoder({ ...staff, role: undefined } as AuthUser)).toBe(false)
+  })
+
+  it('falls back to the old Encoder name when the API sends no key', () => {
+    expect(isEncoder({ ...staff, role: { id: 4, name: 'Encoder' } } as AuthUser)).toBe(true)
+    expect(isEncoder({ ...staff, role: { id: 4, name: 'Section Secretary' } } as AuthUser)).toBe(false)
   })
 })
 
