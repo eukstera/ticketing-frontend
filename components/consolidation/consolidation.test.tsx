@@ -64,6 +64,8 @@ describe('KPI tiles', () => {
     const html = renderToString(<KpiTiles summary={summary} />)
     expect(buildTiles(summary)).toHaveLength(9)
     expect(buildTiles(summary).at(-1)).toMatchObject({ label: 'Voided', value: '7' })
+    expect(buildTiles(summary).some(t => t.label === 'Not fixed')).toBe(true)
+    expect(buildTiles(summary).some(t => /disput/i.test(t.label))).toBe(false)
     expect(html).toContain('1,234')
     expect(html).toContain('87.5%')
     expect(html).toContain('2d 4h')

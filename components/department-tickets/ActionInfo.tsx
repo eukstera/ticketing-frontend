@@ -160,7 +160,7 @@ export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {
       {info}
       {dispute && (
         <p role="note" className="mt-1 text-xs text-amber-800">
-          <span className="font-medium">Disputed by requester:</span> {dispute.remarks ?? 'no reason given'}
+          <span className="font-medium">Reported as not fixed:</span> {dispute.remarks ?? 'no reason given'}
         </p>
       )}
       {showEmail && (

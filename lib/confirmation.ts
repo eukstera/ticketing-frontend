@@ -91,7 +91,7 @@ export function completionMessage(confirmation: Pick<CompletionResult, 'requeste
 export const CONFIRMATION_STATE_LABELS: Record<ConfirmationState, string> = {
   pending: 'Waiting for the requester to confirm',
   confirmed: 'Confirmed by the requester',
-  disputed: 'Disputed by the requester',
+  disputed: 'Reported as not fixed by the requester',
   auto_closed: 'Closed automatically',
   head_closed: 'Closed by a Section Head',
   superseded: 'Replaced by a newer request',

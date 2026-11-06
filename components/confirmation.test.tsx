@@ -199,12 +199,12 @@ describe('Info column', () => {
   it('shows the requester’s dispute under an In-progress ticket until it is completed again', () => {
     const assigned = { id: 1, created_at: '2026-10-22T08:00:00Z', user: 'Ana Tech', user_id: 7 }
     const out = info('In-progress', [requested, completed, disputed], { assigned_activity: assigned })
-    expect(out).toContain('Disputed by requester:')
+    expect(out).toContain('Reported as not fixed:')
     expect(out).toContain('Still no network')
 
     const again = act(4, 'Completed Date', '2026-10-22T11:00:00Z', 'Fixed the cable too')
     expect(info('In-progress', [requested, completed, disputed, again], { assigned_activity: assigned })).not.toContain(
-      'Disputed by requester'
+      'Reported as not fixed'
     )
   })
 })
@@ -246,7 +246,7 @@ describe('timeline history for completion and confirmation', () => {
 
   it('shows a dispute, and puts the Completed step back to pending until it is completed again', () => {
     const html = out([requested, assigned, completed1, disputed1])
-    expect(html).toContain('Disputed by the requester')
+    expect(html).toContain('Reported as not fixed by the requester')
     expect(html).toContain('Still no network')
     // the Completed step reads "Pending" again: the only dated "Completed Date" label is gone
     expect(html).toMatch(/Pending[\s\S]*Completed Date/)
@@ -259,7 +259,7 @@ describe('timeline history for completion and confirmation', () => {
     )
     expect(order.every(i => i > -1)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
-    expect(html.match(/Disputed by the requester/g)).toHaveLength(2)
+    expect(html.match(/Reported as not fixed by the requester/g)).toHaveLength(2)
     expect(html.match(/Completed by Ana Tech/g)).toHaveLength(2)
   })
 
@@ -340,7 +340,7 @@ describe('ConfirmationPanel', () => {
 
   it('shows a dispute prominently with its reason and that the ticket is back in progress', () => {
     const html = panel({ state: 'disputed', dispute_reason: 'Still no network', responded_at: '2026-10-22T10:00:00Z', channel: 'email' })
-    expect(html).toContain('Disputed by the requester')
+    expect(html).toContain('Reported as not fixed by the requester')
     expect(html).toContain('role="alert"')
     expect(html).toContain('Still no network')
     expect(html).toContain('back In-progress')

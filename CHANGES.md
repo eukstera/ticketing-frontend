@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-06 — "Not fixed" instead of "dispute"
+
+**Ship with the matching API change** (the Excel export, the email subject and the API message say "not fixed" too).
+
+- User-facing text no longer says "dispute": the Consolidation tile is **Not fixed**, the confirmation label and timeline entry read **Reported as not fixed by the requester**, and the ticket info line reads **Reported as not fixed:**.
+- Internal names are unchanged (`disputes`, `disputed`, `dispute_reason`, the "Disputed Date" category), so the API contract stays the same.
+- AGENTS.md: ISO documents get a language check with the installed writing skills (write-edit, then proofread) and the user's review before upload.
+- Checked with tsc, eslint and Vitest (718 tests).
+
 ## 2026-11-06 — Roles by key; Section Head and Section Secretary
 
 **Ship before or with the matching API change** (roles.key and the display-name migrations; the API needs `php artisan migrate --force`).

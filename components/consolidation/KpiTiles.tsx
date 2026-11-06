@@ -35,7 +35,7 @@ export function buildTiles(s: ConsolidationSummary): Tile[] {
       className: tone('False Alarm'),
     },
     { label: 'Avg. satisfaction', value: dash(formatScore(s.avg_satisfaction)), className: NEUTRAL },
-    { label: 'Disputes', value: formatCount(s.disputes), className: NEUTRAL },
+    { label: 'Not fixed', value: formatCount(s.disputes), className: NEUTRAL },
     { label: 'Voided', value: dash(formatCount(s.voided)), className: NEUTRAL },
   ]
 }

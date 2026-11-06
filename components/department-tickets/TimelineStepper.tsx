@@ -42,7 +42,7 @@ function describeEntry(entry: DateActivity): { title: string; tone: keyof typeof
   if (category.includes('False Alarm')) {
     return { title: `Rejected as false alarm${by}`, tone: 'violet', remarkLabel: 'Reason' }
   }
-  if (category.includes('Disputed')) return { title: 'Disputed by the requester', tone: 'amber', remarkLabel: 'Reason' }
+  if (category.includes('Disputed')) return { title: 'Reported as not fixed by the requester', tone: 'amber', remarkLabel: 'Reason' }
   if (category.includes('Confirmed')) {
     return { title: entry.user ? `Confirmed by ${entry.user}` : 'Confirmed by the requester', tone: 'green', remarkLabel: 'Note' }
   }

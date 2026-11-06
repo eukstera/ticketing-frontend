@@ -137,7 +137,7 @@ describe('wording', () => {
   it('describes every confirmation state and unknown ones fall back to the raw value', () => {
     expect(confirmationStateLabel('pending')).toBe('Waiting for the requester to confirm')
     expect(confirmationStateLabel('confirmed')).toBe('Confirmed by the requester')
-    expect(confirmationStateLabel('disputed')).toBe('Disputed by the requester')
+    expect(confirmationStateLabel('disputed')).toBe('Reported as not fixed by the requester')
     expect(confirmationStateLabel('auto_closed')).toBe('Closed automatically')
     expect(confirmationStateLabel('head_closed')).toBe('Closed by a Section Head')
     expect(confirmationStateLabel('superseded')).toBeTruthy()
