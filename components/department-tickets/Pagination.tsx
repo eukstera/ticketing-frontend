@@ -1,3 +1,6 @@
+/**
+ * Previous / page numbers / Next control for paginated lists (tickets and admin tables).
+ */
 const FOCUS_RING = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'
 
 export default function Pagination({

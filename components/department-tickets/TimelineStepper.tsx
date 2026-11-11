@@ -67,7 +67,7 @@ export default function TimelineStepper({ activities }: { activities: DateActivi
   // steps); once reopened it follows the normal path again.
   const rejected = isRejectedNow(activities)
   const sequence = timelineSequence(activities, rejected)
-  // A requester's dispute sends the ticket back to work: it isn't completed again until the next completion.
+  // A requester's "not fixed" report sends the ticket back to work: it isn't completed again until the next completion.
   const disputed = !!currentDispute(activities)
   const steps = sequence.map(step => {
     const activity = step.match === 'Completed' && disputed ? undefined : latestActivity(activities, step.match)

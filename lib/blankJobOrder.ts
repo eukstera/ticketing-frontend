@@ -24,13 +24,13 @@ function ownerId(ticket: BlankTicket): number | null {
 
 /**
  * Who sees "Print blank job order": IT department staff and IT Department
- * Heads, never Encoders. (The API 403s everyone else.)
+ * Heads, never Section Secretaries. (The API 403s everyone else.)
  */
 export function canPrintBlank(user: AuthUser | null | undefined): boolean {
   return !!user && !isEncoder(user) && user.department_id === IT_DEPARTMENT_ID
 }
 
-/** Member of the ticket's department or a Department Head, and not an Encoder. */
+/** Member of the ticket's department or a Section Head, and not an Section Secretary. */
 function isBlankStaff(ticket: BlankTicket, user: AuthUser | null | undefined): user is AuthUser {
   if (!user || isEncoder(user) || ticket.status !== BLANK_STATUS) return false
   return user.department_id === ticket.department_id || isAdmin(user)
@@ -38,7 +38,7 @@ function isBlankStaff(ticket: BlankTicket, user: AuthUser | null | undefined): u
 
 /**
  * Whoever printed a blank job order owns the ticket. Only the owner or a
- * Department Head works on it (fill in, void, reject); other staff get a 403.
+ * Section Head works on it (fill in, void, reject); other staff get a 403.
  */
 export function canWorkOnBlank(ticket: BlankTicket, user: AuthUser | null | undefined): boolean {
   if (!isBlankStaff(ticket, user)) return false

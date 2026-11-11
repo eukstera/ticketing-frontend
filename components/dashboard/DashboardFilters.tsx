@@ -1,3 +1,6 @@
+/**
+ * Dashboard month picker and priority shortcuts (each opens Department Tickets filtered by that priority).
+ */
 import { useId } from 'react'
 import { DashboardStats } from '@/lib/dashboard'
 import { useRouter } from 'next/navigation'

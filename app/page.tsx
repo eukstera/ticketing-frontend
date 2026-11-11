@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * Login page ("/"). Already logged in? Redirects to ?next= (validated) or /dashboard.
+ */
 import { useEffect, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import AuthShell from '@/components/auth/AuthShell'

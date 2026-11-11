@@ -1,3 +1,8 @@
+/**
+ * The ticket table used by Department Tickets and My Tickets: one row per ticket, expandable details,
+ * and the per-row actions (take, assign, complete, false alarm, reopen, Job Order, resend, close on behalf).
+ * Who sees which action is decided in ActionCell and lib/* permission helpers.
+ */
 import Link from 'next/link'
 import { ChevronDown, ChevronRight, Timer } from 'lucide-react'
 import { DepartmentTicket } from '@/types'

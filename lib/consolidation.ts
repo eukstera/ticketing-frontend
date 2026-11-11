@@ -28,7 +28,7 @@ export interface ConsolidationFilters {
   page: number
 }
 
-/** Encoders and Department Heads only (the API enforces it; this only hides the page). */
+/** Section Secretaries and Section Heads only (the API enforces it; this only hides the page). */
 export function canViewConsolidation(user: AuthUser | null | undefined): boolean {
   return isEncoder(user) || isAdmin(user)
 }

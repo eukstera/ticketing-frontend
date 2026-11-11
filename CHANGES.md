@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-11 — Code comments for maintainers
+
+**Comments only; no behaviour change.** Part of the GIS Systems Documentation round (`01-ticketing-system-frontend.html` in `D:\Admin Account\Desktop\GIS DOCUMENTS\GIS SYSTEMS DOCUMENTATION`).
+
+- Module docblocks on 28 files that had none (pages, auth, dashboard and table components, small `lib/` modules, `useUser`): what each one does, its route or endpoint, and who can use it.
+- Comments that still named the old roles or "dispute" now say Section Head, Section Secretary and "not fixed" (36 lines). Identifiers, strings and the API contract are unchanged.
+- Files were chosen with the graphify graph; the graph was updated afterwards (1,292 nodes, 3,463 edges, 71 communities).
+- Checked with tsc, eslint and Vitest (718 tests).
+
 ## 2026-11-06 — "Not fixed" instead of "dispute"
 
 **Ship with the matching API change** (the Excel export, the email subject and the API message say "not fixed" too).

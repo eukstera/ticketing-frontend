@@ -1,3 +1,6 @@
+/**
+ * Elapsed time since a date, ticking live (used for In-progress tickets).
+ */
 import { useElapsedTime } from '@/hooks/useElapsedTime'
 
 export default function LiveTimer({ startDate }: { startDate: string }) {

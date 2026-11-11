@@ -1,5 +1,9 @@
 'use client'
 
+/**
+ * Consolidation report page (/reports/consolidated): filters in the URL, KPI tiles, breakdowns, preview table
+ * and Excel export. Section Head and Section Secretary only (canViewConsolidation; the API enforces it too).
+ */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { FileDown, Loader2, SearchX } from 'lucide-react'

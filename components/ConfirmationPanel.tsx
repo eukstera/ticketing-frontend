@@ -43,7 +43,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 /**
  * The latest "ask the requester to confirm" on a completed ticket: where it
  * stands, the completion notes, whether the email went out, and the actions
- * staff have (resend the email; a Department Head can close for the requester).
+ * staff have (resend the email; a Section Head can close for the requester).
  */
 export default function ConfirmationPanel({
   confirmation,

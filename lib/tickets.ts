@@ -71,7 +71,7 @@ export function markTicketComplete(ticketId: number, notes: string) {
   )
 }
 
-/** Department Heads only: close a ticket waiting for confirmation on the requester's behalf (reason 5..500). */
+/** Section Heads only: close a ticket waiting for confirmation on the requester's behalf (reason 5..500). */
 export function closeTicketOnBehalf(ticketId: number, reason: string) {
   return api.post<{ message: string; result: { confirmation: ConfirmationInfo } }>(
     `/tickets/${ticketId}/confirmation/close`,
@@ -107,7 +107,7 @@ export function markFalseAlarm(ticketId: number, reason: string) {
 
 /**
  * Reserves the next ticket number as a Blank ticket (no body). IT department
- * staff and IT Heads only: 403 otherwise, and Encoders are read-only. Every
+ * staff and Section Heads only: 403 otherwise, and Section Secretaries are read-only. Every
  * call burns a number, so callers must not repeat it on a double click.
  */
 export function createBlankJobOrder() {
@@ -125,7 +125,7 @@ export function voidTicket(ticketId: number, reason: string) {
   )
 }
 
-/** Department Heads only. The reason is optional; 409 = it isn't a false alarm (anymore), 403 = not a head. */
+/** Section Heads only. The reason is optional; 409 = it isn't a false alarm (anymore), 403 = not a head. */
 export function reopenTicket(ticketId: number, reason?: string) {
   const trimmed = reason?.trim()
   return api.post<{ message: string; result: { reopened: ReopenInfo } }>(
@@ -226,7 +226,7 @@ export async function downloadAccomplishmentReport(
  * always sent explicitly (so the client and API can't disagree about the
  * default); an unknown one is a 422 errors.format. 409 = a false-alarm or
  * Engineering ticket has none; 403 = not handling-department staff or a
- * Department Head. The filename and extension come from Content-Disposition.
+ * Section Head. The filename and extension come from Content-Disposition.
  */
 export async function downloadJobOrder(
   ticketId: number,

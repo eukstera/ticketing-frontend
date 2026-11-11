@@ -1,3 +1,6 @@
+/**
+ * Dashboard list of ranked staff for the selected month, with each one's In-progress and Completed counts (ranking comes from the API).
+ */
 import { DashboardStats } from '@/lib/dashboard'
 
 export default function TopPerformerCard({ performers }: { performers: DashboardStats['top_performers'] }) {

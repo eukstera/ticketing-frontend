@@ -1,5 +1,9 @@
 'use client'
 
+/**
+ * My Profile (/profile): edit first and last name (PATCH /me) and change password (PATCH /me/password).
+ * Email, department, designation and role are read-only here (an admin changes them).
+ */
 import { useState } from 'react'
 import { Check, Circle, Eye, EyeOff } from 'lucide-react'
 import Navbar from '@/components/NavBar'

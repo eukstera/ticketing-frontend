@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * Admin index (/admin): one card per lookup/user resource listed in ADMIN_RESOURCES. Section Head only (AdminShell).
+ */
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'

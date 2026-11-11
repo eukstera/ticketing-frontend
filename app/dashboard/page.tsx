@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * Dashboard (/dashboard): monthly stat cards, priority statistics, today's tickets and top performers from GET /dashboard?month=YYYY-MM.
+ */
 import { useEffect, useState } from 'react'
 import Navbar from '@/components/NavBar'
 import { getDashboardStats, DashboardStats } from '@/lib/dashboard'

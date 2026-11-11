@@ -30,7 +30,7 @@ function requestNotificationPermission() {
   }
 }
 
-/** The NavBar bell for IT staff and Department Heads: unread badge plus a list of new tickets. Also runs the poller. */
+/** The NavBar bell for IT staff and Section Heads: unread badge plus a list of new tickets. Also runs the poller. */
 export default function NotificationBell() {
   const { eligible, state } = useNewTicketAlarm()
   const items = useSyncExternalStore(subscribeNotifications, getNotifications, getServerNotifications)

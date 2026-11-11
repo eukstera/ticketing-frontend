@@ -1,3 +1,6 @@
+/**
+ * Two-panel frame of the login page: hospital branding on the left, the form (children) on the right.
+ */
 import Image from 'next/image'
 import { ReactNode } from 'react'
 

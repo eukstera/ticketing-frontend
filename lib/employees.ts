@@ -1,3 +1,6 @@
+/**
+ * Staff list for the Assign dialog and the Personnel Assigned field (GET /employees).
+ */
 import { api } from './api'
 
 export interface Employee {

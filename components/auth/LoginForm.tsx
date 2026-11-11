@@ -1,5 +1,9 @@
 'use client'
 
+/**
+ * Email + password login form. POST /login stores the token and user in localStorage (lib/auth), then redirects.
+ * The submit stays disabled until hydrated so a native submit can never put credentials in the URL.
+ */
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'

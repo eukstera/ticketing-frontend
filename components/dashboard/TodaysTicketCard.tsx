@@ -1,3 +1,6 @@
+/**
+ * Dashboard card: today's tickets for the department and the share completed.
+ */
 import { DashboardStats } from '@/lib/dashboard'
 import { percentOf, safeCount } from '@/lib/format'
 

@@ -29,7 +29,7 @@ export default function Navbar() {
     { href: '/tickets', label: 'Department Tickets' },
     { href: '/tickets/create', label: 'Create Ticket' },
     { href: '/my-tickets', label: 'My Tickets' },
-    // Admin pages are built in Phase 2; role comes from /me (Department Head).
+    // Admin pages are built in Phase 2; role comes from /me (Section Head).
     ...(isAdmin(user) || isEncoder(user) ? [{ href: '/reports/consolidated', label: 'Consolidation' }] : []),
     ...(isAdmin(user) ? [{ href: '/admin', label: 'Admin' }] : []),
   ]

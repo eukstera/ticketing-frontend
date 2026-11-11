@@ -11,7 +11,7 @@ import { useUser } from '@/hooks/useUser'
 import { isAdmin, type AuthUser } from '@/lib/auth'
 
 // Page chrome for every /admin page. Renders children only for admins (role
-// "Department Head"); everyone else gets a 403 state. This is a UX gate only,
+// "Section Head"); everyone else gets a 403 state. This is a UX gate only,
 // the API enforces the same rule.
 export default function AdminShell({
   title,

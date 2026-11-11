@@ -147,7 +147,7 @@ function statusInfo(ticket: DepartmentTicket) {
 
 /**
  * The Info column: what happened last on this ticket, the requester's
- * dispute while it stands, and where the confirmation email goes. The email
+ * "not fixed" report while it stands, and where the confirmation email goes. The email
  * line only appears when the server sends the field (staff only; null = none).
  */
 export default function ActionInfo({ ticket }: { ticket: DepartmentTicket }) {

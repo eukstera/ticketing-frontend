@@ -44,9 +44,9 @@ export default function ActionCell({
   onTake?: (id: number) => void
   onMarkComplete?: (id: number) => void
   onFalseAlarm?: (id: number) => void
-  /** Department Heads only: put a rejected request back to Open. */
+  /** Section Heads only: put a rejected request back to Open. */
   onReopen?: (id: number) => void
-  /** Download the filled job order form as Excel or PDF (IT tickets; staff of the department and Department Heads). */
+  /** Download the filled job order form as Excel or PDF (IT tickets; staff of the department and Section Heads). */
   onDownloadJo?: (id: number, format: JobOrderFormat) => void
   /** This ticket's job order is downloading; blocks double clicks. */
   downloadingJo?: boolean
@@ -54,7 +54,7 @@ export default function ActionCell({
   onResend?: (id: number) => void
   /** A resend for this ticket is in flight. */
   resending?: boolean
-  /** Department Heads only: close a pending confirmation for the requester. */
+  /** Section Heads only: close a pending confirmation for the requester. */
   onCloseOnBehalf?: (id: number) => void
   /** Cancel a Blank ticket (IT staff and Heads). */
   onVoid?: (id: number) => void
@@ -62,12 +62,12 @@ export default function ActionCell({
   const user = useUser()
   const suffix = ticketNumber ? ` ${ticketNumber}` : ''
 
-  // Encoders are department members but read-only, so they can't take.
+  // Section Secretaries are department members but read-only, so they can't take.
   const isMember = !!user && !isEncoder(user) && user.department_id === ticket.department_id
-  // Assigning is for the handling department's Department Head only; staff just take.
+  // Assigning is for the handling department's Section Head only; staff just take.
   const showAssign = canAssign(ticket, user)
 
-  // The assignee, the handling department's staff and Department Heads may reject a request.
+  // The assignee, the handling department's staff and Section Heads may reject a request.
   const canReject = !!onFalseAlarm && canMarkFalseAlarm(ticket, user)
   const falseAlarmButton = canReject && (
     <button
@@ -174,7 +174,7 @@ export default function ActionCell({
     )
   }
 
-  // Only a Department Head may undo a rejection, never the handling staff.
+  // Only a Section Head may undo a rejection, never the handling staff.
   if (ticket.status === FALSE_ALARM_STATUS && onReopen && canReopen(ticket, user)) {
     return (
       <button

@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * Labelled input for the login form, with the server's field error shown under it.
+ */
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import Field from '@/components/ui/Field'

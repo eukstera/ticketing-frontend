@@ -1,3 +1,6 @@
+/**
+ * Dashboard bar list: ticket counts per priority level for the selected month.
+ */
 import { DashboardStats } from '@/lib/dashboard'
 import { PRIORITY_SOLID_FALLBACKS, PRIORITY_STYLES } from '@/lib/styles'
 import { barWidth, safeCount } from '@/lib/format'

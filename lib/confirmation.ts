@@ -3,7 +3,7 @@ import { latestActivity } from '@/lib/falseAlarm'
 import type { CompletionResult, ConfirmationInfo, ConfirmationMail, ConfirmationState, DateActivity, DepartmentTicket } from '@/types'
 
 // Completing a ticket no longer closes it: the requester is asked to confirm
-// ("Pending Confirmation") until they do, a Department Head closes it for them,
+// ("Pending Confirmation") until they do, a Section Head closes it for them,
 // or it closes itself after a while. Staff-side rules and wording live here.
 
 export const PENDING_CONFIRMATION_STATUS = 'Pending Confirmation'
@@ -41,7 +41,7 @@ export function validateCloseReason(reason: string): string | null {
 type PendingTicket = Pick<DepartmentTicket, 'status' | 'department_id'> & { requester_email?: string | null }
 
 /**
- * "Resend email": handling-department staff and Department Heads, only while a
+ * "Resend email": handling-department staff and Section Heads, only while a
  * confirmation is pending and there is an address to send it to.
  */
 export function canResendConfirmation(ticket: PendingTicket, user: AuthUser | null | undefined): boolean {
@@ -49,7 +49,7 @@ export function canResendConfirmation(ticket: PendingTicket, user: AuthUser | nu
   return user.department_id === ticket.department_id || isAdmin(user)
 }
 
-/** "Close on behalf of the requester": Department Heads only, while a confirmation is pending. */
+/** "Close on behalf of the requester": Section Heads only, while a confirmation is pending. */
 export function canCloseOnBehalf(ticket: Pick<DepartmentTicket, 'status'>, user: AuthUser | null | undefined): boolean {
   return isPendingConfirmation(ticket.status) && isAdmin(user) && !isEncoder(user)
 }
@@ -113,7 +113,7 @@ export function channelLabel(channel: ConfirmationInfo['channel']): string | nul
 }
 
 /**
- * The requester's dispute while it is still the latest word: a "Disputed Date"
+ * The requester's "not fixed" report while it is still the latest word: a "Disputed Date"
  * entry newer than the last completion (completing again answers it).
  */
 export function currentDispute(activities: DateActivity[] | undefined): DateActivity | undefined {

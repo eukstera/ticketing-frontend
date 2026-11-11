@@ -1,3 +1,6 @@
+/**
+ * Parse and serialize the admin list state (page, search, status, filters) to and from the query string.
+ */
 export type AdminStatus = 'all' | 'active' | 'inactive'
 
 export interface AdminListParams {

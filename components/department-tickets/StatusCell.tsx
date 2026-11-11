@@ -1,3 +1,6 @@
+/**
+ * Coloured status badge in the ticket tables; a Void ticket shows its void reason on hover.
+ */
 import { DepartmentTicket } from '@/types'
 import { statusBadgeClass } from '@/lib/styles'
 import { VOID_STATUS } from '@/lib/blankJobOrder'

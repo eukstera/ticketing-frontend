@@ -13,7 +13,7 @@ export const BLOCKED_MESSAGE =
   'Your browser blocked the download. Allow downloads for this site, then use Download JO.'
 
 /**
- * Who sees "Download JO": handling-department staff and Department Heads, on an
+ * Who sees "Download JO": handling-department staff and Section Heads, on an
  * IT ticket that isn't a false alarm. (The API decides; this only avoids
  * offering a button that would 403/409.) Engineering tickets have no form.
  */

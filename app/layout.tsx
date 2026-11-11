@@ -1,3 +1,6 @@
+/**
+ * Root layout for every page: global CSS, the "Skip to content" link and the toast container.
+ */
 import type { Metadata } from 'next'
 import './globals.css'
 import ToastContainer from '@/components/Toast'

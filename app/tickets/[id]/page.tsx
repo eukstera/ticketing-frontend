@@ -198,7 +198,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     refresh()
   }
 
-  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  // Section Heads only (the button is hidden for everyone else; the API says 403 anyway).
   async function handleReopen(id: number, reason: string) {
     try {
       await reopenTicket(id, reason)
@@ -257,7 +257,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  // Section Heads only (the button is hidden for everyone else; the API says 403 anyway).
   async function handleCloseOnBehalf(id: number, reason: string) {
     try {
       await closeTicketOnBehalf(id, reason)

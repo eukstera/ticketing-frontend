@@ -17,7 +17,7 @@ interface Props {
 }
 
 /**
- * Department Heads only: close a ticket that is waiting for confirmation
+ * Section Heads only: close a ticket that is waiting for confirmation
  * without the requester's reply (no address, a failed email, no response). The
  * reason is required and recorded with the closure.
  */

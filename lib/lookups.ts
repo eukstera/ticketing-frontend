@@ -1,3 +1,6 @@
+/**
+ * Lookup lists for the ticket form: priorities with their SLA days, concern types and nature of work.
+ */
 import { api } from './api'
 
 export interface Priority {

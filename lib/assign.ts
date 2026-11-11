@@ -2,7 +2,7 @@ import { isAdmin, isEncoder, type AuthUser } from '@/lib/auth'
 import type { DepartmentTicket } from '@/types'
 
 /**
- * Only a Department Head of the handling department may assign a ticket.
+ * Only a Section Head of the handling department may assign a ticket.
  * Staff of that department can still take it, and heads of other departments
  * get nothing (the API answers 403).
  */

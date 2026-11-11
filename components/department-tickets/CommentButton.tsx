@@ -1,3 +1,6 @@
+/**
+ * Comments button for a ticket row, with the comment count badge.
+ */
 import { MessageSquare } from 'lucide-react'
 import { commentsLabel } from '@/lib/format'
 

@@ -186,7 +186,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     }
   }
 
-  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  // Section Heads only (the button is hidden for everyone else; the API says 403 anyway).
   async function handleCloseOnBehalf(ticketId: number, reason: string) {
     try {
       await closeTicketOnBehalf(ticketId, reason)
@@ -216,7 +216,7 @@ export default function TicketListPage({ mode }: { mode: Mode }) {
     refresh()
   }
 
-  // Department Heads only (the button is hidden for everyone else; the API says 403 anyway).
+  // Section Heads only (the button is hidden for everyone else; the API says 403 anyway).
   async function handleReopen(ticketId: number, reason: string) {
     try {
       await reopenTicket(ticketId, reason)

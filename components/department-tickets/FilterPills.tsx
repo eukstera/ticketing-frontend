@@ -1,3 +1,6 @@
+/**
+ * Status and priority filter pills above the ticket tables, with live counts from the API.
+ */
 import { useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { StatusPill, PriorityPill } from '@/lib/departmentTickets'

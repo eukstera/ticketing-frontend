@@ -1,3 +1,6 @@
+/**
+ * Toast texts for reserving a blank Job Order number.
+ */
 export function reservedMessage(ticketNumber: string): string {
   return `Ticket number ${ticketNumber} reserved. Blank job order downloaded.`
 }

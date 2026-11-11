@@ -1,5 +1,9 @@
 'use client'
 
+/**
+ * Fill in a Blank ticket (/tickets/[id]/fill): copy the paper Job Order into the reserved ticket (PATCH /tickets/{id}/fill-blank).
+ * Only the staff member holding the ticket or a Section Head; the ticket becomes In-progress.
+ */
 import { use, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/NavBar'
@@ -42,7 +46,7 @@ export default function FillTicketPage({ params }: { params: Promise<{ id: strin
   const [reloadToken, setReloadToken] = useState(0)
 
   const roleKnown = !!user?.role
-  // Encoders never fill in; the ticket's department is checked once it is loaded.
+  // Section Secretaries never fill in; the ticket's department is checked once it is loaded.
   const notEncoder = !isEncoder(user)
   const loading = validId && state?.id !== ticketId
 

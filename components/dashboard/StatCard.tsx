@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * Dashboard stat card; clicking it opens Department Tickets filtered by that status.
+ */
 import { useRouter } from 'next/navigation'
 import { STATUS_FALLBACK, STATUS_STYLES } from '@/lib/styles'
 

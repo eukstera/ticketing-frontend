@@ -1,3 +1,6 @@
+/**
+ * Shapes of the status and priority filter pills returned with the ticket lists.
+ */
 export interface StatusPill {
   label: string
   value: string | null

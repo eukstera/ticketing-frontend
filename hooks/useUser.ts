@@ -1,5 +1,8 @@
 'use client'
 
+/**
+ * React hook: the logged-in user from localStorage. Updates on login/logout in this tab (AUTH_EVENT) and in other tabs (storage event).
+ */
 import { useMemo, useSyncExternalStore } from 'react'
 import { AuthUser, getUserRaw, subscribeAuth } from '@/lib/auth'
 
