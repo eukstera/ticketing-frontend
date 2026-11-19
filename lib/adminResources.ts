@@ -74,6 +74,7 @@ export const ADMIN_RESOURCE_KEYS = [
   'concern-types',
   'nature-of-work',
   'report-signatories',
+  'form-codes',
 ] as const
 export type AdminResourceKey = (typeof ADMIN_RESOURCE_KEYS)[number]
 
@@ -98,6 +99,11 @@ export interface AdminResource {
    * POST /admin/users shipped before GET /admin/users.
    */
   createWorksWithoutList?: boolean
+  /**
+   * The rows are fixed (seeded by the API): no Add, no status filter or column,
+   * no Deactivate / Reactivate. Only Edit. Form codes today.
+   */
+  editOnly?: boolean
   rowTitle: (row: AdminRow) => string
   deactivateNote?: string
   lock?: (row: AdminRow, me: AuthUser | null) => RowLock | null
@@ -336,6 +342,40 @@ export const ADMIN_RESOURCES: AdminResource[] = [
         success: title => `${title} is now the default signatory`,
       },
     ],
+  },
+  {
+    // The ISO form code box printed on system-generated forms (the Job Order today).
+    // The API seeds the rows and draws these values onto the printout at download time.
+    slug: 'form-codes',
+    title: 'Form codes',
+    singular: 'form code',
+    description: 'The document code and effectivity date printed on the Job Order forms.',
+    endpoint: '/admin/form-codes',
+    listKey: 'form_codes',
+    searchPlaceholder: 'Form name',
+    columns: [
+      { header: 'Form', value: r => str(r.name) },
+      { header: 'Document code', value: r => str(r.document_code) },
+      { header: 'Effectivity date', value: r => str(r.effectivity_date) },
+    ],
+    fields: [
+      {
+        name: 'document_code',
+        label: 'Document code',
+        type: 'text',
+        required: true,
+        help: 'As registered with the QMO, e.g. GBTRGHSC-ICTS-04-0003-0000.',
+      },
+      {
+        name: 'effectivity_date',
+        label: 'Effectivity date',
+        type: 'text',
+        required: true,
+        help: 'Use (TBA) until the QMO sets the date, e.g. December 1, 2026.',
+      },
+    ],
+    rowTitle: r => str(r.name),
+    editOnly: true,
   },
 ]
 

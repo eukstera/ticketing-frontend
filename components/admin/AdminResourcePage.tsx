@@ -226,7 +226,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
       subtitle={resource.description}
       back
       actions={
-        blocked === 'forbidden' || (blocked === 'unavailable' && !resource.createWorksWithoutList) ? undefined : (
+        resource.editOnly || blocked === 'forbidden' || (blocked === 'unavailable' && !resource.createWorksWithoutList) ? undefined : (
           <button type="button" onClick={() => setForm({ row: null })} className={btnPrimary}>
             <Plus size={14} aria-hidden="true" />
             Add {resource.singular}
@@ -265,6 +265,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
               />
             ))}
 
+            {!resource.editOnly && (
             <div role="group" aria-label="Filter by status" className="flex items-center gap-1.5">
               {STATUS_PILLS.map(p => (
                 <button
@@ -282,6 +283,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                 </button>
               ))}
             </div>
+            )}
 
             {hasFilters && (
               <button
@@ -335,9 +337,11 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                           {c.header}
                         </th>
                       ))}
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
-                        Status
-                      </th>
+                      {!resource.editOnly && (
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500">
+                          Status
+                        </th>
+                      )}
                       <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500">
                         Actions
                       </th>
@@ -346,7 +350,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                   <tbody className="divide-y divide-gray-100">
                     {data.data.length === 0 ? (
                       <tr>
-                        <td colSpan={resource.columns.length + 2}>
+                        <td colSpan={resource.columns.length + (resource.editOnly ? 1 : 2)}>
                           {hasFilters ? (
                             <EmptyState
                               icon={SearchX}
@@ -357,7 +361,11 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                             <EmptyState
                               icon={Inbox}
                               title={`No ${resource.title.toLowerCase()} yet`}
-                              action={{ label: `Add ${resource.singular}`, onClick: () => setForm({ row: null }) }}
+                              action={
+                                resource.editOnly
+                                  ? undefined
+                                  : { label: `Add ${resource.singular}`, onClick: () => setForm({ row: null }) }
+                              }
                             />
                           )}
                         </td>
@@ -374,15 +382,17 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                                 {c.value(row, ctx) || <span className="text-gray-500">—</span>}
                               </td>
                             ))}
-                            <td className="px-4 py-3">
-                              <span
-                                className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                  active ? ACTIVE_BADGE : INACTIVE_BADGE
-                                }`}
-                              >
-                                {active ? 'Active' : 'Inactive'}
-                              </span>
-                            </td>
+                            {!resource.editOnly && (
+                              <td className="px-4 py-3">
+                                <span
+                                  className={`inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                    active ? ACTIVE_BADGE : INACTIVE_BADGE
+                                  }`}
+                                >
+                                  {active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                            )}
                             <td className="px-4 py-3">
                               <div className="flex justify-end gap-2">
                                 <button
@@ -417,7 +427,7 @@ export default function AdminResourcePage({ resource: resourceKey }: { resource:
                                       {busyId === row.id ? a.busyLabel : a.label}
                                     </button>
                                   ))}
-                                {active ? (
+                                {resource.editOnly ? null : active ? (
                                   <button
                                     type="button"
                                     onClick={() => {

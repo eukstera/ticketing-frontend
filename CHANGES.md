@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-19 — Admin › Form codes
+
+**Ship with the matching API change** (form_codes table and migration, /admin/form-codes, the Job Order header drawn at download time). The FE page shows "Not available yet" until the API is deployed.
+
+- New **Admin › Form codes** page (Section Head only): lists the ISO form codes printed on the Job Order (ICTS Job Order Form = GBTRGHSC-ICTS-04-0003-0000, ICTS Job Order Form (Blank) = 04-0004) and edits each one's **document code** and **effectivity date**. The next Job Order download (PDF and Excel) prints the new values; no deploy needed.
+- `AdminResource.editOnly`: a resource whose rows are fixed by the API. The page hides Add, the status filter and column, and Deactivate / Reactivate; only Edit remains. Used by Form codes.
+- Checked with tsc, eslint and Vitest (724 tests), and end to end against the local API: an edit on the page showed on the next Job Order PDF.
+
 ## 2026-11-11 — Code comments for maintainers
 
 **Comments only; no behaviour change.** Part of the GIS Systems Documentation round (`01-ticketing-system-frontend.html` in `D:\Admin Account\Desktop\GIS DOCUMENTS\GIS SYSTEMS DOCUMENTATION`).
